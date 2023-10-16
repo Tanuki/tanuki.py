@@ -1,4 +1,5 @@
 import abc
+from collections import defaultdict
 import collections
 import typing
 from collections import deque
@@ -300,35 +301,61 @@ class Validator:
                         pass
                 raise TypeError(f"Failed to instantiate {target_type} from provided data.")
 
-        # If the data is a dictionary and the target is a custom class
-        if isinstance(data, dict) and inspect.isclass(target_type) and not self.is_base_type(target_type):
-            # Special handling for dataclasses
-            if is_dataclass(target_type):
-                fields = [f.name for f in dataclasses.fields(target_type)]
-                type_hints = get_type_hints(target_type)
-                filtered_data = {k: self.instantiate(v, type_hints.get(k, Any)) for k, v in data.items() if
-                                 k in fields}
-                return target_type(**filtered_data)
+        # If the data is a dictionary and the target is a custom class that can be instantiated from a dictionary.
+        if isinstance(data, dict):
+            if inspect.isclass(target_type) and not self.is_base_type(target_type):
+                # Special handling for dataclasses
+                if is_dataclass(target_type):
+                    fields = [f.name for f in dataclasses.fields(target_type)]
+                    type_hints = get_type_hints(target_type)
+                    filtered_data = {k: self.instantiate(v, type_hints.get(k, Any)) for k, v in data.items() if
+                                     k in fields}
+                    return target_type(**filtered_data)
 
-            # Special handling for Pydantic models
-            if issubclass(target_type, BaseModel):
-                return target_type.model_validate(data)
+                # Special handling for Pydantic models
+                if issubclass(target_type, BaseModel):
+                    return target_type.model_validate(data)
 
-            # For general classes, attempt instantiation
-            try:
-                return target_type(**data)
-            except TypeError:
-                raise TypeError(f"Failed to instantiate {target_type.__name__} from dictionary.")
+                # For general classes, attempt instantiation
+                try:
+                    return target_type(**data)
+                except TypeError:
+                    raise TypeError(f"Failed to instantiate {target_type.__name__} from dictionary.")
+            # Handle dictionary-like types
+            # Check if the target type is or inherits from defaultdict
+            if origin is defaultdict or (isinstance(origin, type) and issubclass(origin, defaultdict)):
+                key_type, value_type = get_args(target_type) if get_args(target_type) else (Any, Any)
+                instantiated_items = {self.instantiate(k, key_type): self.instantiate(v, value_type) for k, v in
+                                      data.items()}
+
+                # For defaultdict, you'll need a default factory. Here, I'm using `int` for simplicity,
+                # but you might want to adapt this based on your needs.
+                return defaultdict(int, instantiated_items)
+
+            # Handle other dictionary-like types
+            elif origin is dict or self._is_subclass_of_generic(origin, dict):
+                key_type, value_type = get_args(target_type) if get_args(target_type) else (Any, Any)
+                instantiated_dict = {self.instantiate(k, key_type): self.instantiate(v, value_type) for k, v in
+                                     data.items()}
+
+                # If the target_type is a subclass of dict, return an instance of target_type
+                if self._is_subclass_of_generic(target_type, dict) and not self._is_generic(target_type):
+                    return target_type(instantiated_dict)
+                else:
+                    return dict(instantiated_dict)
+
+            # Handle set-like dict types like OrderedDict
+            elif any(issubclass(base, dict) for base in origin.__mro__):
+                key_type, value_type = get_args(target_type) if get_args(target_type) else (Any, Any)
+                instantiated_items = {self.instantiate(k, key_type): self.instantiate(v, value_type) for k, v in data.items()}
+                return origin(instantiated_items)
 
         # Tuples aren't supported in JSONable types, so we look for lists instead
         if isinstance(data, list):
             try:
                 # If the origin or target type is a list-like type, or if it implements a list-like collections type
                 # e.g Sequence[int]
-                #if origin in self.list_like_types or (isinstance(origin, type) and issubclass(origin, list)):
                 if origin is list or self._is_subclass_of_generic(origin, list):
-                #if self._is_list_like(target_type) or (isinstance(origin, type) and issubclass(origin, list)):
-                    #if origin is list or issubclass(origin, list) or isinstance(origin, abc.ABCMeta):
                     base, item_types = self._find_generic_base_and_args(target_type)
 
                     item_type = item_types[0] if item_types else Any
@@ -349,36 +376,12 @@ class Validator:
                                 f"Item of type {type(item).__name__} does not match expected type {item_type[0].__name__}.")
                         instantiated_items.append(instantiated_item)
 
-                        # If the instantiated item does not match the expected type, raise an exception
-                        # item_type_origin = get_origin(item_type) or item_type
-                        # if not isinstance(instantiated_item, item_type_origin):
-                        #     raise TypeError(
-                        #         f"Item of type {type(item).__name__} does not match expected type {item_type_origin.__name__}."
-                        #     )
-                        # item_type_origin = get_origin(item_type) or item_type
-                        # args = get_args(item_type)
-                        #
-                        # # If the type is a Union
-                        # if item_type_origin == Union:
-                        #     # Check if the item is an instance of any type in the union
-                        #     if not any(isinstance(instantiated_item, union_type) for union_type in args):
-                        #         raise TypeError(
-                        #             f"Item of type {type(instantiated_item).__name__} does not match any expected types in the union {args}."
-                        #         )
-                        # # For non-union types
-                        # elif not isinstance(instantiated_item, item_type_origin):
-                        #     raise TypeError(
-                        #         f"Item of type {type(instantiated_item).__name__} does not match expected type {item_type_origin.__name__}."
-                        #     )
-
-
                     # If target_type is a subclass of list, return an instance of target_type
                     if self._is_subclass_of_generic(target_type, list) and not self._is_generic(target_type):
                         return target_type(instantiated_items)
 
                 # Handle tuples
                 if self._is_tuple_like(target_type) or (isinstance(origin, type) and issubclass(origin, tuple)):
-                #if origin is tuple or issubclass(target_type, tuple):
                     base, item_types = self._find_generic_base_and_args(target_type)
 
                     instantiated_items = []
@@ -432,9 +435,14 @@ class Validator:
                     return instantiated_items
 
                 # Handle deques
-                if origin is deque or (isinstance(origin, type) and issubclass(origin, set)): #issubclass(target_type, deque):
+                if origin is deque or (isinstance(origin, type) and issubclass(origin, set)):
                    item_type = get_args(target_type)[0] if get_args(target_type) else Any
                    return deque(self.instantiate(item, item_type) for item in data)
+
+                if origin is frozenset or (isinstance(origin, type) and issubclass(origin, frozenset)):
+                   item_type = get_args(target_type)[0] if get_args(target_type) else Any
+                   return frozenset(self.instantiate(item, item_type) for item in data)
+
             except TypeError as e:
                 print(e)
                 raise TypeError(f"Failed to instantiate {target_type} from list. {e}")

@@ -1,6 +1,7 @@
-from collections import deque
+from collections import deque, defaultdict
 from dataclasses import dataclass
-from typing import List, Dict, Tuple, Union, Optional, Sequence, Iterable, Mapping, ChainMap, Set, get_args
+from typing import List, Dict, Tuple, Union, Optional, Sequence, Iterable, Mapping, ChainMap, Set, get_args, FrozenSet, \
+    DefaultDict, Counter, OrderedDict
 
 from pydantic import BaseModel
 
@@ -110,7 +111,7 @@ def test_generics():
     # Data that doesn't match the provided type should raise an error.
     try:
         validator.instantiate([1, 2, "a"], List[int])
-        assert False, "Expected a ValueError"
+        assert False, "Expected a TypeError"
     except TypeError:
         pass
 
@@ -129,6 +130,23 @@ def test_generics():
     # Deque
     result = validator.instantiate([1, 2, 3], deque)
     assert isinstance(result, deque) and list(result) == [1, 2, 3]
+
+    # FrozenSet
+    result = validator.instantiate([1, 2, 3], FrozenSet[int])
+    assert isinstance(result, frozenset) and list(result) == [1, 2, 3]
+
+    # DefaultDict
+    result = validator.instantiate({"a": 1, "b": 2}, DefaultDict[str, int])
+    assert isinstance(result, defaultdict) and dict(result) == {"a": 1, "b": 2}
+
+    # Counter
+    #result = validator.instantiate({"a": 1, "b": 2}, Counter[str])
+    #assert isinstance(result, Counter) and dict(result) == {"a": 1, "b": 2}
+
+    # OrderedDict
+    result = validator.instantiate({"a": 1, "b": 2}, OrderedDict[str, int])
+    assert isinstance(result, OrderedDict) and dict(result) == {"a": 1, "b": 2}
+
 
 def test_extended_generics():
     validator = Validator()
@@ -207,8 +225,8 @@ def test_extended_list(validator):
 
 
 if __name__ == "__main__":
-    test_extended_generics()
     test_generics()
+    test_extended_generics()
     test_instantiate_pydantic()
     test_instantiate_dataclass()
     test_primitives()
