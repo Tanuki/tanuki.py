@@ -1,6 +1,6 @@
 from typing import Optional, Literal
 
-from monkey import monkey
+from monkey import Monkey as monkey
 
 
 @monkey.patch

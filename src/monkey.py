@@ -10,6 +10,7 @@ import openai
 from models.function_description import FunctionDescription
 from models.function_example import FunctionExample
 from register import Register
+from trackers.buffered_logger import BufferedLogger
 from validator import Validator
 
 
@@ -39,15 +40,22 @@ def _log_align(self, message, *args, **kws):
         except IOError as e:
             self.error(f"Failed to write to log file: {e}")
 
+# Set up logging with custom logger
+def logger_factory(name):
+    return BufferedLogger(name)
 
 ALIGN_LEVEL_NUM = 15
+PATCH_LEVEL_NUM = 14
 logging.addLevelName(ALIGN_LEVEL_NUM, "ALIGN")
+logging.addLevelName(PATCH_LEVEL_NUM, "PATCH")
 
 ALIGN_FILE_NAME = ".align"
-logging.Logger.align = _log_align
+
 # Set up basic configuration
+logging.setLoggerClass(BufferedLogger)
 logging.basicConfig(level=ALIGN_LEVEL_NUM)
-logger = logging.getLogger(__name__)
+
+logger = logger_factory(__name__)
 
 alignable_functions = {}
 
@@ -150,7 +158,7 @@ class Monkey:
                             attributes[attr_name] = len(attr_value)
 
                     mocked_behaviour = mock_behaviors.get(args, None)
-                    logger.align(hashed_description, args, kwargs, mocked_behaviour)
+                    logger.log_align(hashed_description, args, kwargs, mocked_behaviour)
                     return mocked_behaviour
 
                 return mock_func
@@ -201,14 +209,6 @@ class Monkey:
         def wrapper(*args, **kwargs):
             function_description = Register.load_function_description(test_func)
 
-            # If the first argument names is self or cls, then it is an instance method
-            # if len(args) > 0 and
-            #     instance = args[0]
-            #     args = args[1:]
-            # else:
-            #     instance = None
-
-
             # f = json_dumps(function_description.__dict__)
             f = str(function_description.__dict__.__repr__() + "\n")
             instruction = "Optionally convert the input into the output type, using the docstring as a guide. Return None if you can't."
@@ -238,11 +238,12 @@ class Monkey:
                 raise TypeError(
                     f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{choice}'")
 
+            logger.log_patch(function_description.__hash__(), args, kwargs, choice)
+
             instantiated = validator.instantiate(choice, function_description.output_type_hint)
 
             return instantiated  # test_func(*args, **kwargs)
 
         wrapper._is_alignable = True
         Register.add_function(test_func, wrapper)
-        print(f"Returning aligned version of {test_func.__name__}")
         return wrapper
