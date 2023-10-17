@@ -1,6 +1,7 @@
 import dataclasses
 import datetime
 import json
+import math
 import typing
 from typing import _UnionGenericAlias, get_args, Literal
 
@@ -49,3 +50,18 @@ def json_dumps(thing):
         indent=None,
         separators=(',', ':'),
     )
+
+
+def optimal_bloom_filter_params(n, p):
+    """
+    Calculate the optimal bit array size (m) and number of hash functions (k)
+    for a Bloom filter.
+
+    n: expected number of items to be stored
+    p: acceptable false positive probability
+
+    Returns a tuple (m, k)
+    """
+    m = - (n * math.log(p)) / (math.log(2) ** 2)
+    k = (m / n) * math.log(2)
+    return int(math.ceil(m)), int(math.ceil(k))

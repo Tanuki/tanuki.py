@@ -35,15 +35,28 @@ class Validator:
             if hasattr(cls, 'add') and hasattr(cls, 'discard')
         }
         # Add the general Sequence to list-like types
-        self.list_like_types.add(collections.Sequence)
+        # if python version is 3.9 or above, use collections.abc.Sequence
+        if hasattr(collections.abc, 'Sequence'):
+            self.list_like_types.add(collections.abc.Sequence)
+        else:
+            self.list_like_types.add(collections.Sequence)
+
         self.list_like_types.add(typing.List)
 
         # Add the general Mapping to dict-like types
-        self.dict_like_types.add(collections.Mapping)
+        if hasattr(collections.abc, 'Mapping'):
+            self.dict_like_types.add(collections.abc.Mapping)
+        else:
+            self.dict_like_types.add(collections.Mapping)
+
         self.dict_like_types.add(typing.Dict)
 
         # Add the general Set to set-like types
-        self.set_like_types.add(collections.Set)
+        if hasattr(collections.abc, 'Set'):
+            self.set_like_types.add(collections.abc.Set)
+        else:
+            self.set_like_types.add(collections.Set)
+
         self.set_like_types.add(typing.Set)
 
         # Add the general Tuple to tuple-like types

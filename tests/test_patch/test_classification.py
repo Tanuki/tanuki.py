@@ -4,7 +4,8 @@ from typing import Optional, Literal
 import openai
 from dotenv import load_dotenv
 
-from monkey import monkey
+import monkey
+
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 

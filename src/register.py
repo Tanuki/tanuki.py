@@ -1,8 +1,9 @@
 import inspect
-from typing import get_type_hints, Literal
+from typing import get_type_hints, Literal, Optional
 
 from models.function_description import FunctionDescription
 
+alignable_functions = {}
 
 class Register:
 
@@ -10,14 +11,39 @@ class Register:
         pass
 
     @staticmethod
-    def load_function_description_from_name(func_name) -> FunctionDescription:
+    def get(func_name):
+        return alignable_functions[func_name]
+
+    @staticmethod
+    def function_names_to_patch():
+        return list(alignable_functions.keys())
+
+    @staticmethod
+    def add_function(func, wrapper):
+        alignable_functions[func.__name__] = wrapper
+
+    @staticmethod
+    def load_function_description_from_name(*args) -> FunctionDescription:
         """
         Load a function description from a function name from the global scope.
         :param func_name:
         :return:
         """
-        func_object = globals().get(func_name)
-        return Register.load_function_description(func_object)
+        if len(args) == 1:
+            instance = None
+            func_name = args[0]
+        elif len(args) == 2:
+            instance = args[0]
+            func_name = args[1]
+        else:
+            raise ValueError("Invalid number of arguments")
+
+        if not instance:
+            func_object = alignable_functions[func_name]
+            return Register.load_function_description(func_object)
+        else:
+            func_object = getattr(instance, func_name)
+            return Register.load_function_description(func_object)
 
 
     @staticmethod
