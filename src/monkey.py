@@ -140,8 +140,7 @@ class Monkey:
                     if not instance:
                         result = Register.get(func_name)(*args, **kwargs)
                     else:
-                        _f = instance.__class__.__dict__.get(func_name, None)
-                        result = _f(*args, **kwargs)
+                        result = Register.get(func_name)(instance, *args, **kwargs)
 
                     # Extract attributes from the result
                     attributes = extract_attributes(result)
@@ -156,27 +155,16 @@ class Monkey:
 
                 return mock_func
 
+            function_names_to_patch = Register.function_names_to_patch()
+
             # Identify all functions that need to be patched based on mock_behaviors
             if instance:
-                #function_names_to_patch = [func for func in mockable_functions if
-                #                           hasattr(instance, func) and getattr(getattr(instance, func), '_is_alignable',
-                # False)]
-                function_names_to_patch = alignable_functions.keys()
+                functions_descriptions = [Register.load_function_description_from_name(instance, func_name)
+                                          for func_name in function_names_to_patch]
 
-                functions_descriptions = [Register.load_function_description_from_name(instance, func_name) for
-                                          func_name in
-                                          function_names_to_patch]
             else:
-
-
-                #function_names_to_patch = set(
-                #    [func for func in mockable_functions if getattr(globals().get(func, None), '_is_alignable', False)])
-                function_names_to_patch = Register.function_names_to_patch()
-                # modules and function names to patch
-                #modules_to_patch = set([_globals.get(func, None).__module__ for func in function_names_to_patch])
-
-                functions_descriptions = [Register.load_function_description_from_name(func_name) for func_name in
-                                          function_names_to_patch]
+                functions_descriptions = [Register.load_function_description_from_name(func_name)
+                                          for func_name in function_names_to_patch]
 
             patched_func = test_func
             for desc, func in zip(functions_descriptions, function_names_to_patch):
@@ -187,8 +175,6 @@ class Monkey:
                     patched_func = patch.object(instance, func, new=mock_function)(patched_func)
                 else:
                     patched_func = patch(f'{module_name}.{func}', new=mock_function)(patched_func)
-
-                # patched_func = patch(f'{module_name}.{func}', new=mock_function)(patched_func)
 
             # Get the signature of the function
             sig = inspect.signature(test_func)
@@ -221,6 +207,8 @@ class Monkey:
             #     args = args[1:]
             # else:
             #     instance = None
+
+
             # f = json_dumps(function_description.__dict__)
             f = str(function_description.__dict__.__repr__() + "\n")
             instruction = "Optionally convert the input into the output type, using the docstring as a guide. Return None if you can't."
@@ -256,4 +244,5 @@ class Monkey:
 
         wrapper._is_alignable = True
         Register.add_function(test_func, wrapper)
+        print(f"Returning aligned version of {test_func.__name__}")
         return wrapper

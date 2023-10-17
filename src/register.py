@@ -5,6 +5,7 @@ from models.function_description import FunctionDescription
 
 alignable_functions = {}
 
+
 class Register:
 
     def __init__(self):
@@ -20,7 +21,7 @@ class Register:
 
     @staticmethod
     def add_function(func, wrapper):
-        alignable_functions[func.__name__] = wrapper
+        alignable_functions[func.__name__] = func #wrapper
 
     @staticmethod
     def load_function_description_from_name(*args) -> FunctionDescription:
@@ -44,7 +45,6 @@ class Register:
         else:
             func_object = getattr(instance, func_name)
             return Register.load_function_description(func_object)
-
 
     @staticmethod
     def load_function_description(func_object) -> FunctionDescription:

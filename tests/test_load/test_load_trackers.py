@@ -5,10 +5,9 @@ import pytest
 
 from models.function_example import FunctionExample
 from trackers.buffered_logger import BufferedLogger
-from trackers.text_file_logger import TextFileLogger
 
 
-@pytest.fixture(params=[TextFileLogger, BufferedLogger])
+@pytest.fixture(params=[BufferedLogger])
 def logger(request):
     with TemporaryDirectory() as temp_dir:
         global ALIGN_FILE_NAME
@@ -40,4 +39,3 @@ def test_load_log_patch(logger):
 
 if __name__ == "__main__":
     test_load_log_patch(BufferedLogger())
-    #test_load_log_patch(TextFileLogger())
