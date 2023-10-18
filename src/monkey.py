@@ -67,7 +67,7 @@ class Monkey:
 
     @staticmethod
     def _load_alignments():
-        pass
+        logger.load_alignments()
 
     @staticmethod
     def align(test_func):
@@ -213,11 +213,13 @@ class Monkey:
         def wrapper(*args, **kwargs):
             function_description = Register.load_function_description(test_func)
             model = logger.get_model(function_description.__hash__())
+            aligns = logger.get_alignments(function_description.__hash__(), max=5)
+            examples = "\n".join([f"Input: {align['args']}\nOutput: {align['output']}" for align in aligns])
             # f = json_dumps(function_description.__dict__)
             f = str(function_description.__dict__.__repr__() + "\n")
             instruction = "Optionally convert the input into the output type, using the docstring as a guide. Return None if you can't."
             warning = "INCREDIBLY IMPORTANT: Only output a JSON-compatible string in the correct response format."
-            content = f"{instruction}\n{warning}\nFunction: {f}\nInput: {args}\nOutput:"
+            content = f"{instruction}\n{warning}\nFunction: {f}\n{examples}\nInput: {args}\nOutput:"
             response = openai.ChatCompletion.create(
                 model=model,
                 messages=[

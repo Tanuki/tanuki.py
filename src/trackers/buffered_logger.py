@@ -74,12 +74,16 @@ class BufferedLogger(Logger):
         self.dataset_lengths = {}
         for file in files:
             with open(os.path.join(log_directory, file), "rb") as f:
-                dataset = f.read().decode('utf-8')
+                try:
+                    dataset = f.read().decode('utf-8')
+                except UnicodeDecodeError:
+                    self.dataset_lengths[log_file_path] = 0
+                    continue
             # get the total nr of /n in the file
             log_file_path = os.path.join(log_directory, file)
             self.dataset_lengths[log_file_path] = dataset.count("\n") - dataset.count("\\n") 
 
-    def log_align(self, message, *args, **kws):
+    def log_align(self, func_hash, *args, **kws):
         log_directory = self._get_log_directory()
         if not os.path.exists(log_directory):
             os.makedirs(log_directory)
@@ -87,9 +91,62 @@ class BufferedLogger(Logger):
         args, kwargs, output = args
         example = FunctionExample(args, kwargs, output)
 
-        log_file_path = os.path.join(log_directory, message)
+        log_file_path = os.path.join(log_directory, func_hash)
         with open(log_file_path, "a") as f:
             f.write(str(example.__dict__) + "\n")
+
+    def load_alignments(self):
+        """
+        Load alignments from persistent storage into memory for faster access.
+        :return:
+        """
+        self.buffers = {}
+
+        log_directory = self._get_log_directory()
+        if not os.path.exists(log_directory):
+            os.makedirs(log_directory)
+        # get all the files in the log directory
+        files = os.listdir(log_directory)
+        # discard all .json files
+        files = [x for x in files if ".json" not in x]
+        for file in files:
+            log_file_path = os.path.join(log_directory, file)
+            with open(log_file_path, "rb") as f:
+                try:
+                    self.buffers[log_file_path] = f.read()
+                except UnicodeDecodeError:
+                    self.buffers[log_file_path] = bytearray()
+                    continue
+
+    def get_alignments(self, func_hash, max=20):
+        """
+        Get all aligns for a function hash
+        """
+        # get the log directory
+        log_directory = self._get_log_directory()
+
+        # look in buffer first
+        log_file_path = os.path.join(log_directory, func_hash)
+        buffer: bytes = self.buffers[log_file_path]
+
+        split_buffer = buffer.split(b"\n")
+
+        # byte array of stringed python dicts into dict objects
+        example_set = set()
+        for example in split_buffer:
+            if example == b"":
+                continue
+            example_set.add(example)
+
+        examples = []
+        for example_bytes in split_buffer:
+            if example_bytes in example_set:
+                example = example_bytes.decode('utf-8')
+                example = ast.literal_eval(example)
+                examples.append(example)
+                example_set.remove(example_bytes)
+
+        return list(examples)[:max]
 
     def log_patch(self, message, example):
 
