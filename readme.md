@@ -1,6 +1,6 @@
 # 🙈 Monkey Patch
 
-The fastest and easiest way to build LLM-augmented applications.
+The fastest and easiest way to build LLM features in python.
 
 `MonkeyPatch (noun): A piece of code which extends or modifies other code at runtime.
 

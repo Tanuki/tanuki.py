@@ -20,6 +20,7 @@ class BufferedLogger(Logger):
         self.miss_count = 0
         self.hit_count = 0
         self.log_directory = self._get_log_directory()
+        self.flush_limit = {}
         self.bloom_filter = BloomFilter(*optimal_bloom_filter_params(EXPECTED_ITEMS, FALSE_POSITIVE_RATE))
         try:
             self.bloom_filter.load(self.log_directory)
@@ -98,11 +99,15 @@ class BufferedLogger(Logger):
             self.save_bloom_filter()
             self.write_count = 0  # Reset counter
 
-        if len(self.buffers[log_file_path]) >= 4096:  # Flush after reaching 4KB
+        if log_file_path not in self.flush_limit:
+            self.flush_limit[log_file_path] = 1
+
+        if len(self.buffers[log_file_path]) >= self.flush_limit[log_file_path]:  # Flush after reaching 4KB
             with open(log_file_path, "a+b") as f:
                 f.write(self.buffers[log_file_path])
 
             self.buffers[log_file_path].clear()
+            self.flush_limit = 2 * self.flush_limit
 
     def save_bloom_filter(self):
         self.bloom_filter.save(self.log_directory)

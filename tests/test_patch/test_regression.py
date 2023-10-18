@@ -16,6 +16,7 @@ def classify_sentiment(input: str) -> Optional[Literal['Good', 'Bad']]:
     Determine if the input is positive or negative sentiment
     """
 
+
 def test_classify_sentiment():
     """We can test the function as normal using Pytest or Unittest"""
 
