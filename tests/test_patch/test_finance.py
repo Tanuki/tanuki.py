@@ -3,8 +3,6 @@ from typing import Optional, Literal, List
 import unittest
 import openai
 from dotenv import load_dotenv
-import sys
-sys.path.append("C:\\Users\\martb\\Documents\\Monkey_patch_new\\monkey-patch\\src")
 from monkey import Monkey
 
 load_dotenv()

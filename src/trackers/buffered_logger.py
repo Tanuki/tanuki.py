@@ -120,7 +120,10 @@ class BufferedLogger(Logger):
         if len(self.buffers[log_file_path]) >= self.flush_limit[log_file_path]:  # Flush after reaching 4KB
             with open(log_file_path, "a+b") as f:
                 f.write(self.buffers[log_file_path])
-            self.dataset_lengths[log_file_path] += 1
+            if log_file_path in self.dataset_lengths:
+                self.dataset_lengths[log_file_path] += 1
+            else:
+                self.dataset_lengths[log_file_path] = 1
             self.buffers[log_file_path].clear()
             self.flush_limit[log_file_path] = 2 * self.flush_limit[log_file_path]
         return True

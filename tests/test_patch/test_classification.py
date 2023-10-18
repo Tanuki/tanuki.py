@@ -3,8 +3,6 @@ from typing import Optional, Literal, List
 import unittest
 import openai
 from dotenv import load_dotenv
-import sys
-sys.path.append("C:\\Users\\martb\\Documents\\Monkey_patch_new\\monkey-patch\\src")
 from monkey import Monkey
 
 load_dotenv()
@@ -39,5 +37,5 @@ def test_classify_sentiment():
     assert not classify_sentiment("Wednesdays are in the middle of the week")
 
 if __name__ == '__main__':
-    #unittest.main()
-    classify_sentiment("I love you\nI really liked yesterday?")
+    unittest.main()
+    #classify_sentiment("I love you\nI really liked yesterday?")
