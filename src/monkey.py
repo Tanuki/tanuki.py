@@ -12,6 +12,8 @@ from models.function_example import FunctionExample
 from register import Register
 from trackers.buffered_logger import BufferedLogger
 from validator import Validator
+from repair import repair_output
+import json
 
 
 # Define a new level
@@ -230,16 +232,30 @@ class Monkey:
             )
 
             choice = response.choices[0].message.content.strip("'")
+            # start parsing the object, WILL NEED TO BE CHANGED, VERY HACKY
+            try:
+                # json load
+                choice_parsed = json.loads(choice)
+            except:
+                # if it fails, it's not a json object, try eval
+                try:
+                    choice_parsed = eval(choice)
+                except: 
+                    choice_parsed = choice
+
             validator = Validator()
 
-            valid = validator.check_type(choice, function_description.output_type_hint)
+            valid = validator.check_type(choice_parsed, function_description.output_type_hint)
 
             if not valid:
-                raise TypeError(
-                    f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{choice}'")
+                error = f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{choice}'"
+                choice, successful_repair = repair_output(args, function_description, choice, error, validator)
+
+                if not successful_repair:
+                    raise TypeError(f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{choice}'")
 
             datapoint = FunctionExample(args, kwargs, choice)
-            logger.postprocess_datapoint(function_description.__hash__(), f, datapoint, log = True)
+            logger.postprocess_datapoint(function_description.__hash__(), f, datapoint, log = not valid)
 
             instantiated = validator.instantiate(choice, function_description.output_type_hint)
 
