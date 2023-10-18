@@ -59,16 +59,24 @@ class BufferedLogger(Logger):
         return os.path.join(os.getcwd(), ALIGN_FILE_NAME)
 
     def _get_dataset_sizes(self):
+        """
+        Get all dataset sizes for existing datasets
+    
+        """
+
+        log_directory = self._get_log_directory()
+        if not os.path.exists(log_directory):
+            os.makedirs(log_directory)
         # get all the files in the log directory
-        files = os.listdir(self.log_directory)
+        files = os.listdir(log_directory)
         # discard all .json files
         files = [x for x in files if ".json" not in x]
         self.dataset_lengths = {}
         for file in files:
-            with open(os.path.join(self.log_directory, file), "rb") as f:
+            with open(os.path.join(log_directory, file), "rb") as f:
                 dataset = f.read().decode('utf-8')
             # get the total nr of /n in the file
-            log_file_path = os.path.join(self.log_directory, file)
+            log_file_path = os.path.join(log_directory, file)
             self.dataset_lengths[log_file_path] = dataset.count("\n") - dataset.count("\\n") 
 
     def log_align(self, message, *args, **kws):
