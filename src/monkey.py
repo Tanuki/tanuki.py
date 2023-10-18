@@ -208,14 +208,14 @@ class Monkey:
         @wraps(test_func)
         def wrapper(*args, **kwargs):
             function_description = Register.load_function_description(test_func)
-
+            model = logger.get_model(function_description.__hash__())
             # f = json_dumps(function_description.__dict__)
             f = str(function_description.__dict__.__repr__() + "\n")
             instruction = "Optionally convert the input into the output type, using the docstring as a guide. Return None if you can't."
             warning = "INCREDIBLY IMPORTANT: Only output a JSON-compatible string in the correct response format."
             content = f"{instruction}\n{warning}\nFunction: {f}\nInput: {args}\nOutput:"
             response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+                model=model,
                 messages=[
                     {
                         "role": "user",
@@ -238,7 +238,8 @@ class Monkey:
                 raise TypeError(
                     f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{choice}'")
 
-            logger.log_patch(function_description.__hash__(), args, kwargs, choice)
+            datapoint = FunctionExample(args, kwargs, choice)
+            logger.postprocess_datapoint(function_description.__hash__(), f, datapoint, log = True)
 
             instantiated = validator.instantiate(choice, function_description.output_type_hint)
 
