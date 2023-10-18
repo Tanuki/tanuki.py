@@ -24,6 +24,7 @@ class BufferedLogger(Logger):
         self.hit_count = 0
         self.flush_limit = {}
         self.log_directory = self._get_log_directory()
+        self.flush_limit = {}
         self.bloom_filter = BloomFilter(*optimal_bloom_filter_params(EXPECTED_ITEMS, FALSE_POSITIVE_RATE))
         self.configs = {}
         try:
@@ -127,9 +128,10 @@ class BufferedLogger(Logger):
             else:
                 self.dataset_lengths[log_file_path] = 1
             self.buffers[log_file_path].clear()
+
             self.flush_limit[log_file_path] = 2 * self.flush_limit[log_file_path]
         return True
-
+    
     def save_bloom_filter(self):
         self.bloom_filter.save(self.log_directory)
 

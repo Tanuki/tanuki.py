@@ -42,9 +42,11 @@ def _log_align(self, message, *args, **kws):
         except IOError as e:
             self.error(f"Failed to write to log file: {e}")
 
+
 # Set up logging with custom logger
 def logger_factory(name):
     return BufferedLogger(name)
+
 
 ALIGN_LEVEL_NUM = 15
 PATCH_LEVEL_NUM = 14

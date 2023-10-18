@@ -26,7 +26,7 @@ class TestActionItems(unittest.TestCase):
         pass
 
     @monkey.align
-    def test_align_create_action_items(self):
+    def test_align_create_action_items_of_fixed_length(self):
         """We can test the function as normal using Pytest or Unittest"""
 
         speech = "Heya, I need you to do three things for me. " \
