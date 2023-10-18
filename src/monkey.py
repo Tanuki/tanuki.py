@@ -20,6 +20,7 @@ import json
 def _log_align(self, message, *args, **kws):
     if self.isEnabledFor(ALIGN_LEVEL_NUM):
         args, kwargs, output = args
+        kwargs['align'] = True
         example = FunctionExample(args, kwargs, output)
 
         # Define a safe directory within the project for logs
@@ -219,7 +220,7 @@ class Monkey:
             f = str(function_description.__dict__.__repr__() + "\n")
             instruction = "Optionally convert the input into the output type, using the docstring as a guide. Return None if you can't."
             warning = "INCREDIBLY IMPORTANT: Only output a JSON-compatible string in the correct response format."
-            content = f"{instruction}\n{warning}\nFunction: {f}\n{examples}\nInput: {args}\nOutput:"
+            content = f"{instruction}\n{warning}\nFunction: {f}\nExamples:{examples}\n---\nInput: {args}\nOutput:"
             response = openai.ChatCompletion.create(
                 model=model,
                 messages=[

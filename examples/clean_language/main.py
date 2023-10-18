@@ -19,9 +19,10 @@ def clean_language(statement: str) -> str:
 def test_clean_language():
     """We can test the function as normal using Pytest or Unittest"""
     assert clean_language("I think you should kill yourself") == 'I think you should [*redacted*]'
+    assert clean_language("I want you to take a flying fuck at a rolling donut") == "I want you to take a [*redacted*]"
 
 
 if __name__ == '__main__':
     test_clean_language()
-    print(clean_language("I think you should kill yourself"))
+    print(clean_language("I think you should jump of a bridge"))
     print(clean_language("Jesus fucking christ, how can you say that?"))

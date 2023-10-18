@@ -9,7 +9,9 @@ import openai
 import ast
 import io
 import datetime
-ALIGN_FILE_NAME = "functions"
+
+PATCH_FILE_EXTENSION = ".patches"
+ALIGN_FILE_EXTENSION = ".alignments"
 EXPECTED_ITEMS = 10000
 FALSE_POSITIVE_RATE = 0.01
 LIB_NAME = "monkey-patch"
@@ -34,17 +36,23 @@ class BufferedLogger(Logger):
 
         self.write_count = 0
         self.write_limit = 1000  # Save the Bloom filter every 1000 writes
-        self._get_dataset_sizes()
+
+        # We add load the number of alignment and patches from the files
+        self._load_dataset_sizes()
+
         super().__init__(self, level)
 
     def _get_log_directory(self):
+
+        filename = "functions"
+
         # Check for an environment variable to determine where to write.
         env_dir = os.getenv(ENVVAR)
         if env_dir and os.path.isdir(env_dir):
-            return os.path.join(env_dir, ALIGN_FILE_NAME)
+            return os.path.join(env_dir, filename)
 
         # Write in a library-specific data directory.
-        library_dir = os.path.join(user_data_dir(LIB_NAME), ALIGN_FILE_NAME)
+        library_dir = os.path.join(user_data_dir(LIB_NAME), filename)
         if os.path.isdir(library_dir) or not os.path.exists(library_dir):
             return library_dir
 
@@ -52,13 +60,13 @@ class BufferedLogger(Logger):
         current_dir = os.getcwd()
         while current_dir != os.path.root:
             if ".git" in os.listdir(current_dir):
-                return os.path.join(current_dir, ALIGN_FILE_NAME)
+                return os.path.join(current_dir, filename)
             current_dir = os.path.dirname(current_dir)
 
         # 4. Write to where the code is being executed from.
-        return os.path.join(os.getcwd(), ALIGN_FILE_NAME)
+        return os.path.join(os.getcwd(), filename)
 
-    def _get_dataset_sizes(self):
+    def _load_dataset_sizes(self):
         """
         Get all dataset sizes for existing datasets
     
@@ -81,7 +89,12 @@ class BufferedLogger(Logger):
                     continue
             # get the total nr of /n in the file
             log_file_path = os.path.join(log_directory, file)
-            self.dataset_lengths[log_file_path] = dataset.count("\n") - dataset.count("\\n") 
+
+            if log_file_path not in self.dataset_lengths:
+                self.dataset_lengths[log_file_path] = dataset.count("\n") - dataset.count("\\n")
+            else:
+                self.dataset_lengths[log_file_path] += dataset.count("\n") - dataset.count("\\n")
+
 
     def log_align(self, func_hash, *args, **kws):
         log_directory = self._get_log_directory()
@@ -91,7 +104,13 @@ class BufferedLogger(Logger):
         args, kwargs, output = args
         example = FunctionExample(args, kwargs, output)
 
-        log_file_path = os.path.join(log_directory, func_hash)
+        # Create the folder if it doesn't exist
+        if not os.path.exists(log_directory):
+            os.makedirs(log_directory)
+
+        log_file_path = os.path.join(log_directory, func_hash+ALIGN_FILE_EXTENSION)
+
+        # Now, write to the file
         with open(log_file_path, "a") as f:
             f.write(str(example.__dict__) + "\n")
 
@@ -113,7 +132,7 @@ class BufferedLogger(Logger):
             log_file_path = os.path.join(log_directory, file)
             with open(log_file_path, "rb") as f:
                 try:
-                    self.buffers[log_file_path] = f.read()
+                    self.buffers[log_file_path] = bytearray(f.read())
                 except UnicodeDecodeError:
                     self.buffers[log_file_path] = bytearray()
                     continue
@@ -126,10 +145,14 @@ class BufferedLogger(Logger):
         log_directory = self._get_log_directory()
 
         # look in buffer first
-        log_file_path = os.path.join(log_directory, func_hash)
-        buffer: bytes = self.buffers[log_file_path]
+        log_file_path = os.path.join(log_directory, func_hash+ALIGN_FILE_EXTENSION)
 
-        split_buffer = buffer.split(b"\n")
+        if log_file_path not in self.buffers:
+            return []
+
+        buffer = self.buffers[log_file_path]
+
+        split_buffer = bytes(buffer).split(b"\n")
 
         # byte array of stringed python dicts into dict objects
         example_set = set()
@@ -165,10 +188,14 @@ class BufferedLogger(Logger):
         self.bloom_filter.add(example_data.decode('utf-8'))
 
         log_directory = self._get_log_directory()
+        path = os.path.join(log_directory, message)
         if not os.path.exists(log_directory):
             os.makedirs(log_directory)
 
-        log_file_path = os.path.join(log_directory, message)
+        if os.path.exists(log_directory):
+            pass
+
+        log_file_path = os.path.join(log_directory, message+PATCH_FILE_EXTENSION)
 
         if log_file_path not in self.buffers:
             self.buffers[log_file_path] = bytearray()
@@ -186,17 +213,20 @@ class BufferedLogger(Logger):
             self.write_count = 0  # Reset counter
 
         if len(self.buffers[log_file_path]) >= self.flush_limit[log_file_path]:  # Flush after reaching 4KB
-            with open(log_file_path, "a+b") as f:
-                f.write(self.buffers[log_file_path])
-            if log_file_path in self.dataset_lengths:
-                self.dataset_lengths[log_file_path] += 1
-            else:
-                self.dataset_lengths[log_file_path] = 1
+            try:
+                with open(log_file_path, "a+b") as f:
+                    f.write(self.buffers[log_file_path])
+                if log_file_path in self.dataset_lengths:
+                    self.dataset_lengths[log_file_path] += 1
+                else:
+                    self.dataset_lengths[log_file_path] = 1
+            except Exception as e:
+                print(f"Error writing to file: {e}")
             self.buffers[log_file_path].clear()
 
             self.flush_limit[log_file_path] = 2 * self.flush_limit[log_file_path]
         return True
-    
+
     def save_bloom_filter(self):
         self.bloom_filter.save(self.log_directory)
 
@@ -215,24 +245,23 @@ class BufferedLogger(Logger):
         Config file has to have to be in .json
         """
 
-        
         config_path = f"{log_file_path}.json"
         if not os.path.exists(config_path):
-            self.configs[log_file_path] = {"current_model": "gpt-4", 
-                    "current_model_stats": {"trained_on_datapoints": 0,
-                    "running_faults": []}, 
-                    "last_training_run": {"trained_on_datapoints": 0}, 
-                    "current_training_run": {}, 
-                    "current_datapoints": 0,
-                    "teacher_models" : ["gpt-4"],
-                    "nr_of_training_runs": 0}
+            self.configs[log_file_path] = {"current_model": "gpt-4",
+                                           "current_model_stats": {
+                                               "trained_on_datapoints": 0,
+                                               "running_faults": []},
+                                           "last_training_run": {"trained_on_datapoints": 0},
+                                           "current_training_run": {},
+                                           "current_datapoints": 0,
+                                           "teacher_models": ["gpt-4"],
+                                           "nr_of_training_runs": 0}
+
             with open(config_path, "w") as f:
                 json.dump(self.configs[log_file_path], f)
         else:
             with open(config_path, "r") as f:
                 self.configs[log_file_path] = json.load(f)
-        
-
 
     def get_model(self, message):
         """
@@ -244,12 +273,11 @@ class BufferedLogger(Logger):
         if not os.path.exists(log_directory):
             os.makedirs(log_directory)
 
-
         self.get_configs(log_file_path)
 
         return self.configs[log_file_path]["current_model"]
-    
-    def postprocess_datapoint(self, message, function_description, example, log = True):
+
+    def postprocess_datapoint(self, message, function_description, example, log=True):
         """
         Postprocess the datapoint
         First check if datapoint should be added to training data
@@ -269,9 +297,9 @@ class BufferedLogger(Logger):
             print(e)
             print("Could not add datapoint to training data")
             return None
-        
+
         self.check_for_finetuning(function_description, log_file_path)
-    
+
     def check_for_finetuning(self, function_description, log_file_path):
         """
         Check for finetuning status
@@ -284,7 +312,7 @@ class BufferedLogger(Logger):
                 # check for job status
                 self._check_finetuning_status(log_file_path)
             else:
-            # check for finetuning condition
+                # check for finetuning condition
                 if self._check_finetuning_condition(log_file_path):
                     self._execute_finetuning(function_description, log_file_path)
         except Exception as e:
@@ -296,8 +324,18 @@ class BufferedLogger(Logger):
         Check if the finetuning condition is met
         Currently finetuning condition is dependent on the number of datapoints since last finetuning
         """
-        last_training_run_datapoints = self.configs[log_file_path]["last_training_run"]["trained_on_datapoints"]   
-        return self.dataset_lengths[log_file_path] - last_training_run_datapoints > 100*(2**self.configs[log_file_path]["nr_of_training_runs"])
+        if log_file_path not in self.configs:
+            return False
+
+        last_training_run_datapoints = self.configs[log_file_path]["last_training_run"]["trained_on_datapoints"]
+
+        training_threshold = (2 ** self.configs[log_file_path]["nr_of_training_runs"]) * 100
+
+        align_dataset_size = self.dataset_lengths[log_file_path+ALIGN_FILE_EXTENSION]
+        patch_dataset_size = self.dataset_lengths[log_file_path+PATCH_FILE_EXTENSION]
+
+        return (patch_dataset_size + align_dataset_size) - last_training_run_datapoints > training_threshold
+
 
     def _execute_finetuning(self, function_description, log_file_path):
         """
@@ -306,9 +344,16 @@ class BufferedLogger(Logger):
         Then submit the OpenAI finetuning job
         Finally update the config file to reflect the new finetuning job as current
         """
+        align_dataset, patch_dataset = "", ""
         # read in the dataset file
-        with open (log_file_path, "rb") as f:
-            dataset = f.read().decode('utf-8')
+        with open(log_file_path+ALIGN_FILE_EXTENSION, "rb") as f:
+            align_dataset = f.read().decode('utf-8')
+
+        with open(log_file_path+PATCH_FILE_EXTENSION, "rb") as f:
+            patch_dataset = f.read().decode('utf-8')
+
+        dataset = align_dataset + patch_dataset
+
         dataset.replace("\\n", "[SEP_TOKEN]")
         dataset = dataset.split("\n")
         dataset = [x.replace("[SEP_TOKEN]", "\\n") for x in dataset if x != ""]
@@ -318,15 +363,16 @@ class BufferedLogger(Logger):
         # create the openai dataset
         instruction = "Optionally convert the input into the output type, using the docstring as a guide. Return None if you can't."
         warning = "INCREDIBLY IMPORTANT: Only output a JSON-compatible string in the correct response format."
-        finetuning_dataset = [{"messages":[
-                        {
-                            "role": "system",
-                            "content": "You are a skillful assistant who carries out the user instructions in a correct and accurate manner",
-                        },
-                        {"role": "user", "content": f"{instruction}\n{warning}\nFunction: {function_description}\nInput: {x['args']}\nOutput:"},
-                        {"role": "assistant", "content": x['output'] if x['output'] is not None else "None"}]}
-                        for x in dataset]
-        
+        finetuning_dataset = [{"messages": [
+            {
+                "role": "system",
+                "content": "You are a skillful assistant who carries out the user instructions in a correct and accurate manner",
+            },
+            {"role": "user",
+             "content": f"{instruction}\n{warning}\nFunction: {function_description}\nInput: {x['args']}\nOutput:"},
+            {"role": "assistant", "content": x['output'] if x['output'] is not None else "None"}]}
+            for x in dataset]
+
         # Create an in-memory text stream
         temp_file = io.StringIO()
         # Write data to the stream
@@ -334,26 +380,27 @@ class BufferedLogger(Logger):
             temp_file.write(json.dumps(item))
             if idx != len(finetuning_dataset) - 1:
                 temp_file.write("\n")
-        
+
         # Reset the stream position to the beginning
         temp_file.seek(0)
-        
+
         # Use the stream as a file
         response = openai.File.create(file=temp_file, purpose='fine-tune')
 
-
         training_file_id = response["id"]
-        finetuning_response = openai.FineTuningJob.create(training_file=training_file_id, model="gpt-3.5-turbo", suffix = "test_autom")
+        finetuning_response = openai.FineTuningJob.create(training_file=training_file_id, model="gpt-3.5-turbo",
+                                                          suffix="test_autom")
         self.configs[log_file_path]["current_training_run"] = {"job_id": finetuning_response["id"],
-                                                "trained_on_datapoints": self.configs[log_file_path]["current_datapoints"],
-                                                "last_checked": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+                                                               "trained_on_datapoints": self.configs[log_file_path][
+                                                                   "current_datapoints"],
+                                                               "last_checked": datetime.datetime.now().strftime(
+                                                                   "%Y-%m-%d %H:%M:%S")}
         # update the config json file
         try:
             self._update_config_file(log_file_path)
         except Exception as e:
             print(e)
             print("Could not update config file to register a finetuning run")
-
 
     def _check_finetuning_status(self, log_file_path):
         """
@@ -364,12 +411,14 @@ class BufferedLogger(Logger):
         job_id = self.configs[log_file_path]["current_training_run"]["job_id"]
         last_checked = self.configs[log_file_path]["current_training_run"]["last_checked"]
         # check if last checked was more than 30 mins ago
-        if (datetime.datetime.now() - datetime.datetime.strptime(last_checked, "%Y-%m-%d %H:%M:%S")).total_seconds() > 1800:
+        if (datetime.datetime.now() - datetime.datetime.strptime(last_checked,
+                                                                 "%Y-%m-%d %H:%M:%S")).total_seconds() > 1800:
             response = openai.FineTuningJob.retrieve(job_id)
-            self.configs[log_file_path]["current_training_run"]["last_checked"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.configs[log_file_path]["current_training_run"]["last_checked"] = datetime.datetime.now().strftime(
+                "%Y-%m-%d %H:%M:%S")
             if response["status"] == "succeeded":
                 self._update_finetune_config(response, log_file_path)
-            else: 
+            else:
                 self._update_config_file(log_file_path)
 
     def _update_finetune_config(self, response, log_file_path):
@@ -378,7 +427,9 @@ class BufferedLogger(Logger):
         """
         self.configs[log_file_path]["current_model"] = response["fine_tuned_model"]
         self.configs[log_file_path]["last_training_run"] = self.configs[log_file_path]["current_training_run"]
-        self.configs[log_file_path]["current_model_stats"] = {"trained_on_datapoints": self.configs[log_file_path]["current_training_run"]["trained_on_datapoints"], "running_faults": []}
+        self.configs[log_file_path]["current_model_stats"] = {
+            "trained_on_datapoints": self.configs[log_file_path]["current_training_run"]["trained_on_datapoints"],
+            "running_faults": []}
         self.configs[log_file_path]["nr_of_training_runs"] += 1
         self.configs[log_file_path]["current_training_run"] = {}
         try:
@@ -404,10 +455,11 @@ class BufferedLogger(Logger):
             else:
                 self.configs[log_file_path]["current_model_stats"]["running_faults"].append(0)
             # take the last 100 datapoints
-            self.configs[log_file_path]["current_model_stats"]["running_faults"] = self.configs[log_file_path]["current_model_stats"]["running_faults"][-100:]
+            self.configs[log_file_path]["current_model_stats"]["running_faults"] = \
+            self.configs[log_file_path]["current_model_stats"]["running_faults"][-100:]
 
             # check if the last 10 datapoints are 50% faulty, this is the switch condition
-            if sum(self.configs[log_file_path]["current_model_stats"]["running_faults"][-10:])/10 > 0.5:
+            if sum(self.configs[log_file_path]["current_model_stats"]["running_faults"][-10:]) / 10 > 0.5:
                 self.configs[log_file_path]["current_model"] = self.configs[log_file_path]["teacher_models"][0]
                 self.configs[log_file_path]["current_model_stats"]["trained_on_datapoints"] = 0
                 self.configs[log_file_path]["current_model_stats"]["running_faults"] = []
@@ -424,4 +476,4 @@ class BufferedLogger(Logger):
         """
         config_to_be_saved = self.configs[log_file_path]
         with open(f"{log_file_path}.json", "w") as f:
-                json.dump(config_to_be_saved, f)
+            json.dump(config_to_be_saved, f)

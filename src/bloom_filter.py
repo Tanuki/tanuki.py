@@ -26,7 +26,7 @@ class BloomFilter:
         for seed in range(self.hash_count):
             index = (hash1 + seed * hash2) % self.size
 
-            print(f"Lookup: Seed={seed}, Digest={index}, BitValue={self.bit_array[index]}")
+            #print(f"Lookup: Seed={seed}, Digest={index}, BitValue={self.bit_array[index]}")
             if self.bit_array[index] == 0:
                 return False
         return True
@@ -36,7 +36,7 @@ class BloomFilter:
         for seed in range(self.hash_count):
             index = (hash1 + seed * hash2) % self.size
             self.bit_array[index] = 1
-            print(f"Add: Seed={seed}, Digest={index}, BitValue={self.bit_array[index]}")
+            #print(f"Add: Seed={seed}, Digest={index}, BitValue={self.bit_array[index]}")
 
     def save(self, log_directory):
         bloom_filter_path = os.path.join(log_directory, 'bloom_filter_state.bin')
