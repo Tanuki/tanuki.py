@@ -1,27 +1,27 @@
 import os
-from typing import Optional, Literal
-
+from typing import Optional, Literal, List
+import unittest
 import openai
 from dotenv import load_dotenv
-
-import monkey
+from monkey import Monkey
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-@monkey.patch
+@Monkey.patch
 def classify_sentiment_2(input: str, input_2: str) -> Optional[Literal['Good', 'Bad']]:
     """
     Determine if the inputs are positive or negative sentiment, or None
     """
 
 
-@monkey.patch
+@Monkey.patch
 def classify_sentiment(input: str) -> Optional[Literal['Good', 'Bad']]:
     """
     Determine if the input is positive or negative sentiment
     """
 
+@Monkey.align
 def test_classify_sentiment():
     """We can test the function as normal using Pytest or Unittest"""
 
@@ -37,4 +37,5 @@ def test_classify_sentiment():
     assert not classify_sentiment("Wednesdays are in the middle of the week")
 
 if __name__ == '__main__':
-    test_classify_sentiment()
+    unittest.main()
+    #classify_sentiment("I love you\nI really liked yesterday?")

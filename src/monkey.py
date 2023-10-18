@@ -12,6 +12,8 @@ from models.function_example import FunctionExample
 from register import Register
 from trackers.buffered_logger import BufferedLogger
 from validator import Validator
+from repair import repair_output
+import json
 
 
 # Define a new level
@@ -210,14 +212,14 @@ class Monkey:
         @wraps(test_func)
         def wrapper(*args, **kwargs):
             function_description = Register.load_function_description(test_func)
-
+            model = logger.get_model(function_description.__hash__())
             # f = json_dumps(function_description.__dict__)
             f = str(function_description.__dict__.__repr__() + "\n")
             instruction = "Optionally convert the input into the output type, using the docstring as a guide. Return None if you can't."
             warning = "INCREDIBLY IMPORTANT: Only output a JSON-compatible string in the correct response format."
             content = f"{instruction}\n{warning}\nFunction: {f}\nInput: {args}\nOutput:"
             response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+                model=model,
                 messages=[
                     {
                         "role": "user",
@@ -232,15 +234,30 @@ class Monkey:
             )
 
             choice = response.choices[0].message.content.strip("'")
+            # start parsing the object, WILL NEED TO BE CHANGED, VERY HACKY
+            try:
+                # json load
+                choice_parsed = json.loads(choice)
+            except:
+                # if it fails, it's not a json object, try eval
+                try:
+                    choice_parsed = eval(choice)
+                except: 
+                    choice_parsed = choice
+
             validator = Validator()
 
-            valid = validator.check_type(choice, function_description.output_type_hint)
+            valid = validator.check_type(choice_parsed, function_description.output_type_hint)
 
             if not valid:
-                raise TypeError(
-                    f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{choice}'")
+                error = f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{choice}'"
+                choice, successful_repair = repair_output(args, function_description, choice, error, validator)
 
-            logger.log_patch(function_description.__hash__(), args, kwargs, choice)
+                if not successful_repair:
+                    raise TypeError(f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{choice}'")
+
+            datapoint = FunctionExample(args, kwargs, choice)
+            logger.postprocess_datapoint(function_description.__hash__(), f, datapoint, log = not valid)
 
             instantiated = validator.instantiate(choice, function_description.output_type_hint)
 
