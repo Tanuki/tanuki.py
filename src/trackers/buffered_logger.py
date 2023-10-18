@@ -228,7 +228,7 @@ class BufferedLogger(Logger):
         Currently finetuning condition is dependent on the number of datapoints since last finetuning
         """
         last_training_run_datapoints = self.configs[log_file_path]["last_training_run"]["trained_on_datapoints"]   
-        return self.dataset_lengths[log_file_path] - last_training_run_datapoints > 10*(2**self.configs[log_file_path]["nr_of_training_runs"])
+        return self.dataset_lengths[log_file_path] - last_training_run_datapoints > 100*(2**self.configs[log_file_path]["nr_of_training_runs"])
 
     def _execute_finetuning(self, function_description, log_file_path):
         """
