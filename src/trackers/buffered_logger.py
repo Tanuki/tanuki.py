@@ -106,6 +106,8 @@ class BufferedLogger(Logger):
 
         if log_file_path not in self.buffers:
             self.buffers[log_file_path] = bytearray()
+
+        if log_file_path not in self.flush_limit:
             self.flush_limit[log_file_path] = 1
 
         self.buffers[log_file_path].extend(example_data)
