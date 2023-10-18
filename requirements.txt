@@ -1,1 +1,6 @@
 appdirs
+openai
+numpy
+bitarray
+pydantic
+python-dotenv
