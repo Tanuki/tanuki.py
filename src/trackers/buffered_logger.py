@@ -193,14 +193,14 @@ class BufferedLogger(Logger):
 
         return list(examples)[:max]
 
-    def log_patch(self, message, example):
+    def log_patch(self, func_hash, example):
 
-        if not isinstance(message, str):
-            message = str(message)
+        if not isinstance(func_hash, str):
+            func_hash = str(func_hash)
 
         example_data = str(example.__dict__).encode('utf-8') + b'\n'
 
-        bloom_filter_representation = message + '_' + example_data.decode('utf-8')
+        bloom_filter_representation = func_hash + '_' + example_data.decode('utf-8')
         # Check Bloom Filter
         if self.bloom_filter.lookup(bloom_filter_representation):
             self.hit_count += 1
@@ -211,14 +211,14 @@ class BufferedLogger(Logger):
         self.bloom_filter.add(bloom_filter_representation)
 
         log_directory = self._get_log_directory()
-        path = os.path.join(log_directory, message)
+        path = os.path.join(log_directory, func_hash)
         if not os.path.exists(log_directory):
             os.makedirs(log_directory)
 
         if os.path.exists(log_directory):
             pass
 
-        log_file_path = os.path.join(log_directory, message+PATCH_FILE_EXTENSION)
+        log_file_path = os.path.join(log_directory, func_hash+PATCH_FILE_EXTENSION)
 
         if log_file_path not in self.buffers:
             self.buffers[log_file_path] = bytearray()
@@ -289,12 +289,12 @@ class BufferedLogger(Logger):
             with open(config_path, "r") as f:
                 self.configs[log_file_path] = json.load(f)
 
-    def get_model(self, message):
+    def get_model(self, func_hash):
         """
         Return the current model from the config file
         """
         log_directory = self._get_log_directory()
-        log_file_path = os.path.join(log_directory, message)
+        log_file_path = os.path.join(log_directory, func_hash)
 
         if not os.path.exists(log_directory):
             os.makedirs(log_directory)
@@ -303,7 +303,7 @@ class BufferedLogger(Logger):
 
         return self.configs[log_file_path]["current_model"]
 
-    def postprocess_datapoint(self, message, function_description, example, log=True):
+    def postprocess_datapoint(self, func_hash, function_description, example, log=True):
         """
         Postprocess the datapoint
         First check if datapoint should be added to training data
@@ -314,9 +314,9 @@ class BufferedLogger(Logger):
 
         try:
             log_directory = self._get_log_directory()
-            log_file_path = os.path.join(log_directory, message)
+            log_file_path = os.path.join(log_directory, func_hash)
             if log or self.configs[log_file_path]["current_model"] in self.configs[log_file_path]["teacher_models"]:
-                added = self.log_patch(message, example)
+                added = self.log_patch(func_hash, example)
                 if added:
                     self._update_datapoint_config(log, log_file_path)
         except Exception as e:
