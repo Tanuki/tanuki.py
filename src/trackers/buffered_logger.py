@@ -235,7 +235,10 @@ class BufferedLogger(Logger):
             if len(buffer) > 0:
                 with open(log_file_path, "a+b") as f:
                     f.write(buffer)
-                self.dataset_lengths[log_file_path] = len(buffer)
+                if log_file_path in self.dataset_lengths:
+                    self.dataset_lengths[log_file_path] += len(buffer)
+                else:
+                    self.dataset_lengths[log_file_path] = len(buffer)
                 buffer.clear()
 
     def get_configs(self, log_file_path):
