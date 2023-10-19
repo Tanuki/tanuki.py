@@ -104,11 +104,13 @@ class BufferedLogger(Logger):
         args, kwargs, output = args
         example = FunctionExample(args, kwargs, output)
 
-        example_data = str(example.__dict__).encode('utf-8') + b'\n'
+        # prepend the function hash to the example
+        bloom_filter_representation = func_hash + '_' + str(example.__dict__) + '\n'
         # Check Bloom Filter
-        if self.bloom_filter.lookup(example_data.decode('utf-8')):
-            self.hit_count += 1
+        if self.bloom_filter.lookup(bloom_filter_representation):
             return False
+        # add to bloom filter
+        self.bloom_filter.add(bloom_filter_representation)
 
         # Create the folder if it doesn't exist
         if not os.path.exists(log_directory):
@@ -198,14 +200,15 @@ class BufferedLogger(Logger):
 
         example_data = str(example.__dict__).encode('utf-8') + b'\n'
 
+        bloom_filter_representation = message + '_' + example_data.decode('utf-8')
         # Check Bloom Filter
-        if self.bloom_filter.lookup(example_data.decode('utf-8')):
+        if self.bloom_filter.lookup(bloom_filter_representation):
             self.hit_count += 1
             return False
 
         self.miss_count += 1
         # Add to Bloom Filter
-        self.bloom_filter.add(example_data.decode('utf-8'))
+        self.bloom_filter.add(bloom_filter_representation)
 
         log_directory = self._get_log_directory()
         path = os.path.join(log_directory, message)
