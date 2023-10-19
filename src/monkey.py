@@ -153,13 +153,24 @@ class Monkey:
                                 break
                         if opname == 'LOAD_CONST':
                             func_args.append(next_instruction.argval)
-                        elif opname in ('BUILD_LIST', 'BUILD_SET', 'BUILD_TUPLE', 'BUILD_MAP', 'BUILD_CONST_KEY_MAP'):
+                        elif opname in ('BUILD_LIST', 'BUILD_SET', 'BUILD_TUPLE'):
                             num_elements = next_instruction.arg
                             elements = func_args[-num_elements:]
                             func_args = func_args[:-num_elements]
                             constructed_data = elements if opname == 'BUILD_LIST' else set(
                                 elements) if opname == 'BUILD_SET' else tuple(elements)
                             func_args.append(constructed_data)
+
+                        elif instruction.opname == 'BUILD_MAP':
+                            num_pairs = instruction.arg
+                            pairs = [(func_args.pop(), func_args.pop()) for _ in range(num_pairs)]
+                            func_args.append(dict(pairs[::-1]))  # Reversed because we popped from the stack
+
+                        elif instruction.opname == 'BUILD_CONST_KEY_MAP':
+                            num_values = instruction.arg
+                            keys = func_args.pop()  # the top of the stack should contain a tuple of keys
+                            values = [func_args.pop() for _ in range(num_values)]
+                            func_args.append(dict(zip(keys, values[::-1])))  # Reversed because we popped from the stack
 
         @wraps(test_func)
         def wrapper2(*args, **kwargs):
