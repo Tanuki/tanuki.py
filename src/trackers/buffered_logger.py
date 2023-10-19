@@ -16,7 +16,7 @@ EXPECTED_ITEMS = 10000
 FALSE_POSITIVE_RATE = 0.01
 LIB_NAME = "monkey-patch"
 ENVVAR = "MONKEY_PATCH_LOG_DIR"
-
+EXAMPLE_ELEMENT_LIMIT = 1000
 
 class BufferedLogger(Logger):
     def __init__(self, name, level=15):
@@ -104,6 +104,14 @@ class BufferedLogger(Logger):
         args, kwargs, output = args
         example = FunctionExample(args, kwargs, output)
 
+        # prepend the function hash to the example
+        bloom_filter_representation = func_hash + '_' + str(example.__dict__) + '\n'
+        # Check Bloom Filter
+        if self.bloom_filter.lookup(bloom_filter_representation):
+            return False
+        # add to bloom filter
+        self.bloom_filter.add(bloom_filter_representation)
+
         # Create the folder if it doesn't exist
         if not os.path.exists(log_directory):
             os.makedirs(log_directory)
@@ -114,27 +122,33 @@ class BufferedLogger(Logger):
         with open(log_file_path, "a") as f:
             f.write(str(example.__dict__) + "\n")
 
+        # update dataset count
+        if log_file_path in self.dataset_lengths:
+            self.dataset_lengths[log_file_path] += 1
+        else:
+            self.dataset_lengths[log_file_path] = 1
+
     def load_alignments(self):
         """
         Load alignments from persistent storage into memory for faster access.
         :return:
         """
-        self.buffers = {}
+        self.align_buffers = {}
 
         log_directory = self._get_log_directory()
         if not os.path.exists(log_directory):
             os.makedirs(log_directory)
         # get all the files in the log directory
         files = os.listdir(log_directory)
-        # discard all .json files
-        files = [x for x in files if ".json" not in x]
+        # discard all non align files
+        files = [x for x in files if ALIGN_FILE_EXTENSION in x]
         for file in files:
             log_file_path = os.path.join(log_directory, file)
             with open(log_file_path, "rb") as f:
                 try:
-                    self.buffers[log_file_path] = bytearray(f.read())
+                    self.align_buffers[log_file_path] = bytearray(f.read())
                 except UnicodeDecodeError:
-                    self.buffers[log_file_path] = bytearray()
+                    self.align_buffers[log_file_path] = bytearray()
                     continue
 
     def get_alignments(self, func_hash, max=20):
@@ -147,10 +161,10 @@ class BufferedLogger(Logger):
         # look in buffer first
         log_file_path = os.path.join(log_directory, func_hash+ALIGN_FILE_EXTENSION)
 
-        if log_file_path not in self.buffers:
+        if log_file_path not in self.align_buffers:
             return []
 
-        buffer = self.buffers[log_file_path]
+        buffer = self.align_buffers[log_file_path]
 
         split_buffer = bytes(buffer).split(b"\n")
 
@@ -161,9 +175,17 @@ class BufferedLogger(Logger):
                 continue
             example_set.add(example)
 
+        # easy and straightforward way to get nr of words (not perfect but doesnt need to be)
+        # Can do the proper way of tokenizing later, it might be slower and we dont need 100% accuracy
+        example_element_limit = EXAMPLE_ELEMENT_LIMIT
+        
         examples = []
         for example_bytes in split_buffer:
             if example_bytes in example_set:
+                nr_of_elements = len(example_bytes.split(b" "))
+                example_element_limit -= nr_of_elements
+                if example_element_limit < 0:
+                    break
                 example = example_bytes.decode('utf-8')
                 example = ast.literal_eval(example)
                 examples.append(example)
@@ -171,31 +193,32 @@ class BufferedLogger(Logger):
 
         return list(examples)[:max]
 
-    def log_patch(self, message, example):
+    def log_patch(self, func_hash, example):
 
-        if not isinstance(message, str):
-            message = str(message)
+        if not isinstance(func_hash, str):
+            func_hash = str(func_hash)
 
         example_data = str(example.__dict__).encode('utf-8') + b'\n'
 
+        bloom_filter_representation = func_hash + '_' + example_data.decode('utf-8')
         # Check Bloom Filter
-        if self.bloom_filter.lookup(example_data.decode('utf-8')):
+        if self.bloom_filter.lookup(bloom_filter_representation):
             self.hit_count += 1
             return False
 
         self.miss_count += 1
         # Add to Bloom Filter
-        self.bloom_filter.add(example_data.decode('utf-8'))
+        self.bloom_filter.add(bloom_filter_representation)
 
         log_directory = self._get_log_directory()
-        path = os.path.join(log_directory, message)
+        path = os.path.join(log_directory, func_hash)
         if not os.path.exists(log_directory):
             os.makedirs(log_directory)
 
         if os.path.exists(log_directory):
             pass
 
-        log_file_path = os.path.join(log_directory, message+PATCH_FILE_EXTENSION)
+        log_file_path = os.path.join(log_directory, func_hash+PATCH_FILE_EXTENSION)
 
         if log_file_path not in self.buffers:
             self.buffers[log_file_path] = bytearray()
@@ -235,7 +258,10 @@ class BufferedLogger(Logger):
             if len(buffer) > 0:
                 with open(log_file_path, "a+b") as f:
                     f.write(buffer)
-                self.dataset_lengths[log_file_path] = len(buffer)
+                if log_file_path in self.dataset_lengths:
+                    self.dataset_lengths[log_file_path] += len(buffer)
+                else:
+                    self.dataset_lengths[log_file_path] = len(buffer)
                 buffer.clear()
 
     def get_configs(self, log_file_path):
@@ -263,12 +289,12 @@ class BufferedLogger(Logger):
             with open(config_path, "r") as f:
                 self.configs[log_file_path] = json.load(f)
 
-    def get_model(self, message):
+    def get_model(self, func_hash):
         """
         Return the current model from the config file
         """
         log_directory = self._get_log_directory()
-        log_file_path = os.path.join(log_directory, message)
+        log_file_path = os.path.join(log_directory, func_hash)
 
         if not os.path.exists(log_directory):
             os.makedirs(log_directory)
@@ -277,7 +303,7 @@ class BufferedLogger(Logger):
 
         return self.configs[log_file_path]["current_model"]
 
-    def postprocess_datapoint(self, message, function_description, example, log=True):
+    def postprocess_datapoint(self, func_hash, function_description, example, log=True):
         """
         Postprocess the datapoint
         First check if datapoint should be added to training data
@@ -288,9 +314,9 @@ class BufferedLogger(Logger):
 
         try:
             log_directory = self._get_log_directory()
-            log_file_path = os.path.join(log_directory, message)
+            log_file_path = os.path.join(log_directory, func_hash)
             if log or self.configs[log_file_path]["current_model"] in self.configs[log_file_path]["teacher_models"]:
-                added = self.log_patch(message, example)
+                added = self.log_patch(func_hash, example)
                 if added:
                     self._update_datapoint_config(log, log_file_path)
         except Exception as e:

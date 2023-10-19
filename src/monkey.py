@@ -17,7 +17,7 @@ import json
 
 
 # Define a new level
-def _log_align(self, message, *args, **kws):
+def _log_align(self, func_hash, *args, **kws):
     if self.isEnabledFor(ALIGN_LEVEL_NUM):
         args, kwargs, output = args
         kwargs['align'] = True
@@ -36,7 +36,7 @@ def _log_align(self, message, *args, **kws):
                 return
 
         # Write to the file
-        log_file_path = os.path.join(log_directory, message)
+        log_file_path = os.path.join(log_directory, func_hash)
         try:
             with open(log_file_path, "a") as f:
                 f.write(str(example.__dict__) + "\n")
