@@ -2,7 +2,7 @@ import dataclasses
 import datetime
 import json
 import typing
-from typing import _UnionGenericAlias, get_args, Literal
+from typing import get_args, Literal
 
 
 def json_default(thing):
@@ -14,10 +14,12 @@ def json_default(thing):
         return thing.isoformat(timespec='microseconds')
     if isinstance(thing, type):
         return thing.__name__
-    if isinstance(thing, _UnionGenericAlias):
-        return {
-            "Union": [json_default(arg) for arg in get_args(thing)]
-        }
+    #if hasattr(typing, "_GenericAlias") and isinstance(thing, typing._GenericAlias):
+    if hasattr(typing, "_UnionGenericAlias"):
+        if isinstance(thing, typing._UnionGenericAlias):
+            return {
+                "Union": [json_default(arg) for arg in get_args(thing)]
+            }
     if thing == Literal[...]:
         return {
             "Literal": thing.__args__

@@ -1,5 +1,6 @@
 import hashlib
 from dataclasses import dataclass
+from typing import Dict
 
 import utils
 
@@ -8,8 +9,8 @@ import utils
 class FunctionDescription:
     name: str
     docstring: str
-    input_type_hints: dict[str, type]
-    input_class_definitions: dict[str, str]
+    input_type_hints: Dict[str, type]
+    input_class_definitions: Dict[str, str]
     output_type_hint: type
     output_class_definition: str
 

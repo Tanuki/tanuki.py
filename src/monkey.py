@@ -72,8 +72,108 @@ class Monkey:
 
     @staticmethod
     def align(test_func):
+
         @wraps(test_func)
         def wrapper(*args, **kwargs):
+            instructions = list(dis.Bytecode(test_func))
+
+            if args:
+                instance = args[0]
+                args = args[1:]
+            else:
+                instance = None
+
+            mock_behaviors = {}
+            func_args = []
+            stack_variables = {}
+            mockable_functions = []
+
+            # Iterate through the instructions in the monkey-patched function
+            for idx, instruction in enumerate(instructions):
+
+                # Identify method calls on the instance
+                if instruction.opname in ('LOAD_METHOD', 'LOAD_ATTR'):
+                    func_name = instruction.argval
+                    mockable_functions.append(func_name)
+
+                # If we are loading a reference to a monkey function, register it to the list of mockable functions
+                elif instruction.opname == 'LOAD_GLOBAL':
+                    func_name = instruction.argval
+                    mockable_functions.append(func_name)
+
+                # If we are assigning a variable, add it to the stack
+                elif instruction.opname == 'STORE_FAST':
+                    stack_variables[instruction.argval] = func_args.pop()
+
+                # If we are loading a variable, add it to the stack
+                elif instruction.opname.startswith('LOAD_'):
+                    if instruction.argval in stack_variables:
+                        func_args.append(stack_variables[instruction.argval])
+                    else:
+                        func_args.append(instruction.argval)
+
+                # Handle 'BUILD_LIST', 'BUILD_SET', 'BUILD_TUPLE'
+                elif instruction.opname in ('BUILD_LIST', 'BUILD_SET', 'BUILD_TUPLE'):
+                    num_elements = instruction.arg
+                    elements = func_args[-num_elements:]
+                    func_args = func_args[:-num_elements]
+                    constructed_data = elements if instruction.opname == 'BUILD_LIST' else set(
+                        elements) if instruction.opname == 'BUILD_SET' else tuple(elements)
+                    func_args.append(constructed_data)
+
+                # Handle 'BUILD_MAP', 'BUILD_CONST_KEY_MAP'
+                elif instruction.opname in ('BUILD_MAP', 'BUILD_CONST_KEY_MAP'):
+                    num_elements = instruction.arg
+                    if instruction.opname == 'BUILD_MAP':
+                        key_values = dict(zip(func_args[-2 * num_elements::2], func_args[-2 * num_elements + 1::2]))
+                    else:  # 'BUILD_CONST_KEY_MAP'
+                        keys = func_args.pop()  # assuming keys are on top of the stack as a tuple
+                        values = func_args[-num_elements:]
+                        key_values = dict(zip(keys, values))
+                    func_args = func_args[:-num_elements]
+                    func_args.append(key_values)
+
+                # If we are calling a function we need to mock (e.g preceded by an assert),
+                # pop the arguments off the stack and register the expected output
+                elif instruction.opname.startswith('CALL'):
+                    num_args = instruction.arg
+                    args_for_call = func_args[-num_args:]
+                    func_args = func_args[:-num_args]
+
+                    # Search for the next COMPARE_OP with '==' after CALL_FUNCTION
+                    for next_idx in range(idx + 1, len(instructions)):
+                        next_instruction = instructions[next_idx]
+                        opname = next_instruction.opname
+                        if opname == 'POP_TOP':
+                            break
+                        if opname == 'COMPARE_OP':
+                            if next_instruction.argval == '==' or next_instruction.argval == 'is':
+                                expected_value = func_args[-1]  # this would be the last element on the stack
+                                mock_behaviors[tuple(args_for_call)] = expected_value
+                                break
+                        if opname == 'LOAD_CONST':
+                            func_args.append(next_instruction.argval)
+                        elif opname in ('BUILD_LIST', 'BUILD_SET', 'BUILD_TUPLE'):
+                            num_elements = next_instruction.arg
+                            elements = func_args[-num_elements:]
+                            func_args = func_args[:-num_elements]
+                            constructed_data = elements if opname == 'BUILD_LIST' else set(
+                                elements) if opname == 'BUILD_SET' else tuple(elements)
+                            func_args.append(constructed_data)
+
+                        elif instruction.opname == 'BUILD_MAP':
+                            num_pairs = instruction.arg
+                            pairs = [(func_args.pop(), func_args.pop()) for _ in range(num_pairs)]
+                            func_args.append(dict(pairs[::-1]))  # Reversed because we popped from the stack
+
+                        elif instruction.opname == 'BUILD_CONST_KEY_MAP':
+                            num_values = instruction.arg
+                            keys = func_args.pop()  # the top of the stack should contain a tuple of keys
+                            values = [func_args.pop() for _ in range(num_values)]
+                            func_args.append(dict(zip(keys, values[::-1])))  # Reversed because we popped from the stack
+
+        @wraps(test_func)
+        def wrapper2(*args, **kwargs):
             instructions = list(dis.Bytecode(test_func))
 
             if args:
@@ -110,7 +210,6 @@ class Monkey:
                         func_args.append(instruction.argval)
                 # If we are calling a function we need to mock (e.g preceded by an assert),
                 # pop the arguments off the stack and register the expected output
-                ##elif instruction.opname.startswith(('CALL_FUNCTION', 'CALL_METHOD')):
                 elif instruction.opname.startswith('CALL'):
                     num_args = instruction.arg
                     args_for_call = func_args[-num_args:]
