@@ -380,11 +380,6 @@ class BufferedLogger(Logger):
         dataset.replace("\\n", "[SEP_TOKEN]")
         dataset = dataset.split("\n")
         dataset = [x.replace("[SEP_TOKEN]", "\\n") for x in dataset if x != ""]
-        # get all unique entries
-        dataset = list(set(dataset))
-        # if nr of unique entries less than 100, do not finetune
-        if len(dataset) < 100:
-            return None
         # read in the dataset file
         dataset = [ast.literal_eval(x) for x in dataset]
         #
