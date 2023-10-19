@@ -1,3 +1,4 @@
+import inspect
 import os
 
 import openai
@@ -24,5 +25,5 @@ def test_clean_language():
 
 if __name__ == '__main__':
     test_clean_language()
-    print(clean_language("I think you should jump of a bridge"))
+    print(clean_language("I think you should jump off a bridge"))
     print(clean_language("Jesus fucking christ, how can you say that?"))
