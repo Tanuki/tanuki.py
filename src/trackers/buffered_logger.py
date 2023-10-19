@@ -104,6 +104,12 @@ class BufferedLogger(Logger):
         args, kwargs, output = args
         example = FunctionExample(args, kwargs, output)
 
+        example_data = str(example.__dict__).encode('utf-8') + b'\n'
+        # Check Bloom Filter
+        if self.bloom_filter.lookup(example_data.decode('utf-8')):
+            self.hit_count += 1
+            return False
+
         # Create the folder if it doesn't exist
         if not os.path.exists(log_directory):
             os.makedirs(log_directory)
