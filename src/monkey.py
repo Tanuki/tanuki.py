@@ -110,7 +110,8 @@ class Monkey:
                         func_args.append(instruction.argval)
                 # If we are calling a function we need to mock (e.g preceded by an assert),
                 # pop the arguments off the stack and register the expected output
-                elif instruction.opname.startswith(('CALL_FUNCTION', 'CALL_METHOD')):
+                ##elif instruction.opname.startswith(('CALL_FUNCTION', 'CALL_METHOD')):
+                elif instruction.opname.startswith('CALL'):
                     num_args = instruction.arg
                     args_for_call = func_args[-num_args:]
                     func_args = func_args[:-num_args]
@@ -150,10 +151,11 @@ class Monkey:
                 def mock_func(*args, **kwargs):
                     hashed_description = description.__hash__()
 
+                    func = Register.get(func_name)
                     if not instance:
-                        result = Register.get(func_name)(*args, **kwargs)
+                        result = func(*args, **kwargs)
                     else:
-                        result = Register.get(func_name)(instance, *args, **kwargs)
+                        result = func(instance, *args, **kwargs)
 
                     # Extract attributes from the result
                     attributes = extract_attributes(result)

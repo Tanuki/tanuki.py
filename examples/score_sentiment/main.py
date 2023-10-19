@@ -1,15 +1,15 @@
 from dataclasses import Field
 from typing import Annotated
+from monkey import Monkey as monkey
 
-
-@munk.func
+@monkey.patch
 def score_sentiment(input: str) -> Annotated[int, Field(gt=0, lt=10)]:
     """
     Scores the input between 0-10
     """
 
 
-@munk.align
+@monkey.align
 def align_score_sentiment():
     """Register several examples to align your function"""
 

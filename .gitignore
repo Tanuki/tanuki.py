@@ -1,4 +1,5 @@
 /venv/
+/venv3.11/
 .env
 /tests/test_load/bloom_filter_state.bin
 src/trackers/__pycache__/*

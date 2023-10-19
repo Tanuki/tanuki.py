@@ -13,6 +13,8 @@ class Register:
 
     @staticmethod
     def get(func_name):
+        if func_name not in alignable_functions:
+            pass
         return alignable_functions[func_name]
 
     @staticmethod
