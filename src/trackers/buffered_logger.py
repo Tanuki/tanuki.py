@@ -16,7 +16,7 @@ EXPECTED_ITEMS = 10000
 FALSE_POSITIVE_RATE = 0.01
 LIB_NAME = "monkey-patch"
 ENVVAR = "MONKEY_PATCH_LOG_DIR"
-
+EXAMPLE_ELEMENT_LIMIT = 1000
 
 class BufferedLogger(Logger):
     def __init__(self, name, level=15):
@@ -173,9 +173,17 @@ class BufferedLogger(Logger):
                 continue
             example_set.add(example)
 
+        # easy and straightforward way to get nr of words (not perfect but doesnt need to be)
+        # Can do the proper way of tokenizing later, it might be slower and we dont need 100% accuracy
+        example_element_limit = EXAMPLE_ELEMENT_LIMIT
+        
         examples = []
         for example_bytes in split_buffer:
             if example_bytes in example_set:
+                nr_of_elements = len(example_bytes.split(b" "))
+                example_element_limit -= nr_of_elements
+                if example_element_limit < 0:
+                    break
                 example = example_bytes.decode('utf-8')
                 example = ast.literal_eval(example)
                 examples.append(example)
