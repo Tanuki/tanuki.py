@@ -127,6 +127,11 @@ class BufferedLogger(Logger):
             self.dataset_lengths[log_file_path] += 1
         else:
             self.dataset_lengths[log_file_path] = 1
+        
+        # update align buffer
+        if log_file_path not in self.align_buffers:
+            self.align_buffers[log_file_path] = bytearray()
+        self.align_buffers[log_file_path].extend(str(example.__dict__).encode('utf-8') + b'\r\n')
 
     def load_alignments(self):
         """
