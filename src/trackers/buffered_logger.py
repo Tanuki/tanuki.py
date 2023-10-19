@@ -120,27 +120,33 @@ class BufferedLogger(Logger):
         with open(log_file_path, "a") as f:
             f.write(str(example.__dict__) + "\n")
 
+        # update dataset count
+        if log_file_path in self.dataset_lengths:
+            self.dataset_lengths[log_file_path] += 1
+        else:
+            self.dataset_lengths[log_file_path] = 1
+
     def load_alignments(self):
         """
         Load alignments from persistent storage into memory for faster access.
         :return:
         """
-        self.buffers = {}
+        self.align_buffers = {}
 
         log_directory = self._get_log_directory()
         if not os.path.exists(log_directory):
             os.makedirs(log_directory)
         # get all the files in the log directory
         files = os.listdir(log_directory)
-        # discard all .json files
-        files = [x for x in files if ".json" not in x]
+        # discard all non align files
+        files = [x for x in files if ALIGN_FILE_EXTENSION in x]
         for file in files:
             log_file_path = os.path.join(log_directory, file)
             with open(log_file_path, "rb") as f:
                 try:
-                    self.buffers[log_file_path] = bytearray(f.read())
+                    self.align_buffers[log_file_path] = bytearray(f.read())
                 except UnicodeDecodeError:
-                    self.buffers[log_file_path] = bytearray()
+                    self.align_buffers[log_file_path] = bytearray()
                     continue
 
     def get_alignments(self, func_hash, max=20):
@@ -153,10 +159,10 @@ class BufferedLogger(Logger):
         # look in buffer first
         log_file_path = os.path.join(log_directory, func_hash+ALIGN_FILE_EXTENSION)
 
-        if log_file_path not in self.buffers:
+        if log_file_path not in self.align_buffers:
             return []
 
-        buffer = self.buffers[log_file_path]
+        buffer = self.align_buffers[log_file_path]
 
         split_buffer = bytes(buffer).split(b"\n")
 
@@ -366,6 +372,11 @@ class BufferedLogger(Logger):
         dataset.replace("\\n", "[SEP_TOKEN]")
         dataset = dataset.split("\n")
         dataset = [x.replace("[SEP_TOKEN]", "\\n") for x in dataset if x != ""]
+        # get all unique entries
+        dataset = list(set(dataset))
+        # if nr of unique entries less than 100, do not finetune
+        if len(dataset) < 100:
+            return None
         # read in the dataset file
         dataset = [ast.literal_eval(x) for x in dataset]
         #
