@@ -14,7 +14,7 @@ from trackers.buffered_logger import BufferedLogger
 from validator import Validator
 from repair import repair_output
 import json
-
+import datetime
 
 # Define a new level
 def _log_align(self, func_hash, *args, **kws):
@@ -220,12 +220,19 @@ class Monkey:
             examples = "\n".join([f"Input: {align['args']}\nOutput: {align['output']}" for align in aligns])
             # f = json_dumps(function_description.__dict__)
             f = str(function_description.__dict__.__repr__() + "\n")
-            instruction = "Optionally convert the input into the output type, using the docstring as a guide. Return None if you can't."
+            #instruction = "Optionally convert the input into the output type, using the docstring as a guide. Return None if you can't."
+            instruction  = "You are given below a function description and input data. The function description of what the function must carry out can be found in the Function section, with input and output type hints. The input data can be found in Input section. Using the function description, apply the function to the Input and return a valid output type, that is acceptable by the output_class_definition and output_class_hint. Return None if you can't apply the function to the input or if the output is optional and the correct output is None."
             warning = "INCREDIBLY IMPORTANT: Only output a JSON-compatible string in the correct response format."
-            content = f"{instruction}\n{warning}\nFunction: {f}\nExamples:{examples}\n---\nInput: {args}\nOutput:"
+            example_input = f"Examples:{examples}\n" if examples else ""
+            content = f"{instruction}\n{warning}\nFunction: {f}\n{example_input}---\nInput: {args}\nOutput:"
+            system_message = f"You are a skillful and accurate language model, who applies a described function on input data. Make sure the function is applied accurately and correctly and the outputs follow the output type hints and are valid outputs given the output types. The current time is {datetime.datetime.now()},"
             response = openai.ChatCompletion.create(
                 model=model,
                 messages=[
+                    {
+                        "role": "system",
+                        "content": system_message
+                    },
                     {
                         "role": "user",
                         "content": content
@@ -255,8 +262,8 @@ class Monkey:
             valid = validator.check_type(choice_parsed, function_description.output_type_hint)
 
             if not valid:
-                error = f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{choice}'"
-                choice, successful_repair = repair_output(args, function_description, choice, error, validator)
+                error = f"Output type was not valid. Expected an valid object of type {function_description.output_type_hint}, got '{choice}'"
+                choice, choice_parsed, successful_repair = repair_output(args, function_description, choice, error, validator, example_input)
 
                 if not successful_repair:
                     raise TypeError(f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{choice}'")
@@ -264,7 +271,7 @@ class Monkey:
             datapoint = FunctionExample(args, kwargs, choice)
             logger.postprocess_datapoint(function_description.__hash__(), f, datapoint, log = not valid)
 
-            instantiated = validator.instantiate(choice, function_description.output_type_hint)
+            instantiated = validator.instantiate(choice_parsed, function_description.output_type_hint)
 
             return instantiated  # test_func(*args, **kwargs)
 

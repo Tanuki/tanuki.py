@@ -3,7 +3,7 @@ import openai
 import json
 
 
-def repair_output(input, function_description, choice, error, validator):
+def repair_output(input, function_description, choice, error, validator, example_input):
 
         valid = False
         retry_index = 5
@@ -15,7 +15,7 @@ def repair_output(input, function_description, choice, error, validator):
             failed_examples = ""
             for failed_output in failed_outputs_list:
                 failed_examples += f"Output: {failed_output[0]}\nError: {failed_output[1]}\n\n"
-            content = f"{instruction}\nFUNCTION DESCRIPTION: {f}\nINPUT: {input}\nFAILED EXAMPLES: {failed_examples}Correct output:"
+            content = f"{instruction}\nFUNCTION DESCRIPTION: {f}\n{example_input}---INPUT: {input}\nFAILED EXAMPLES: {failed_examples}Correct output:"
             response = openai.ChatCompletion.create(
                 model="gpt-4",
                 messages=[
@@ -49,4 +49,4 @@ def repair_output(input, function_description, choice, error, validator):
                 failed_outputs_list.append((choice, error))
                 retry_index -= 1
 
-        return choice, valid
+        return choice, choice_parsed, valid
