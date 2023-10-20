@@ -362,8 +362,8 @@ class BufferedLogger(Logger):
 
         training_threshold = (2 ** self.configs[log_file_path]["nr_of_training_runs"]) * 100
 
-        align_dataset_size = self.dataset_lengths[log_file_path+ALIGN_FILE_EXTENSION]
-        patch_dataset_size = self.dataset_lengths[log_file_path+PATCH_FILE_EXTENSION]
+        align_dataset_size = self.dataset_lengths[log_file_path+ALIGN_FILE_EXTENSION] if log_file_path+ALIGN_FILE_EXTENSION in self.dataset_lengths else 0
+        patch_dataset_size = self.dataset_lengths[log_file_path+PATCH_FILE_EXTENSION] if log_file_path+PATCH_FILE_EXTENSION in self.dataset_lengths else 0
 
         return (patch_dataset_size + align_dataset_size) - last_training_run_datapoints > training_threshold
 
