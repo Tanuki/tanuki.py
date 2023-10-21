@@ -40,7 +40,7 @@ class BufferedLogger(Logger):
         # We add load the number of alignment and patches from the files
         self._load_dataset_sizes()
 
-        super().__init__(self, level)
+        super().__init__(name, level)
 
     def _get_log_directory(self):
 
