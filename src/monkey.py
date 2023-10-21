@@ -73,6 +73,24 @@ class Monkey:
     @staticmethod
     def align(test_func):
 
+        def _deep_tuple(obj):
+            """
+            Convert a list or dict to a tuple recursively to allow for hashing and becoming a key for mock_behaviors
+            :param obj:
+            :return:
+            """
+            if isinstance(obj, list):
+                return tuple(_deep_tuple(e) for e in obj)
+            elif isinstance(obj, dict):
+                return tuple((k, _deep_tuple(v)) for k, v in sorted(obj.items()))
+            else:
+                return obj
+
+        def get_key(args, kwargs) -> tuple:
+            args_tuple = _deep_tuple(args)
+            kwargs_tuple = _deep_tuple(kwargs)
+            return args_tuple, kwargs_tuple
+
         @wraps(test_func)
         def wrapper(*args, **kwargs):
             instructions = list(dis.Bytecode(test_func))
@@ -87,7 +105,8 @@ class Monkey:
             func_args = []
             stack_variables = {}
             mockable_functions = []
-
+            co_consts = test_func.__code__.co_consts
+            current_list = []
             # Iterate through the instructions in the monkey-patched function
             for idx, instruction in enumerate(instructions):
 
@@ -105,6 +124,14 @@ class Monkey:
                 elif instruction.opname == 'STORE_FAST':
                     stack_variables[instruction.argval] = func_args.pop()
 
+                # Build lists
+               # elif instruction.opname == 'LIST_EXTEND':
+               #     num_elements = instruction.arg
+               #     list_to_extend = func_args[-1]  # assuming the list to extend is on top of the stack
+                #    elements = func_args[-num_elements - 1:-1]  # elements to extend the list with
+                #    list_to_extend.extend(elements)
+                #    func_args = func_args[:-num_elements]  # remove the elements from func_args
+
                 # If we are loading a variable, add it to the stack
                 elif instruction.opname.startswith('LOAD_'):
                     if instruction.argval in stack_variables:
@@ -112,9 +139,16 @@ class Monkey:
                     else:
                         func_args.append(instruction.argval)
 
+                elif instruction.opname == 'KW_NAMES':
+                    kwarg_names = co_consts[instruction.arg]
+                    print(f"Debug: kwarg_names = {kwarg_names}")
+
+
                 # Handle 'BUILD_LIST', 'BUILD_SET', 'BUILD_TUPLE'
                 elif instruction.opname in ('BUILD_LIST', 'BUILD_SET', 'BUILD_TUPLE'):
                     num_elements = instruction.arg
+                    if num_elements == 0:
+                        continue
                     elements = func_args[-num_elements:]
                     func_args = func_args[:-num_elements]
                     constructed_data = elements if instruction.opname == 'BUILD_LIST' else set(
@@ -137,8 +171,15 @@ class Monkey:
                 # pop the arguments off the stack and register the expected output
                 elif instruction.opname.startswith('CALL'):
                     num_args = instruction.arg
-                    args_for_call = func_args[-num_args:]
-                    func_args = func_args[:-num_args]
+                    num_pos_args = num_args - len(kwarg_names)  # Calculate number of positional arguments
+                    args_for_call = func_args[:num_pos_args]
+                    # Pop keyword arguments off the stack
+                    kwargs_for_call = {}  # New dictionary to hold keyword arguments for the call
+                    for name in reversed(kwarg_names):  # Reverse to match the order on the stack
+                        try:
+                            kwargs_for_call[name] = func_args.pop()
+                        except IndexError:
+                            print(f"Debug: func_args is empty, can't pop for {name}")
 
                     # Search for the next COMPARE_OP with '==' after CALL_FUNCTION
                     for next_idx in range(idx + 1, len(instructions)):
@@ -149,7 +190,8 @@ class Monkey:
                         if opname == 'COMPARE_OP':
                             if next_instruction.argval == '==' or next_instruction.argval == 'is':
                                 expected_value = func_args[-1]  # this would be the last element on the stack
-                                mock_behaviors[tuple(args_for_call)] = expected_value
+                                key = get_key(args_for_call, kwargs_for_call)
+                                mock_behaviors[key] = expected_value
                                 break
                         if opname == 'LOAD_CONST':
                             func_args.append(next_instruction.argval)
@@ -171,64 +213,6 @@ class Monkey:
                             keys = func_args.pop()  # the top of the stack should contain a tuple of keys
                             values = [func_args.pop() for _ in range(num_values)]
                             func_args.append(dict(zip(keys, values[::-1])))  # Reversed because we popped from the stack
-
-        @wraps(test_func)
-        def wrapper2(*args, **kwargs):
-            instructions = list(dis.Bytecode(test_func))
-
-            if args:
-                instance = args[0]
-                args = args[1:]
-            else:
-                instance = None
-
-            mock_behaviors = {}
-            func_args = []
-            stack_variables = {}
-            mockable_functions = []
-
-            # Iterate through the instructions in the monkey-patched function
-            for idx, instruction in enumerate(instructions):
-
-                # Identify method calls on the instance
-                if instruction.opname in ('LOAD_METHOD', 'LOAD_ATTR'):
-                    func_name = instruction.argval
-                    module_name = instruction.argval.split('.')[0]
-                    mockable_functions.append(func_name)
-                # If we are loading a reference to a monkey function, register it to the list of mockable functions
-                elif instruction.opname == 'LOAD_GLOBAL':
-                    func_name = instruction.argval
-                    mockable_functions.append(func_name)
-                # If we are assigning a variable, add it to the stack
-                elif instruction.opname == 'STORE_FAST':
-                    stack_variables[instruction.argval] = func_args.pop()
-                # If we are loading a variable, add it to the stack
-                elif instruction.opname.startswith('LOAD_'):
-                    if instruction.argval in stack_variables:
-                        func_args.append(stack_variables[instruction.argval])
-                    else:
-                        func_args.append(instruction.argval)
-                # If we are calling a function we need to mock (e.g preceded by an assert),
-                # pop the arguments off the stack and register the expected output
-                elif instruction.opname.startswith('CALL'):
-                    num_args = instruction.arg
-                    args_for_call = func_args[-num_args:]
-                    func_args = func_args[:-num_args]
-
-                    # Search for the next COMPARE_OP with '==' after CALL_FUNCTION
-                    for next_idx in range(idx + 1, len(instructions)):
-                        next_instruction = instructions[next_idx]
-                        if next_instruction.opname == 'POP_TOP':
-                            break
-                        if next_instruction.opname == 'COMPARE_OP':
-                            if next_instruction.argval == '==' or next_instruction.argval == 'is':
-                                expected_value = instructions[next_idx - 1].argval
-                                mock_behaviors[tuple(args_for_call)] = expected_value
-                                break
-                        # elif next_instruction.argval == '!=' or next_instruction.argval == 'is not':
-                        #     expected_value = instructions[next_idx - 1].argval
-                        #     mock_behaviors[tuple(args_for_call)] = expected_value
-                        #     break
 
             def extract_attributes(result):
                 attributes = {}
@@ -263,7 +247,8 @@ class Monkey:
                         if isinstance(attr_value, list):
                             attributes[attr_name] = len(attr_value)
 
-                    mocked_behaviour = mock_behaviors.get(args, None)
+                    key = get_key(args, kwargs)
+                    mocked_behaviour = mock_behaviors.get(key, None)
                     logger.log_align(hashed_description, args, kwargs, mocked_behaviour)
                     return mocked_behaviour
 
