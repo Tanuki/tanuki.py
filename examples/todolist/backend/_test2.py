@@ -1,13 +1,19 @@
 import ast
 import builtins
 import datetime
+from typing import List, Optional
+
+from pydantic import BaseModel
 
 
-class TodoItem:
-    def __init__(self, goal, people, deadline=None):
-        self.goal = goal
-        self.people = people
-        self.deadline = deadline
+class TodoItem(BaseModel):
+    # def __init__(self, goal, people, deadline=None):
+    #     self.goal = goal
+    #     self.people = people
+    #     self.deadline = deadline
+    deadline: Optional[datetime.datetime] = None
+    goal: str
+    people: List[str]
 
 
 class AssertionVisitor(ast.NodeVisitor):
@@ -144,9 +150,18 @@ class AssertionVisitor(ast.NodeVisitor):
             return node.n  # Assume it's a number for simplicity
         elif isinstance(node, ast.Str):
             return node.s  # Assume it's a string for simplicity
-        # ... handle other types of AST nodes
         else:
             raise NotImplementedError(f"Node type {type(node).__name__} not handled yet")
+
+    def instantiate(self, func, *args, **kwargs):
+        """Instantiate a function with the given arguments and keyword arguments."""
+        try:
+            return func(*args, **kwargs)
+        except TypeError as e:
+            # If the function cannot be instantiated, return the function itself
+            return func
+        except Exception as e:
+            raise e
 
     def extract_output(self, node, scope=None):
         current_scope = self.scopes[-1]
@@ -181,12 +196,12 @@ class AssertionVisitor(ast.NodeVisitor):
                 if func_name in self.imported_modules:
                     module = self.imported_modules[func_name]
                     if hasattr(module, func_name):
-                        obj = getattr(module, func_name)(*args, **kwargs)
-                        return obj
+                        func = getattr(module, func_name)
+                        return self.instantiate(func, *args, **kwargs)
 
                 elif func_name in globals():
-                    obj = globals()[func_name](*args, **kwargs)
-                    return obj
+                    func = globals()[func_name]
+                    return self.instantiate(func, *args, **kwargs)
             elif isinstance(node.func, ast.Attribute):
                 func_name = node.func.attr
                 obj = self.extract_output(node.func.value, scope)
@@ -202,10 +217,10 @@ class AssertionVisitor(ast.NodeVisitor):
         elif isinstance(node, ast.Attribute):
             # Handle attributes like datetime.datetime
             obj = self.extract_output(node.value, scope)
-            if obj == datetime:
-                return datetime
-            else:
-                return getattr(obj, node.attr)
+            #if obj == datetime:
+            #    return datetime
+            #else:
+            return getattr(obj, node.attr)
         elif isinstance(node, ast.Tuple):
             return tuple(self.extract_output(elt, scope) for elt in node.elts)
         elif isinstance(node, ast.Constant):
@@ -253,7 +268,7 @@ if __name__ == "__main__":
 from datetime import datetime
 async def define_behavior():
     assert create_todolist_item("I would like to go to the shop and buy some milk") == TodoItem(goal="Go to the store and buy some milk", people=["Me"])
-    assert create_todolist_item("I need to go and visit George at 3pm tomorrow") == TodoItem(goal="Go and visit Jeff", people=["Me"], deadline="datetime")
+    assert create_todolist_item("I need to go and visit George at 3pm tomorrow") == TodoItem(goal="Go and visit Jeff", people=["Me"], deadline=datetime(2021, 1, 1, 15, 0))
     
     inputs = ["I would like to go to the store and buy some milk", "I need to go and visit Jeff at 3pm tomorrow"]
     outputs = [TodoItem(goal="Go to the store and buy some milk", people=["Me"]), TodoItem(goal="Go and visit Jeff", people=["Me"], deadline=datetime(2021, 1, 1, 15, 0))]
