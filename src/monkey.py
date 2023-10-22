@@ -4,12 +4,16 @@ import logging
 import os
 import sys
 from functools import wraps
+from importlib import import_module
 from typing import Optional
 from unittest.mock import patch
 import openai
+from pydantic import BaseModel
+
 from models.function_description import FunctionDescription
 from models.function_example import FunctionExample
 from register import Register
+from todo_item import TodoItem
 from trackers.buffered_logger import BufferedLogger
 from validator import Validator
 from repair import repair_output
@@ -89,6 +93,21 @@ class Monkey:
             kwargs_tuple = _deep_tuple(kwargs)
             return args_tuple, kwargs_tuple
 
+        def construct(current_class, *args, **kwargs):
+            if isinstance(current_class, BaseModel):
+                try:
+                    constructed_object = current_class.model_validate(kwargs)
+                except TypeError:
+                    raise TypeError(f"Fatal: TypeError when constructing object of type {current_class}")
+                    constructed_object = None
+            else:
+                try:
+                    constructed_object = current_class(*args, **kwargs)  # Construct the object
+                except TypeError as e:
+                    raise TypeError(f"Fatal: TypeError when constructing object of type {current_class}", e)
+                    constructed_object = None
+            return constructed_object
+
         @wraps(test_func)
         def wrapper(*args, **kwargs):
             instructions = list(dis.Bytecode(test_func))
@@ -105,6 +124,10 @@ class Monkey:
             mockable_functions = []
             co_consts = test_func.__code__.co_consts
             kwarg_names = []
+            current_class = None
+            constructor_stack = []
+            current_class_stack = []
+
             # Iterate through the instructions in the monkey-patched function
             for idx, instruction in enumerate(instructions):
 
@@ -117,6 +140,15 @@ class Monkey:
                 elif instruction.opname == 'LOAD_GLOBAL':
                     func_name = instruction.argval
                     mockable_functions.append(func_name)
+
+                    if instruction.argrepr.startswith('NULL +'):
+                        _globals = globals()
+                        # This is either a class or a function
+                        _mounted_class = _globals.get(func_name, None) # This will be None if the function is not a class
+
+                        if _mounted_class:
+                            current_class_stack.append(_mounted_class)
+                        pass
 
                 # If we are assigning a variable, add it to the stack
                 elif instruction.opname == 'STORE_FAST':
@@ -169,29 +201,41 @@ class Monkey:
                 # pop the arguments off the stack and register the expected output
                 elif instruction.opname.startswith('CALL'):
                     num_args = instruction.arg
-                    num_pos_args = num_args - len(kwarg_names)  # Calculate number of positional arguments
-                    args_for_call = func_args[:num_pos_args]
-                    # Pop keyword arguments off the stack
-                    kwargs_for_call = {}  # New dictionary to hold keyword arguments for the call
-                    for name in reversed(kwarg_names):  # Reverse to match the order on the stack
-                        try:
-                            kwargs_for_call[name] = func_args.pop()
-                        except IndexError:
-                            print(f"Debug: func_args is empty, can't pop for {name}")
+                    args_for_call, func_args, kwargs_for_call = _get_args(func_args, kwarg_names, num_args)
+                    constructed_object = None
+                    func_args = func_args[:-num_args]  # Remove the arguments from func_args
+                    if current_class_stack:
+                        current_class = current_class_stack[-1]
+                        constructed_object = construct(current_class, *args_for_call, **kwargs_for_call)
+                        constructor_stack.append(constructed_object)  # Push the newly constructed object to stack
+                        current_class_stack.pop()
+                        #func_args.append(constructed_object)
+                        #current_class = None
+                    #elif constructor_stack:
+                    #    constructed_object = constructor_stack.pop()  # Pop the last object
+                        #func_args.append(constructed_object)
 
-                    # Search for the next COMPARE_OP with '==' after CALL_FUNCTION
+                    # Search for the next COMPARE_OP with '==' after CALL
                     for next_idx in range(idx + 1, len(instructions)):
                         next_instruction = instructions[next_idx]
                         opname = next_instruction.opname
                         if opname == 'POP_TOP':
                             break
-                        if opname == 'COMPARE_OP':
+                        elif opname == 'KW_NAMES':
+                            kwarg_names = co_consts[next_instruction.arg]
+                        elif opname == 'COMPARE_OP':
                             if next_instruction.argval == '==' or next_instruction.argval == 'is':
-                                expected_value = func_args[-1]  # this would be the last element on the stack
+                                #expected_value = func_args[-1]
+                                #args_for_call2, func_args2, kwargs_for_call2 = _get_args(func_args, kwarg_names, num_args)
+                                # this would be the last element on the stack
                                 key = get_key(args_for_call, kwargs_for_call)
-                                mock_behaviors[key] = expected_value
+                                try:
+                                    mock_behaviors[key] = func_args[-1] if not constructed_object else constructed_object
+                                    #func_args.pop()
+                                except TypeError as e:
+                                    print("Debug: TypeError when trying to get key", e)
                                 break
-                        if opname == 'LOAD_CONST':
+                        elif opname == 'LOAD_CONST':
                             func_args.append(next_instruction.argval)
                         elif opname in ('BUILD_LIST', 'BUILD_SET', 'BUILD_TUPLE'):
                             num_elements = next_instruction.arg
@@ -287,6 +331,19 @@ class Monkey:
                     return patched_func(*args, **kwargs)
             else:
                 return patched_func(*args, **kwargs)
+
+        def _get_args(func_args, kwarg_names, num_args):
+            num_pos_args = num_args - len(kwarg_names)  # Calculate number of positional arguments
+            args_for_call = func_args[:num_pos_args]
+            # Pop keyword arguments off the stack
+            kwargs_for_call = {}  # New dictionary to hold keyword arguments for the call
+            for name in reversed(kwarg_names):  # Reverse to match the order on the stack
+                try:
+                    kwargs_for_call[name] = func_args.pop()  # Pop the value off the stack
+                except IndexError:
+                    print(f"Debug: func_args is empty, can't pop for {name}")
+            func_args = func_args[:-num_pos_args]  # Remove the positional arguments from func_args
+            return args_for_call, func_args, kwargs_for_call
 
         return wrapper
 

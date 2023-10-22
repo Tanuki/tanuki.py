@@ -4,6 +4,6 @@ from typing import List, Optional
 
 
 class TodoItem(BaseModel):
-    deadline: Optional[datetime]
+    deadline: Optional[datetime] = None
     goal: str
     people: List[str]
