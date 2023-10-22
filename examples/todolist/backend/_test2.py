@@ -99,7 +99,10 @@ class AssertionVisitor(ast.NodeVisitor):
     def process_assert_helper_lr(self, left, right, iter_name=None):
         input_args = self.extract_args(left, iter_name)
         output = self.extract_output(right, iter_name)
-        self.mocks[tuple(input_args)] = output
+        if len(input_args) == 1:
+            self.mocks[input_args[0]] = output  # Use the value directly if only one argument
+        else:
+            self.mocks[tuple(input_args)] = output  # Use a tuple otherwise
 
     def extract_args(self, node, iter_name=None):
         # Assuming all arguments are positional
@@ -108,9 +111,6 @@ class AssertionVisitor(ast.NodeVisitor):
         for arg in node.args:
             value = self.eval_expr(arg)
             if callable(value):
-                # Here, evaluate the function.
-                # You can specify how to handle specific built-in functions.
-                # This is just a generic example.
                 if iter_name is not None:
                     arg_values = [current_scope.get(arg_name, None) for arg_name in iter_name]
                     value = value(*arg_values)
@@ -173,10 +173,20 @@ class AssertionVisitor(ast.NodeVisitor):
                 args = eval_args(node.args, scope)
                 kwargs = eval_kwargs(node.keywords, scope)
 
-                if func_name == "TodoItem":
-                    return TodoItem(*args, **kwargs)
-                elif func_name == "datetime":
-                    return datetime.datetime(*args, **kwargs)
+                # if func_name == "TodoItem":
+                #     return TodoItem(*args, **kwargs)
+                # elif func_name == "datetime":
+                #     return datetime.datetime(*args, **kwargs)
+                # Generalized object instantiation
+                if func_name in self.imported_modules:
+                    module = self.imported_modules[func_name]
+                    if hasattr(module, func_name):
+                        obj = getattr(module, func_name)(*args, **kwargs)
+                        return obj
+
+                elif func_name in globals():
+                    obj = globals()[func_name](*args, **kwargs)
+                    return obj
             elif isinstance(node.func, ast.Attribute):
                 func_name = node.func.attr
                 obj = self.extract_output(node.func.value, scope)
