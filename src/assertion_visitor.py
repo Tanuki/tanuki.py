@@ -4,15 +4,19 @@ import sys
 from _ast import NotEq, NotIn, IsNot, In
 from typing import Optional, List
 
+from utils import get_key
+
+
 class Or(list):
     pass
+
 
 class AssertionVisitor(ast.NodeVisitor):
     def __init__(self, scope: Optional[dict] = None, patch_names: List[str] = []):
         self.mocks = {}  # {args: output}
         self.scopes = [{}]  # Stack of scopes to mimic variable scope in code
         self.imported_modules = {}  # keys are module names, values are the actual modules
-        self.patch_names = patch_names # names of functions to patch
+        self.patch_names = patch_names  # names of functions to patch
         if scope:
             self.local_scope = scope
         current_module = sys.modules[__name__]
@@ -63,6 +67,13 @@ class AssertionVisitor(ast.NodeVisitor):
             raise NotImplementedError(f"Node type {type(node)} not supported")
 
     def process_assert(self, node, iter_name=None, evaluated_expr=None):
+
+        if isinstance(node.test, ast.UnaryOp) and isinstance(node.test.op, ast.Not):
+            # Special case for 'assert not ...'. We have to convert it into 'assert ... == None'
+            operand = node.test.operand
+            self.process_assert_helper(operand, ast.NameConstant(value=None), iter_name, op=ast.Eq())
+            return
+
         left = node.test.left
         right = node.test.comparators[0]
 
@@ -90,29 +101,40 @@ class AssertionVisitor(ast.NodeVisitor):
                 # Create a new scope for these variables
                 self.scopes.append(dict(zip(iter_names, input_tuple)))
 
-                # Process the assert statement
-                self.process_assert_helper(left, right, op=node.test.ops[0])
+                if isinstance(node.test, ast.UnaryOp) and isinstance(node.test.op, ast.Not):
+                    # Special case for 'assert not ...'
+                    #operand = node.test.operand
+                    self.process_assert_helper(left, ast.NameConstant(value=None), op=ast.Eq())
+                else:
+                    # Process the assert statement
+                    self.process_assert_helper(left, right, op=node.test.ops[0])
 
                 # Remove the temporary scope
                 self.scopes.pop()
 
     def process_assert_helper(self, left, right, iter_name=None, op=None):
-        if isinstance(left, ast.Call) and isinstance(left.func, ast.Name) and left.func.id in self.patch_names:
-            self.process_assert_helper_lr(left, right, iter_name, op)
+        if isinstance(left, ast.Call):
+            if isinstance(left.func, ast.Name) and left.func.id in self.patch_names:
+                self.process_assert_helper_lr(left, right, iter_name, op)
+            elif isinstance(left.func, ast.Attribute) and left.func.attr in self.patch_names:
+                self.process_assert_helper_lr(left, right, iter_name, op)
 
-        elif isinstance(right, ast.Call) and isinstance(right.func, ast.Name) and right.func.id in self.patch_names:
-            self.process_assert_helper_lr(right, left, iter_name, op)
+        elif isinstance(right, ast.Call):
+            if isinstance(right.func, ast.Name) and right.func.id in self.patch_names:
+                self.process_assert_helper_lr(right, left, iter_name, op)
+            elif isinstance(right.func, ast.Attribute) and right.func.attr in self.patch_names:
+                self.process_assert_helper_lr(right, left, iter_name, op)
 
     def process_assert_helper_lr(self, left, right, iter_name=None, op=None):
-        input_args = self.extract_args(left, iter_name)
+        input_args, input_kwargs = self.extract_args(left, iter_name)
         if isinstance(op, In):
             output = Or(self.extract_output(right))
         else:
             output = self.extract_output(right)
-        if len(input_args) == 1:
-            self.mocks[input_args[0]] = output  # Use the value directly if only one argument
-        else:
-            self.mocks[tuple(input_args)] = output  # Use a tuple otherwise
+
+        key = get_key(input_args, input_kwargs)
+
+        self.mocks[key] = output
 
     def extract_args(self, node, iter_name=None):
         # Assuming all arguments are positional
@@ -130,7 +152,23 @@ class AssertionVisitor(ast.NodeVisitor):
                 # If evaluation returns None, fall back to scope
                 value = current_scope.get(arg.id, None)
             args.append(value)
-        return args
+
+        # Extract keyword arguments
+        kwargs = {}
+        for kw in node.keywords:
+            kw_value = self.eval_expr(kw.value)
+            if callable(kw_value):
+                if iter_name is not None:
+                    kw_values = [current_scope.get(arg_name, None) for arg_name in iter_name]
+                    kw_value = kw_value(*kw_values)
+                else:
+                    kw_value = kw_value()
+            elif kw_value is None:
+                # If evaluation returns None, fall back to scope
+                kw_value = current_scope.get(kw.arg, None)
+            kwargs[kw.arg] = kw_value
+
+        return args, kwargs
 
     def eval_expr(self, node):
         current_scope = self.scopes[-1]
@@ -146,7 +184,8 @@ class AssertionVisitor(ast.NodeVisitor):
             # Function call, could be 'zip' or other
             func = self.eval_expr(node.func)  # Recursively evaluate the function expression
             if func is None:
-                raise ValueError(f"Function {node.func.id if isinstance(node.func, ast.Name) else ''} not found in the current scope or built-ins.")
+                raise ValueError(
+                    f"Function {node.func.id if isinstance(node.func, ast.Name) else ''} not found in the current scope or built-ins.")
 
             args = [self.eval_expr(arg) for arg in node.args]  # Recursively evaluate the arguments
             return func(*args)  # Assume func_name is a Python built-in, e.g., zip
@@ -168,7 +207,7 @@ class AssertionVisitor(ast.NodeVisitor):
             raise e
 
     def extract_output(self, node, scope=None):
-        #current_scope = self.scopes[-1]
+        # current_scope = self.scopes[-1]
 
         def eval_args(args, scope):
             return [self.extract_output(arg, scope) for arg in args]
@@ -183,7 +222,8 @@ class AssertionVisitor(ast.NodeVisitor):
         elif isinstance(node, ast.List):
             return [self.extract_output(elt, scope) for elt in node.elts]
         elif isinstance(node, ast.Dict):
-            return {self.extract_output(k, scope): self.extract_output(v, scope) for k, v in zip(node.keys, node.values)}
+            return {self.extract_output(k, scope): self.extract_output(v, scope) for k, v in
+                    zip(node.keys, node.values)}
         elif isinstance(node, ast.Name):
             return self.load_variable_values(node.id)
         elif isinstance(node, ast.Call):
@@ -214,7 +254,7 @@ class AssertionVisitor(ast.NodeVisitor):
                     raise NotImplementedError(f"Function {func_name} not handled yet")
             elif isinstance(node.func, ast.Attribute):
                 func_name = node.func.attr
-                #obj = self.extract_output(node.func.value, scope)
+                # obj = self.extract_output(node.func.value, scope)
                 _globals = globals()
                 if isinstance(node.func.value, ast.Name):
                     module_or_class_name = node.func.value.id
@@ -264,7 +304,7 @@ class AssertionVisitor(ast.NodeVisitor):
         # If loop variable is a tuple
         elif isinstance(node.target, ast.Tuple):
             iter_names = [elt.id for elt in node.target.elts]  # Extract names from tuple
-            #iter_name = self.extract_variable_name(node.iter)
+            # iter_name = self.extract_variable_name(node.iter)
             evaluated_expr = self.eval_expr(node.iter)
             for stmt in node.body:
                 if isinstance(stmt, ast.Assert):

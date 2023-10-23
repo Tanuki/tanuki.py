@@ -1,23 +1,26 @@
+import ast
 import dis
 import inspect
+import json
 import logging
 import os
 import sys
+import textwrap
 from functools import wraps
-from importlib import import_module
 from typing import Optional
 from unittest.mock import patch
+
 import openai
 from pydantic import BaseModel
 
+from assertion_visitor import AssertionVisitor
 from models.function_description import FunctionDescription
 from models.function_example import FunctionExample
 from register import Register
-from todo_item import TodoItem
-from trackers.buffered_logger import BufferedLogger
-from validator import Validator
 from repair import repair_output
-import json
+from trackers.buffered_logger import BufferedLogger
+from utils import get_key
+from validator import Validator
 
 
 # Define a new level
@@ -74,187 +77,29 @@ class Monkey:
 
     @staticmethod
     def align(test_func):
+        """
+        Decorator to align a function.
 
-        def _deep_tuple(obj):
-            """
-            Convert a list or dict to a tuple recursively to allow for hashing and becoming a key for mock_behaviors
-            :param obj:
-            :return:
-            """
-            if isinstance(obj, list):
-                return tuple(_deep_tuple(e) for e in obj)
-            elif isinstance(obj, dict):
-                return tuple((k, _deep_tuple(v)) for k, v in sorted(obj.items()))
-            else:
-                return obj
+        By adding the @align decorator to a function, we can declare the desired input-output
+        behaviour of the patched functions using assertions.
 
-        def get_key(args, kwargs) -> tuple:
-            args_tuple = _deep_tuple(args)
-            kwargs_tuple = _deep_tuple(kwargs)
-            return args_tuple, kwargs_tuple
-
-        def construct(current_class, *args, **kwargs):
-            if isinstance(current_class, BaseModel):
-                try:
-                    constructed_object = current_class.model_validate(kwargs)
-                except TypeError:
-                    raise TypeError(f"Fatal: TypeError when constructing object of type {current_class}")
-                    constructed_object = None
-            else:
-                try:
-                    constructed_object = current_class(*args, **kwargs)  # Construct the object
-                except TypeError as e:
-                    raise TypeError(f"Fatal: TypeError when constructing object of type {current_class}", e)
-                    constructed_object = None
-            return constructed_object
+        :param test_func:
+        :return:
+        """
 
         @wraps(test_func)
         def wrapper(*args, **kwargs):
-            instructions = list(dis.Bytecode(test_func))
+            source = textwrap.dedent(inspect.getsource(test_func))
+            tree = ast.parse(source)
+            visitor = AssertionVisitor(locals(), patch_names=Register.function_names_to_patch())
+            visitor.visit(tree)
+            mock_behaviors = visitor.mocks
 
             if args:
                 instance = args[0]
                 args = args[1:]
             else:
                 instance = None
-
-            mock_behaviors = {}
-            func_args = []
-            stack_variables = {}
-            mockable_functions = []
-            co_consts = test_func.__code__.co_consts
-            kwarg_names = []
-            current_class = None
-            constructor_stack = []
-            current_class_stack = []
-
-            # Iterate through the instructions in the monkey-patched function
-            for idx, instruction in enumerate(instructions):
-
-                # Identify method calls on the instance
-                if instruction.opname in ('LOAD_METHOD', 'LOAD_ATTR'):
-                    func_name = instruction.argval
-                    mockable_functions.append(func_name)
-
-                # If we are loading a reference to a monkey function, register it to the list of mockable functions
-                elif instruction.opname == 'LOAD_GLOBAL':
-                    func_name = instruction.argval
-                    mockable_functions.append(func_name)
-
-                    if instruction.argrepr.startswith('NULL +'):
-                        _globals = globals()
-                        # This is either a class or a function
-                        _mounted_class = _globals.get(func_name, None) # This will be None if the function is not a class
-
-                        if _mounted_class:
-                            current_class_stack.append(_mounted_class)
-                        pass
-
-                # If we are assigning a variable, add it to the stack
-                elif instruction.opname == 'STORE_FAST':
-                    stack_variables[instruction.argval] = func_args.pop()
-
-                # Build lists
-               # elif instruction.opname == 'LIST_EXTEND':
-               #     num_elements = instruction.arg
-               #     list_to_extend = func_args[-1]  # assuming the list to extend is on top of the stack
-                #    elements = func_args[-num_elements - 1:-1]  # elements to extend the list with
-                #    list_to_extend.extend(elements)
-                #    func_args = func_args[:-num_elements]  # remove the elements from func_args
-
-                # If we are loading a variable, add it to the stack
-                elif instruction.opname.startswith('LOAD_'):
-                    if instruction.argval in stack_variables:
-                        func_args.append(stack_variables[instruction.argval])
-                    else:
-                        func_args.append(instruction.argval)
-
-                elif instruction.opname == 'KW_NAMES':
-                    kwarg_names = co_consts[instruction.arg]
-                    print(f"Debug: kwarg_names = {kwarg_names}")
-
-
-                # Handle 'BUILD_LIST', 'BUILD_SET', 'BUILD_TUPLE'
-                elif instruction.opname in ('BUILD_LIST', 'BUILD_SET', 'BUILD_TUPLE'):
-                    num_elements = instruction.arg
-                    if num_elements == 0:
-                        continue
-                    elements = func_args[-num_elements:]
-                    func_args = func_args[:-num_elements]
-                    constructed_data = elements if instruction.opname == 'BUILD_LIST' else set(
-                        elements) if instruction.opname == 'BUILD_SET' else tuple(elements)
-                    func_args.append(constructed_data)
-
-                # Handle 'BUILD_MAP', 'BUILD_CONST_KEY_MAP'
-                elif instruction.opname in ('BUILD_MAP', 'BUILD_CONST_KEY_MAP'):
-                    num_elements = instruction.arg
-                    if instruction.opname == 'BUILD_MAP':
-                        key_values = dict(zip(func_args[-2 * num_elements::2], func_args[-2 * num_elements + 1::2]))
-                    else:  # 'BUILD_CONST_KEY_MAP'
-                        keys = func_args.pop()  # assuming keys are on top of the stack as a tuple
-                        values = func_args[-num_elements:]
-                        key_values = dict(zip(keys, values))
-                    func_args = func_args[:-num_elements]
-                    func_args.append(key_values)
-
-                # If we are calling a function we need to mock (e.g preceded by an assert),
-                # pop the arguments off the stack and register the expected output
-                elif instruction.opname.startswith('CALL'):
-                    num_args = instruction.arg
-                    args_for_call, func_args, kwargs_for_call = _get_args(func_args, kwarg_names, num_args)
-                    constructed_object = None
-                    func_args = func_args[:-num_args]  # Remove the arguments from func_args
-                    if current_class_stack:
-                        current_class = current_class_stack[-1]
-                        constructed_object = construct(current_class, *args_for_call, **kwargs_for_call)
-                        constructor_stack.append(constructed_object)  # Push the newly constructed object to stack
-                        current_class_stack.pop()
-                        #func_args.append(constructed_object)
-                        #current_class = None
-                    #elif constructor_stack:
-                    #    constructed_object = constructor_stack.pop()  # Pop the last object
-                        #func_args.append(constructed_object)
-
-                    # Search for the next COMPARE_OP with '==' after CALL
-                    for next_idx in range(idx + 1, len(instructions)):
-                        next_instruction = instructions[next_idx]
-                        opname = next_instruction.opname
-                        if opname == 'POP_TOP':
-                            break
-                        elif opname == 'KW_NAMES':
-                            kwarg_names = co_consts[next_instruction.arg]
-                        elif opname == 'COMPARE_OP':
-                            if next_instruction.argval == '==' or next_instruction.argval == 'is':
-                                #expected_value = func_args[-1]
-                                #args_for_call2, func_args2, kwargs_for_call2 = _get_args(func_args, kwarg_names, num_args)
-                                # this would be the last element on the stack
-                                key = get_key(args_for_call, kwargs_for_call)
-                                try:
-                                    mock_behaviors[key] = func_args[-1] if not constructed_object else constructed_object
-                                    #func_args.pop()
-                                except TypeError as e:
-                                    print("Debug: TypeError when trying to get key", e)
-                                break
-                        elif opname == 'LOAD_CONST':
-                            func_args.append(next_instruction.argval)
-                        elif opname in ('BUILD_LIST', 'BUILD_SET', 'BUILD_TUPLE'):
-                            num_elements = next_instruction.arg
-                            elements = func_args[-num_elements:]
-                            func_args = func_args[:-num_elements]
-                            constructed_data = elements if opname == 'BUILD_LIST' else set(
-                                elements) if opname == 'BUILD_SET' else tuple(elements)
-                            func_args.append(constructed_data)
-
-                        elif instruction.opname == 'BUILD_MAP':
-                            num_pairs = instruction.arg
-                            pairs = [(func_args.pop(), func_args.pop()) for _ in range(num_pairs)]
-                            func_args.append(dict(pairs[::-1]))  # Reversed because we popped from the stack
-
-                        elif instruction.opname == 'BUILD_CONST_KEY_MAP':
-                            num_values = instruction.arg
-                            keys = func_args.pop()  # the top of the stack should contain a tuple of keys
-                            values = [func_args.pop() for _ in range(num_values)]
-                            func_args.append(dict(zip(keys, values[::-1])))  # Reversed because we popped from the stack
 
             def extract_attributes(result):
                 attributes = {}
