@@ -6,7 +6,7 @@ from typing import Optional, List
 
 from pydantic import BaseModel
 
-from assertion_visitor import AssertionVisitor
+from assertion_visitor import AssertionVisitor, Or
 
 
 def _parse(source):
@@ -16,15 +16,24 @@ def _parse(source):
         people: List[str]
 
     tree = ast.parse(source)
-    visitor = AssertionVisitor(locals())
+    visitor = AssertionVisitor(locals(), patch_names=["create_todolist_item"])
     visitor.visit(tree)
     return visitor.mocks
 
+def test_rl_equality():
+    source = \
+""" 
+assert TodoItem(goal="Go to the store and buy some milk", people=["Me"]) == create_todolist_item("I would like to go to the shop and buy some milk")
+"""
+
+    mocks = _parse(source)
+
+    assert len(mocks) == 1
 
 def test_equality():
 
     source = \
-"""
+""" 
 assert create_todolist_item("I would like to go to the shop and buy some milk") == TodoItem(goal="Go to the store and buy some milk", people=["Me"])
 """
 
@@ -131,12 +140,19 @@ for input in inputs:
 
     assert len(mocks) == 2
 
+    assert len(list(mocks.values())[0]) == 2
+    assert len(list(mocks.values())[1]) == 2
+
+    assert isinstance(list(mocks.values())[0], Or)
+
 if __name__ == "__main__":
     test_equality()
+    test_rl_equality()
+    test_iteration()
     test_non_equality()
     test_none()
     test_not_none()
     test_inclusion()
     test_exclusion()
     test_tuple_iteration()
-    test_iteration()
+
