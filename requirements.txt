@@ -4,3 +4,10 @@ numpy==1.26.1
 python-dotenv==1.0.0
 bitarray==2.8.2
 pydantic==2.4.2
+fastapi==0.104.0
+uvicorn==0.23.2
+gunicorn>=20.1.0
+youtube-transcript-api==0.6.1
+flake8==6.1.0
+black==23.10.0
+mypy==1.6.1

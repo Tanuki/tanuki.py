@@ -1,0 +1,31 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    "python.linting.flake8Enabled": true,
+    "python.linting.flake8Args": [
+        "--max-line-length=100",
+    ],
+    "python.formatting.provider": "none",
+    "python.formatting.blackArgs": ["--line-length", "100"],
+    "python.linting.enabled": true,
+    "[python]": {
+        "editor.formatOnSave": true,
+        "editor.tabSize": 4,
+        "editor.defaultFormatter": "ms-python.black-formatter",
+    },
+    "python.linting.mypyEnabled": true,
+    "python.linting.mypyCategorySeverity.error":"Warning",
+    "python.linting.mypyArgs": [
+        "--check-untyped-defs",
+        "--disallow-untyped-defs",
+        "--disallow-incomplete-defs",
+        "--disallow-untyped-decorators",
+        "--warn-return-any",
+        "--warn-unused-ignores",
+        "--no-implicit-optional",
+        "--ignore-missing-imports",
+        "--follow-imports=silent",
+        "--show-column-numbers",
+        "--disallow-untyped-calls"
+    ],
+    "python.testing.cwd": "${workspaceFolder}"
+}
