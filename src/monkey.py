@@ -51,24 +51,22 @@ def logger_factory(name):
 
 ALIGN_LEVEL_NUM = 15
 PATCH_LEVEL_NUM = 14
-logging.addLevelName(ALIGN_LEVEL_NUM, "ALIGN")
-logging.addLevelName(PATCH_LEVEL_NUM, "PATCH")
-
 ALIGN_FILE_NAME = ".align"
-
-# Set up basic configuration
-logging.setLoggerClass(BufferedLogger)
-logging.basicConfig(level=ALIGN_LEVEL_NUM)
-
-logger = logger_factory(__name__)
 
 alignable_functions = {}
 
 class Monkey:
+    # Set up basic configuration
+    logging.setLoggerClass(BufferedLogger)
+    logging.addLevelName(ALIGN_LEVEL_NUM, "ALIGN")
+    logging.addLevelName(PATCH_LEVEL_NUM, "PATCH")
+    logging.basicConfig(level=ALIGN_LEVEL_NUM)
+    logger = logger_factory(__name__)
+
 
     @staticmethod
     def _load_alignments():
-        logger.load_alignments()
+        Monkey.logger.load_alignments()
 
     @staticmethod
     def align(test_func):
@@ -106,7 +104,7 @@ class Monkey:
             stack_variables = {}
             mockable_functions = []
             co_consts = test_func.__code__.co_consts
-            current_list = []
+            kwarg_names = []
             # Iterate through the instructions in the monkey-patched function
             for idx, instruction in enumerate(instructions):
 
@@ -249,7 +247,7 @@ class Monkey:
 
                     key = get_key(args, kwargs)
                     mocked_behaviour = mock_behaviors.get(key, None)
-                    logger.log_align(hashed_description, args, kwargs, mocked_behaviour)
+                    Monkey.logger.log_align(hashed_description, args, kwargs, mocked_behaviour)
                     return mocked_behaviour
 
                 return mock_func
@@ -299,8 +297,8 @@ class Monkey:
         @wraps(test_func)
         def wrapper(*args, **kwargs):
             function_description = Register.load_function_description(test_func)
-            model = logger.get_model(function_description.__hash__())
-            aligns = logger.get_alignments(function_description.__hash__(), max=5)
+            model = Monkey.logger.get_model(function_description.__hash__())
+            aligns = Monkey.logger.get_alignments(function_description.__hash__(), max=5)
             examples = "\n".join([f"Input: {align['args']}\nOutput: {align['output']}" for align in aligns])
             # f = json_dumps(function_description.__dict__)
             f = str(function_description.__dict__.__repr__() + "\n")
@@ -353,7 +351,7 @@ class Monkey:
                     raise TypeError(f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{choice}'")
 
             datapoint = FunctionExample(args, kwargs, choice)
-            logger.postprocess_datapoint(function_description.__hash__(), f, datapoint, log = not valid)
+            Monkey.logger.postprocess_datapoint(function_description.__hash__(), f, datapoint, log = not valid)
 
             instantiated = validator.instantiate(choice_parsed, function_description.output_type_hint)
 
