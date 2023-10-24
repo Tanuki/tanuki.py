@@ -4,3 +4,5 @@ numpy
 bitarray
 pydantic
 python-dotenv
+bs4
+requests

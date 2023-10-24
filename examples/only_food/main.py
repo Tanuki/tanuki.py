@@ -4,6 +4,8 @@ import openai
 from dotenv import load_dotenv
 from pydantic import Field
 
+from examples.utils.main import get_yelp_reviews
+
 from monkey import Monkey
 
 load_dotenv()
@@ -117,6 +119,10 @@ bad_food_good_service = [
     "culinary aspect didn't match the excellence of the restaurant's other attributes."
     ]
 
+
+
+
+
 @Monkey.patch
 def rate_food(reviews: List[str]) -> Annotated[int, Field(ge=1, le=5)]:
     """
@@ -130,14 +136,18 @@ def test_food_rating():
     """We can test the function as normal using Pytest or Unittest"""
 
 if __name__ == '__main__':
-    rating = rate_food(good_everything)
-    print(f"When the EVERYTHING was positive the rating is {rating} out of 5")
-
-    rating = rate_food(bad_everything)
-    print(f"When the EVERYTHING was negative the rating is {rating} out of 5")
-
-    rating = rate_food(good_food_bad_service)
-    print(f"When the food is good and service is bad the rating is {rating} out of 5")
-
-    rating = rate_food(bad_food_good_service)
-    print(f"When the food is bad and service is good the rating is {rating} out of 5")
+    # rating = rate_food(good_everything)
+    # print(f"When the EVERYTHING was positive the rating is {rating} out of 5")
+    #
+    # rating = rate_food(bad_everything)
+    # print(f"When the EVERYTHING was negative the rating is {rating} out of 5")
+    #
+    # rating = rate_food(good_food_bad_service)
+    # print(f"When the food is good and service is bad the rating is {rating} out of 5")
+    #
+    # rating = rate_food(bad_food_good_service)
+    # print(f"When the food is bad and service is good the rating is {rating} out of 5")
+    url = "https://www.yelp.com/biz/no-thai-ann-arbor"
+    reviews = get_yelp_reviews(url)
+    rating = rate_food(reviews)
+    print(f"The food (only) rating for {url} is {rating} out of 5")

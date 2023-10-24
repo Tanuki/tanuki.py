@@ -4,6 +4,7 @@ import openai
 from dotenv import load_dotenv
 from pydantic import Field
 
+from examples.utils.main import get_yelp_reviews
 from monkey import Monkey
 
 load_dotenv()
@@ -47,4 +48,8 @@ def test_food_rating():
 
 if __name__ == '__main__':
     recommended = recommended_dishes(reviews)
-    print("Recommended dishes: ", recommended)
+
+    url = "https://www.yelp.com/biz/no-thai-ann-arbor"
+    reviews = get_yelp_reviews(url)
+    dishes = recommended_dishes(reviews)
+    print(f"Based on the reviews, the recommended dishes for {url} are {dishes}")
