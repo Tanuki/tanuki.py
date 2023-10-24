@@ -10,7 +10,7 @@ from dataclasses import is_dataclass
 from typing import get_origin, get_args, Any, Mapping, MutableMapping, OrderedDict, Literal, Union, get_type_hints, \
     Type, Sequence, Tuple
 
-from pydantic import BaseModel
+from pydantic import BaseModel, create_model
 
 
 class Validator:
@@ -163,6 +163,26 @@ class Validator:
                 for k, v in value.items()
             )
 
+        # Handle pydantic models
+        if self.is_pydantic_model(origin):
+            try:
+                temp_model = create_model('TempModel', **value)
+                return isinstance(temp_model, origin)
+            except:
+                return False
+
+        # Handle dataclasses
+        if self.is_dataclass_instance(origin):
+            try:
+                for field in dataclasses.fields(origin):
+                    field_name = field.name
+                    field_type = field.type
+                    if field_name not in value or not self.check_type(value[field_name], field_type):
+                        return False
+                return True
+            except:
+                return False
+
         # Handle dataclasses and arbitrary class types
         if inspect.isclass(origin) and not self.is_base_type(origin):
             # Ensure the value is an instance of the class
@@ -183,6 +203,15 @@ class Validator:
             return True
 
         return False
+
+    @staticmethod
+    def is_pydantic_model(cls):
+        return hasattr(cls, 'parse_obj')
+
+    @staticmethod
+    def is_dataclass_instance(cls):
+        return hasattr(cls, '__annotations__') and hasattr(cls, '__dataclass_fields__')
+
 
     @staticmethod
     def _is_subclass_of_generic(cls: Type, generic: Type) -> bool:

@@ -22,6 +22,25 @@ def test_validate_output():
     assert not validator.validate_output("1.0", str)
     assert not validator.validate_output("true", str)
 
+def test_validate_output_object():
+    input_str = '{"name": "John", "age": 20, "height": 1.8, "is_cool": true}'
+
+    @dataclass
+    class Person:
+        name: str
+        age: int
+        height: float
+        is_cool: bool
+
+        def __eq__(self, other):
+            return self.dict() == other.dict()
+
+        def __hash__(self):
+            return hash(str(self.__dict__))
+
+    validator = Validator()
+    assert validator.validate_output(input_str, Person)
 
 if __name__ == "__main__":
+    test_validate_output_object()
     test_validate_output()
