@@ -36,7 +36,7 @@ def align_classify_sentiment():
     assert classify_sentiment("I love you") == 'Good'
 
     assert classify_sentiment("I hate you") == 'Bad'
-    assert classify_sentiment("I hate you") != 'Good'
+    #assert classify_sentiment("I hate you") != 'Good'
     assert not classify_sentiment("Wednesdays are in the middle of the week")
 
 
