@@ -1,10 +1,5 @@
 import os
 
-
-import sys
-sys.path.append(r"C:\Users\martb\Documents\Monkey_patch_new\monkey-patch\src")
-
-
 from trackers.buffered_logger import BufferedLogger
 from utils import get_model
 import json
