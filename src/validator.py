@@ -166,20 +166,24 @@ class Validator:
         # Handle pydantic models
         if self.is_pydantic_model(origin):
             try:
-                temp_model = create_model('TempModel', **value)
-                return isinstance(temp_model, origin)
+                #temp_model = create_model('TempModel', **value)
+                #return isinstance(temp_model, origin)
+                origin.parse_obj(value)
+                return True
             except:
                 return False
 
         # Handle dataclasses
         if self.is_dataclass_instance(origin):
             try:
-                for field in dataclasses.fields(origin):
-                    field_name = field.name
-                    field_type = field.type
-                    if field_name not in value or not self.check_type(value[field_name], field_type):
-                        return False
-                return True
+                # for field in dataclasses.fields(origin):
+                #     field_name = field.name
+                #     field_type = field.type
+                #     if field_name not in value or not self.check_type(value[field_name], field_type):
+                #         return False
+                # return True
+                obj = origin(**value)
+                return dataclasses.asdict(obj) == value
             except:
                 return False
 
