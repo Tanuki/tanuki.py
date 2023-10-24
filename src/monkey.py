@@ -16,7 +16,7 @@ from repair import repair_output
 import json
 import datetime
 from utils import get_model
-
+from language_modeler import LanguageModeler
 
 # Define a new level
 def _log_align(self, func_hash, *args, **kws):
@@ -63,7 +63,7 @@ logging.setLoggerClass(BufferedLogger)
 logging.basicConfig(level=ALIGN_LEVEL_NUM)
 
 logger = logger_factory(__name__)
-
+language_modeler = LanguageModeler()
 alignable_functions = {}
 
 class Monkey:
@@ -301,62 +301,36 @@ class Monkey:
         @wraps(test_func)
         def wrapper(*args, **kwargs):
             function_description = Register.load_function_description(test_func)
-            aligns = logger.get_alignments(function_description.__hash__(), max=5)
-            examples = "\n".join([f"Input: {align['args']}\nOutput: {align['output']}" for align in aligns])
             # f = json_dumps(function_description.__dict__)
             f = str(function_description.__dict__.__repr__() + "\n")
-            #instruction = "Optionally convert the input into the output type, using the docstring as a guide. Return None if you can't."
-            instruction  = "You are given below a function description and input data. The function description of what the function must carry out can be found in the Function section, with input and output type hints. The input data can be found in Input section. Using the function description, apply the function to the Input and return a valid output type, that is acceptable by the output_class_definition and output_class_hint. Return None if you can't apply the function to the input or if the output is optional and the correct output is None."
-            warning = "INCREDIBLY IMPORTANT: Only output a JSON-compatible string in the correct response format."
-            example_input = f"Examples:{examples}\n" if examples else ""
-            content = f"{instruction}\n{warning}\nFunction: {f}\n{example_input}---\nInput: {args}\nOutput:"
-            model, finetuneable = get_model(content, logger, function_description.__hash__())
-            system_message = f"You are a skillful and accurate language model, who applies a described function on input data. Make sure the function is applied accurately and correctly and the outputs follow the output type hints and are valid outputs given the output types. The current time is {datetime.datetime.now()},"
-            response = openai.ChatCompletion.create(
-                model=model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": system_message
-                    },
-                    {
-                        "role": "user",
-                        "content": content
-                    }
-                ],
-                temperature=0,
-                max_tokens=512,
-                top_p=1,
-                frequency_penalty=0,
-                presence_penalty=0
-            )
-
-            choice = response.choices[0].message.content.strip("'")
+            output = language_modeler.generate(args, kwargs, logger, function_description, model_type = "openai")
             # start parsing the object, WILL NEED TO BE CHANGED, VERY HACKY
             try:
                 # json load
-                choice_parsed = json.loads(choice)
+                choice_parsed = json.loads(output.generated_response)
             except:
                 # if it fails, it's not a json object, try eval
                 try:
-                    choice_parsed = eval(choice)
+                    choice_parsed = eval(output.generated_response)
                 except: 
-                    choice_parsed = choice
+                    choice_parsed = output.generated_response
 
             validator = Validator()
 
             valid = validator.check_type(choice_parsed, function_description.output_type_hint)
 
             if not valid:
-                error = f"Output type was not valid. Expected an valid object of type {function_description.output_type_hint}, got '{choice}'"
-                choice, choice_parsed, successful_repair = repair_output(args, function_description, choice, error, validator, example_input)
+                choice, choice_parsed, successful_repair = repair_output(args, kwargs, function_description, output.generated_response, validator, logger, language_modeler)
 
                 if not successful_repair:
-                    raise TypeError(f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{choice}'")
+                    raise TypeError(f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{output.generated_response}'")
+                output.generated_response = choice
+                output.distilled_model = False
+                
 
-            datapoint = FunctionExample(args, kwargs, choice)
-            if finetuneable:
-                logger.postprocess_datapoint(function_description.__hash__(), f, datapoint, log = not valid)
+            datapoint = FunctionExample(args, kwargs, output.generated_response)
+            if output.suitable_for_finetuning and not output.distilled_model:
+                logger.postprocess_datapoint(function_description.__hash__(), f, datapoint, log = save_to_finetune)
 
             instantiated = validator.instantiate(choice_parsed, function_description.output_type_hint)
 

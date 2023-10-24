@@ -288,7 +288,7 @@ class BufferedLogger(Logger):
                                            "last_training_run": {"trained_on_datapoints": 0},
                                            "current_training_run": {},
                                            "current_datapoints": 0,
-                                           "teacher_models": [("gpt-4", 7000),("gpt-4-32k", 31000)], # model and its token limit
+                                           "teacher_models": ["gpt-4","gpt-4-32k"], # teacher models
                                            "nr_of_training_runs": 0}
 
             with open(config_path, "w") as f:
@@ -307,7 +307,8 @@ class BufferedLogger(Logger):
         if not os.path.exists(log_directory):
             os.makedirs(log_directory)
 
-        self.get_configs(log_file_path)
+        if log_file_path not in self.configs:
+            self.get_configs(log_file_path)
         return self.configs[log_file_path]["current_model"], self.configs[log_file_path]["teacher_models"]
 
     def postprocess_datapoint(self, func_hash, function_description, example, log=True):
@@ -322,11 +323,9 @@ class BufferedLogger(Logger):
         try:
             log_directory = self._get_log_directory()
             log_file_path = os.path.join(log_directory, func_hash)
-            teacher_models = [x[0] for x in self.configs[log_file_path]["teacher_models"][0]]
-            if log or self.configs[log_file_path]["current_model"] in teacher_models:
-                added = self.log_patch(func_hash, example)
-                if added:
-                    self._update_datapoint_config(log, log_file_path)
+            added = self.log_patch(func_hash, example)
+            if added:
+                self._update_datapoint_config(log, log_file_path)
         except Exception as e:
             print(e)
             print("Could not add datapoint to training data")
@@ -400,10 +399,10 @@ class BufferedLogger(Logger):
         finetuning_dataset = [{"messages": [
             {
                 "role": "system",
-                "content": "You are a skillful assistant who carries out the user instructions in a correct and accurate manner",
+                "content": f"You are a skillful and accurate language model, who applies a described function on input data. Make sure the function is applied accurately and correctly and the outputs follow the output type hints and are valid outputs given the output types. The current time is {datetime.datetime.now()},"
             },
             {"role": "user",
-             "content": f"{instruction}\n{warning}\nFunction: {function_description}\nInput: {x['args']}\nOutput:"},
+             "content": f"{instruction}\n{warning}\nFunction: {function_description}\nInputs:\nArgs: {x['args']}\nKwargs: {x['kwargs']}\nOutput:"},
             {"role": "assistant", "content": x['output'] if x['output'] is not None else "None"}]}
             for x in dataset]
 
@@ -497,7 +496,7 @@ class BufferedLogger(Logger):
 
             # check if the last 10 datapoints are 50% faulty, this is the switch condition
             if sum(self.configs[log_file_path]["current_model_stats"]["running_faults"][-10:]) / 10 > 0.5:
-                self.configs[log_file_path]["current_model"] = self.configs[log_file_path]["teacher_models"][0][0]
+                self.configs[log_file_path]["current_model"] = self.configs[log_file_path]["teacher_models"][0]
                 self.configs[log_file_path]["current_model_stats"]["trained_on_datapoints"] = 0
                 self.configs[log_file_path]["current_model_stats"]["running_faults"] = []
             self._update_config_file(log_file_path)
