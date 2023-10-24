@@ -362,8 +362,8 @@ class BufferedLogger(Logger):
 
         training_threshold = (2 ** self.configs[log_file_path]["nr_of_training_runs"]) * 100
 
-        align_dataset_size = self.dataset_lengths[log_file_path+ALIGN_FILE_EXTENSION]
-        patch_dataset_size = self.dataset_lengths[log_file_path+PATCH_FILE_EXTENSION]
+        align_dataset_size = self.dataset_lengths[log_file_path+ALIGN_FILE_EXTENSION] if log_file_path+ALIGN_FILE_EXTENSION in self.dataset_lengths else 0
+        patch_dataset_size = self.dataset_lengths[log_file_path+PATCH_FILE_EXTENSION] if log_file_path+PATCH_FILE_EXTENSION in self.dataset_lengths else 0
 
         return (patch_dataset_size + align_dataset_size) - last_training_run_datapoints > training_threshold
 
@@ -447,22 +447,25 @@ class BufferedLogger(Logger):
             response = openai.FineTuningJob.retrieve(job_id)
             self.configs[log_file_path]["current_training_run"]["last_checked"] = datetime.datetime.now().strftime(
                 "%Y-%m-%d %H:%M:%S")
-            if response["status"] == "succeeded":
-                self._update_finetune_config(response, log_file_path)
+            if response["status"] == "succeeded" or response["status"] == "failed":
+                self._update_finetune_config(response, log_file_path, response["status"])
             else:
                 self._update_config_file(log_file_path)
 
-    def _update_finetune_config(self, response, log_file_path):
+    def _update_finetune_config(self, response, log_file_path, status):
         """
         Update the config file to reflect the new model and switch the current model to the finetuned model
         """
-        self.configs[log_file_path]["current_model"] = response["fine_tuned_model"]
-        self.configs[log_file_path]["last_training_run"] = self.configs[log_file_path]["current_training_run"]
-        self.configs[log_file_path]["current_model_stats"] = {
-            "trained_on_datapoints": self.configs[log_file_path]["current_training_run"]["trained_on_datapoints"],
-            "running_faults": []}
-        self.configs[log_file_path]["nr_of_training_runs"] += 1
-        self.configs[log_file_path]["current_training_run"] = {}
+        if status == "failed":
+            self.configs[log_file_path]["current_training_run"] = {}
+        else:    
+            self.configs[log_file_path]["current_model"] = response["fine_tuned_model"]
+            self.configs[log_file_path]["last_training_run"] = self.configs[log_file_path]["current_training_run"]
+            self.configs[log_file_path]["current_model_stats"] = {
+                "trained_on_datapoints": self.configs[log_file_path]["current_training_run"]["trained_on_datapoints"],
+                "running_faults": []}
+            self.configs[log_file_path]["nr_of_training_runs"] += 1
+            self.configs[log_file_path]["current_training_run"] = {}
         try:
             self._update_config_file(log_file_path)
         except Exception as e:
