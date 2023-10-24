@@ -15,6 +15,8 @@ from validator import Validator
 from repair import repair_output
 import json
 import datetime
+from utils import get_model
+
 
 # Define a new level
 def _log_align(self, func_hash, *args, **kws):
@@ -299,7 +301,6 @@ class Monkey:
         @wraps(test_func)
         def wrapper(*args, **kwargs):
             function_description = Register.load_function_description(test_func)
-            model = logger.get_model(function_description.__hash__())
             aligns = logger.get_alignments(function_description.__hash__(), max=5)
             examples = "\n".join([f"Input: {align['args']}\nOutput: {align['output']}" for align in aligns])
             # f = json_dumps(function_description.__dict__)
@@ -309,6 +310,7 @@ class Monkey:
             warning = "INCREDIBLY IMPORTANT: Only output a JSON-compatible string in the correct response format."
             example_input = f"Examples:{examples}\n" if examples else ""
             content = f"{instruction}\n{warning}\nFunction: {f}\n{example_input}---\nInput: {args}\nOutput:"
+            model, finetuneable = get_model(content, logger, function_description.__hash__())
             system_message = f"You are a skillful and accurate language model, who applies a described function on input data. Make sure the function is applied accurately and correctly and the outputs follow the output type hints and are valid outputs given the output types. The current time is {datetime.datetime.now()},"
             response = openai.ChatCompletion.create(
                 model=model,
@@ -353,7 +355,8 @@ class Monkey:
                     raise TypeError(f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{choice}'")
 
             datapoint = FunctionExample(args, kwargs, choice)
-            logger.postprocess_datapoint(function_description.__hash__(), f, datapoint, log = not valid)
+            if finetuneable:
+                logger.postprocess_datapoint(function_description.__hash__(), f, datapoint, log = not valid)
 
             instantiated = validator.instantiate(choice_parsed, function_description.output_type_hint)
 

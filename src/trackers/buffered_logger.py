@@ -9,6 +9,8 @@ import openai
 import ast
 import io
 import datetime
+from utils import approximate_token_count
+
 
 PATCH_FILE_EXTENSION = ".patches"
 ALIGN_FILE_EXTENSION = ".alignments"
@@ -36,6 +38,7 @@ class BufferedLogger(Logger):
 
         self.write_count = 0
         self.write_limit = 1000  # Save the Bloom filter every 1000 writes
+        self.finetune_token_limit = 3000 # the token limit for finetuning
 
         # We add load the number of alignment and patches from the files
         self._load_dataset_sizes()
@@ -187,7 +190,7 @@ class BufferedLogger(Logger):
         examples = []
         for example_bytes in split_buffer:
             if example_bytes in example_set:
-                nr_of_elements = len(example_bytes.split(b" "))
+                nr_of_elements = approximate_token_count(example_bytes)
                 example_element_limit -= nr_of_elements
                 if example_element_limit < 0:
                     break
@@ -285,7 +288,7 @@ class BufferedLogger(Logger):
                                            "last_training_run": {"trained_on_datapoints": 0},
                                            "current_training_run": {},
                                            "current_datapoints": 0,
-                                           "teacher_models": ["gpt-4"],
+                                           "teacher_models": [("gpt-4", 7000),("gpt-4-32k", 31000)], # model and its token limit
                                            "nr_of_training_runs": 0}
 
             with open(config_path, "w") as f:
@@ -294,7 +297,7 @@ class BufferedLogger(Logger):
             with open(config_path, "r") as f:
                 self.configs[log_file_path] = json.load(f)
 
-    def get_model(self, func_hash):
+    def get_models(self, func_hash):
         """
         Return the current model from the config file
         """
@@ -305,8 +308,7 @@ class BufferedLogger(Logger):
             os.makedirs(log_directory)
 
         self.get_configs(log_file_path)
-
-        return self.configs[log_file_path]["current_model"]
+        return self.configs[log_file_path]["current_model"], self.configs[log_file_path]["teacher_models"]
 
     def postprocess_datapoint(self, func_hash, function_description, example, log=True):
         """
@@ -320,7 +322,8 @@ class BufferedLogger(Logger):
         try:
             log_directory = self._get_log_directory()
             log_file_path = os.path.join(log_directory, func_hash)
-            if log or self.configs[log_file_path]["current_model"] in self.configs[log_file_path]["teacher_models"]:
+            teacher_models = [x[0] for x in self.configs[log_file_path]["teacher_models"][0]]
+            if log or self.configs[log_file_path]["current_model"] in teacher_models:
                 added = self.log_patch(func_hash, example)
                 if added:
                     self._update_datapoint_config(log, log_file_path)
@@ -494,7 +497,7 @@ class BufferedLogger(Logger):
 
             # check if the last 10 datapoints are 50% faulty, this is the switch condition
             if sum(self.configs[log_file_path]["current_model_stats"]["running_faults"][-10:]) / 10 > 0.5:
-                self.configs[log_file_path]["current_model"] = self.configs[log_file_path]["teacher_models"][0]
+                self.configs[log_file_path]["current_model"] = self.configs[log_file_path]["teacher_models"][0][0]
                 self.configs[log_file_path]["current_model_stats"]["trained_on_datapoints"] = 0
                 self.configs[log_file_path]["current_model_stats"]["running_faults"] = []
             self._update_config_file(log_file_path)
