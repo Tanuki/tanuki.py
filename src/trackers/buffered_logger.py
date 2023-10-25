@@ -36,7 +36,7 @@ class BufferedLogger(DatasetWorker):
         self.write_count = 0
         self.write_limit = 1000  # Save the Bloom filter every 1000 writes
 
-        super().__init__(self, level)
+        super().__init__(name, level)
 
     def _get_log_directory(self):
 

@@ -29,7 +29,6 @@ class FunctionModeler(object):
         """
         Save the align statements and add to the align buffer
         """
-        args, kwargs, output = args
         example = FunctionExample(args, kwargs, output)
 
         self.data_worker.log_align(function_hash, example)

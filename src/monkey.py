@@ -1,16 +1,25 @@
+import ast
 import dis
 import inspect
+import json
 import logging
 import os
 import sys
+import textwrap
 from functools import wraps
 from typing import Optional
 from unittest.mock import patch
+
 import openai
+from pydantic import BaseModel
+
+from assertion_visitor import AssertionVisitor
 from models.function_description import FunctionDescription
 from models.function_example import FunctionExample
 from register import Register
+from repair import repair_output
 from trackers.buffered_logger import BufferedLogger
+from utils import get_key
 from validator import Validator
 from repair import repair_output
 import json
@@ -55,170 +64,51 @@ def logger_factory(name):
 
 ALIGN_LEVEL_NUM = 15
 PATCH_LEVEL_NUM = 14
-logging.addLevelName(ALIGN_LEVEL_NUM, "ALIGN")
-logging.addLevelName(PATCH_LEVEL_NUM, "PATCH")
-
 ALIGN_FILE_NAME = ".align"
 
-# Set up basic configuration
-logging.setLoggerClass(BufferedLogger)
-logging.basicConfig(level=ALIGN_LEVEL_NUM)
-
-logger = logger_factory(__name__)
-language_modeler = LanguageModel()
-# currently only use buffered logger as default
-function_modeler = FunctionModeler(data_worker=logger)
 alignable_functions = {}
 
 class Monkey:
+    # Set up basic configuration
+    logging.setLoggerClass(BufferedLogger)
+    logging.addLevelName(ALIGN_LEVEL_NUM, "ALIGN")
+    logging.addLevelName(PATCH_LEVEL_NUM, "PATCH")
+    logging.basicConfig(level=ALIGN_LEVEL_NUM)
+    logger = logger_factory(__name__)
+    language_modeler = LanguageModel()
+    # currently only use buffered logger as default
+    function_modeler = FunctionModeler(data_worker=logger)
+
 
     @staticmethod
     def _load_alignments():
-        function_modeler.load_align_statements()
+        Monkey.function_modeler.load_align_statements()
 
     @staticmethod
     def align(test_func):
+        """
+        Decorator to align a function.
 
-        def _deep_tuple(obj):
-            """
-            Convert a list or dict to a tuple recursively to allow for hashing and becoming a key for mock_behaviors
-            :param obj:
-            :return:
-            """
-            if isinstance(obj, list):
-                return tuple(_deep_tuple(e) for e in obj)
-            elif isinstance(obj, dict):
-                return tuple((k, _deep_tuple(v)) for k, v in sorted(obj.items()))
-            else:
-                return obj
+        By adding the @align decorator to a function, we can declare the desired input-output
+        behaviour of the patched functions using assertions.
 
-        def get_key(args, kwargs) -> tuple:
-            args_tuple = _deep_tuple(args)
-            kwargs_tuple = _deep_tuple(kwargs)
-            return args_tuple, kwargs_tuple
+        :param test_func:
+        :return:
+        """
 
         @wraps(test_func)
         def wrapper(*args, **kwargs):
-            instructions = list(dis.Bytecode(test_func))
+            source = textwrap.dedent(inspect.getsource(test_func))
+            tree = ast.parse(source)
+            visitor = AssertionVisitor(locals(), patch_names=Register.function_names_to_patch())
+            visitor.visit(tree)
+            mock_behaviors = visitor.mocks
 
             if args:
                 instance = args[0]
                 args = args[1:]
             else:
                 instance = None
-
-            mock_behaviors = {}
-            func_args = []
-            stack_variables = {}
-            mockable_functions = []
-            co_consts = test_func.__code__.co_consts
-            current_list = []
-            # Iterate through the instructions in the monkey-patched function
-            for idx, instruction in enumerate(instructions):
-
-                # Identify method calls on the instance
-                if instruction.opname in ('LOAD_METHOD', 'LOAD_ATTR'):
-                    func_name = instruction.argval
-                    mockable_functions.append(func_name)
-
-                # If we are loading a reference to a monkey function, register it to the list of mockable functions
-                elif instruction.opname == 'LOAD_GLOBAL':
-                    func_name = instruction.argval
-                    mockable_functions.append(func_name)
-
-                # If we are assigning a variable, add it to the stack
-                elif instruction.opname == 'STORE_FAST':
-                    stack_variables[instruction.argval] = func_args.pop()
-
-                # Build lists
-               # elif instruction.opname == 'LIST_EXTEND':
-               #     num_elements = instruction.arg
-               #     list_to_extend = func_args[-1]  # assuming the list to extend is on top of the stack
-                #    elements = func_args[-num_elements - 1:-1]  # elements to extend the list with
-                #    list_to_extend.extend(elements)
-                #    func_args = func_args[:-num_elements]  # remove the elements from func_args
-
-                # If we are loading a variable, add it to the stack
-                elif instruction.opname.startswith('LOAD_'):
-                    if instruction.argval in stack_variables:
-                        func_args.append(stack_variables[instruction.argval])
-                    else:
-                        func_args.append(instruction.argval)
-
-                elif instruction.opname == 'KW_NAMES':
-                    kwarg_names = co_consts[instruction.arg]
-                    print(f"Debug: kwarg_names = {kwarg_names}")
-
-
-                # Handle 'BUILD_LIST', 'BUILD_SET', 'BUILD_TUPLE'
-                elif instruction.opname in ('BUILD_LIST', 'BUILD_SET', 'BUILD_TUPLE'):
-                    num_elements = instruction.arg
-                    if num_elements == 0:
-                        continue
-                    elements = func_args[-num_elements:]
-                    func_args = func_args[:-num_elements]
-                    constructed_data = elements if instruction.opname == 'BUILD_LIST' else set(
-                        elements) if instruction.opname == 'BUILD_SET' else tuple(elements)
-                    func_args.append(constructed_data)
-
-                # Handle 'BUILD_MAP', 'BUILD_CONST_KEY_MAP'
-                elif instruction.opname in ('BUILD_MAP', 'BUILD_CONST_KEY_MAP'):
-                    num_elements = instruction.arg
-                    if instruction.opname == 'BUILD_MAP':
-                        key_values = dict(zip(func_args[-2 * num_elements::2], func_args[-2 * num_elements + 1::2]))
-                    else:  # 'BUILD_CONST_KEY_MAP'
-                        keys = func_args.pop()  # assuming keys are on top of the stack as a tuple
-                        values = func_args[-num_elements:]
-                        key_values = dict(zip(keys, values))
-                    func_args = func_args[:-num_elements]
-                    func_args.append(key_values)
-
-                # If we are calling a function we need to mock (e.g preceded by an assert),
-                # pop the arguments off the stack and register the expected output
-                elif instruction.opname.startswith('CALL'):
-                    num_args = instruction.arg
-                    num_pos_args = num_args - len(kwarg_names)  # Calculate number of positional arguments
-                    args_for_call = func_args[:num_pos_args]
-                    # Pop keyword arguments off the stack
-                    kwargs_for_call = {}  # New dictionary to hold keyword arguments for the call
-                    for name in reversed(kwarg_names):  # Reverse to match the order on the stack
-                        try:
-                            kwargs_for_call[name] = func_args.pop()
-                        except IndexError:
-                            print(f"Debug: func_args is empty, can't pop for {name}")
-
-                    # Search for the next COMPARE_OP with '==' after CALL_FUNCTION
-                    for next_idx in range(idx + 1, len(instructions)):
-                        next_instruction = instructions[next_idx]
-                        opname = next_instruction.opname
-                        if opname == 'POP_TOP':
-                            break
-                        if opname == 'COMPARE_OP':
-                            if next_instruction.argval == '==' or next_instruction.argval == 'is':
-                                expected_value = func_args[-1]  # this would be the last element on the stack
-                                key = get_key(args_for_call, kwargs_for_call)
-                                mock_behaviors[key] = expected_value
-                                break
-                        if opname == 'LOAD_CONST':
-                            func_args.append(next_instruction.argval)
-                        elif opname in ('BUILD_LIST', 'BUILD_SET', 'BUILD_TUPLE'):
-                            num_elements = next_instruction.arg
-                            elements = func_args[-num_elements:]
-                            func_args = func_args[:-num_elements]
-                            constructed_data = elements if opname == 'BUILD_LIST' else set(
-                                elements) if opname == 'BUILD_SET' else tuple(elements)
-                            func_args.append(constructed_data)
-
-                        elif instruction.opname == 'BUILD_MAP':
-                            num_pairs = instruction.arg
-                            pairs = [(func_args.pop(), func_args.pop()) for _ in range(num_pairs)]
-                            func_args.append(dict(pairs[::-1]))  # Reversed because we popped from the stack
-
-                        elif instruction.opname == 'BUILD_CONST_KEY_MAP':
-                            num_values = instruction.arg
-                            keys = func_args.pop()  # the top of the stack should contain a tuple of keys
-                            values = [func_args.pop() for _ in range(num_values)]
-                            func_args.append(dict(zip(keys, values[::-1])))  # Reversed because we popped from the stack
 
             def extract_attributes(result):
                 attributes = {}
@@ -255,7 +145,7 @@ class Monkey:
 
                     key = get_key(args, kwargs)
                     mocked_behaviour = mock_behaviors.get(key, None)
-                    function_modeler.save_align_statements(hashed_description, args, kwargs, mocked_behaviour)
+                    Monkey.function_modeler.save_align_statements(hashed_description, args, kwargs, mocked_behaviour)
                     return mocked_behaviour
 
                 return mock_func
@@ -296,6 +186,19 @@ class Monkey:
             else:
                 return patched_func(*args, **kwargs)
 
+        def _get_args(func_args, kwarg_names, num_args):
+            num_pos_args = num_args - len(kwarg_names)  # Calculate number of positional arguments
+            args_for_call = func_args[:num_pos_args]
+            # Pop keyword arguments off the stack
+            kwargs_for_call = {}  # New dictionary to hold keyword arguments for the call
+            for name in reversed(kwarg_names):  # Reverse to match the order on the stack
+                try:
+                    kwargs_for_call[name] = func_args.pop()  # Pop the value off the stack
+                except IndexError:
+                    print(f"Debug: func_args is empty, can't pop for {name}")
+            func_args = func_args[:-num_pos_args]  # Remove the positional arguments from func_args
+            return args_for_call, func_args, kwargs_for_call
+
         return wrapper
 
     @staticmethod
@@ -307,7 +210,7 @@ class Monkey:
             function_description = Register.load_function_description(test_func)
             # f = json_dumps(function_description.__dict__)
             f = str(function_description.__dict__.__repr__() + "\n")
-            output = language_modeler.generate(args, kwargs, function_modeler, function_description)
+            output = Monkey.language_modeler.generate(args, kwargs, Monkey.function_modeler, function_description)
             # start parsing the object, WILL NEED TO BE CHANGED, VERY HACKY
             try:
                 # json load
@@ -324,7 +227,7 @@ class Monkey:
             valid = validator.check_type(choice_parsed, function_description.output_type_hint)
 
             if not valid:
-                choice, choice_parsed, successful_repair = repair_output(args, kwargs, function_description, output.generated_response, validator, function_modeler, language_modeler)
+                choice, choice_parsed, successful_repair = repair_output(args, kwargs, function_description, output.generated_response, validator, Monkey.function_modeler, Monkey.language_modeler)
 
                 if not successful_repair:
                     raise TypeError(f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{output.generated_response}'")
@@ -334,7 +237,7 @@ class Monkey:
 
             datapoint = FunctionExample(args, kwargs, output.generated_response)
             if output.suitable_for_finetuning and not output.distilled_model:
-                function_modeler.postprocess_datapoint(function_description.__hash__(), f, datapoint, repaired = not valid)
+                Monkey.function_modeler.postprocess_datapoint(function_description.__hash__(), f, datapoint, repaired = not valid)
 
             instantiated = validator.instantiate(choice_parsed, function_description.output_type_hint)
 

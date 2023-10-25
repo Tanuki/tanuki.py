@@ -101,3 +101,21 @@ def approximate_token_count(content):
         number_of_word_tokens = int(len(content.split(b" "))*1.333)
         nr_of_special_characters = sum([content.count(char.encode("utf-8")) for char in common_special_characters])
         return number_of_word_tokens + nr_of_special_characters
+def _deep_tuple(obj):
+    """
+    Convert a list or dict to a tuple recursively to allow for hashing and becoming a key for mock_behaviors
+    :param obj:
+    :return:
+    """
+    if isinstance(obj, list):
+        return tuple(_deep_tuple(e) for e in obj)
+    elif isinstance(obj, dict):
+        return tuple((k, _deep_tuple(v)) for k, v in sorted(obj.items()))
+    else:
+        return obj
+
+
+def get_key(args, kwargs) -> tuple:
+    args_tuple = _deep_tuple(args)
+    kwargs_tuple = _deep_tuple(kwargs)
+    return args_tuple, kwargs_tuple
