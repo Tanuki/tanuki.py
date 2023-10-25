@@ -333,8 +333,6 @@ class Monkey:
                 
 
             datapoint = FunctionExample(args, kwargs, output.generated_response)
-            output.distilled_model = False
-            output.suitable_for_finetuning = True
             if output.suitable_for_finetuning and not output.distilled_model:
                 function_modeler.postprocess_datapoint(function_description.__hash__(), f, datapoint, repaired = not valid)
 

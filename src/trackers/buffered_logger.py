@@ -8,7 +8,7 @@ import openai
 import ast
 import datetime
 from utils import approximate_token_count
-
+from trackers.dataset_worker import DatasetWorker
 
 PATCH_FILE_EXTENSION = ".patches"
 ALIGN_FILE_EXTENSION = ".alignments"
@@ -17,7 +17,7 @@ FALSE_POSITIVE_RATE = 0.01
 LIB_NAME = "monkey-patch"
 ENVVAR = "MONKEY_PATCH_LOG_DIR"
 
-class BufferedLogger(Logger):
+class BufferedLogger(DatasetWorker):
     def __init__(self, name, level=15):
         self.buffers = {}
         self.mapped_files = {}
@@ -35,10 +35,6 @@ class BufferedLogger(Logger):
 
         self.write_count = 0
         self.write_limit = 1000  # Save the Bloom filter every 1000 writes
-        
-
-        # We add load the number of alignment and patches from the files
-        self._load_dataset_sizes()
 
         super().__init__(self, level)
 
@@ -126,13 +122,10 @@ class BufferedLogger(Logger):
         with open(log_file_path, "a") as f:
             f.write(str(example.__dict__) + "\n")
 
-        
-        return example
 
     def load_alignments(self):
         """
         Load alignments from persistent storage into memory for faster access.
-        :return:
         """
         align_buffers = {}
 
@@ -253,7 +246,7 @@ class BufferedLogger(Logger):
                                                "running_faults": []},
                                            "last_training_run": {"trained_on_datapoints": 0},
                                            "current_training_run": {},
-                                           "teacher_models": ["gpt-4","gpt-4-32k"], # teacher models
+                                           "teacher_models": ["gpt-4","gpt-4-32k"], # currently supported teacher models
                                            "nr_of_training_runs": 0}
 
             with open(config_path, "w") as f:
