@@ -16,7 +16,9 @@ from repair import repair_output
 import json
 import datetime
 from utils import get_model
-from language_modeler import LanguageModeler
+from language_modeler import LanguageModel
+from function_modeler import FunctionModeler
+
 
 # Define a new level
 def _log_align(self, func_hash, *args, **kws):
@@ -63,14 +65,16 @@ logging.setLoggerClass(BufferedLogger)
 logging.basicConfig(level=ALIGN_LEVEL_NUM)
 
 logger = logger_factory(__name__)
-language_modeler = LanguageModeler()
+language_modeler = LanguageModel()
+# currently only use buffered logger as default
+function_modeler = FunctionModeler(data_worker=logger)
 alignable_functions = {}
 
 class Monkey:
 
     @staticmethod
     def _load_alignments():
-        logger.load_alignments()
+        function_modeler.load_align_statements()
 
     @staticmethod
     def align(test_func):
@@ -251,7 +255,7 @@ class Monkey:
 
                     key = get_key(args, kwargs)
                     mocked_behaviour = mock_behaviors.get(key, None)
-                    logger.log_align(hashed_description, args, kwargs, mocked_behaviour)
+                    function_modeler.save_align_statements(hashed_description, args, kwargs, mocked_behaviour)
                     return mocked_behaviour
 
                 return mock_func
@@ -303,7 +307,7 @@ class Monkey:
             function_description = Register.load_function_description(test_func)
             # f = json_dumps(function_description.__dict__)
             f = str(function_description.__dict__.__repr__() + "\n")
-            output = language_modeler.generate(args, kwargs, logger, function_description, model_type = "openai")
+            output = language_modeler.generate(args, kwargs, function_modeler, function_description, model_type = "openai")
             # start parsing the object, WILL NEED TO BE CHANGED, VERY HACKY
             try:
                 # json load
@@ -320,7 +324,7 @@ class Monkey:
             valid = validator.check_type(choice_parsed, function_description.output_type_hint)
 
             if not valid:
-                choice, choice_parsed, successful_repair = repair_output(args, kwargs, function_description, output.generated_response, validator, logger, language_modeler)
+                choice, choice_parsed, successful_repair = repair_output(args, kwargs, function_description, output.generated_response, validator, function_modeler, language_modeler)
 
                 if not successful_repair:
                     raise TypeError(f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{output.generated_response}'")
@@ -330,7 +334,7 @@ class Monkey:
 
             datapoint = FunctionExample(args, kwargs, output.generated_response)
             if output.suitable_for_finetuning and not output.distilled_model:
-                logger.postprocess_datapoint(function_description.__hash__(), f, datapoint, log = save_to_finetune)
+                function_modeler.postprocess_datapoint(function_description.__hash__(), f, datapoint, repaired = not valid)
 
             instantiated = validator.instantiate(choice_parsed, function_description.output_type_hint)
 

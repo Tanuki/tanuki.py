@@ -3,8 +3,8 @@ import openai
 import json
 
 
-def repair_output(args, kwargs, function_description, choice, validator, logger, language_modeler):
-        teacher_models = logger.get_models(function_description.__hash__())[1]
+def repair_output(args, kwargs, function_description, choice, validator, function_modeler, language_modeler):
+        teacher_models = function_modeler.get_models(function_description.__hash__())[1]
         valid = False
         retry_index = 5
         f = str(function_description.__dict__.__repr__() + "\n")
@@ -12,7 +12,7 @@ def repair_output(args, kwargs, function_description, choice, validator, logger,
         failed_outputs_list = [(choice, error)]
         while retry_index > 0 and not valid:
             
-            aligns = logger.get_alignments(function_description.__hash__(), max=5)
+            aligns = function_modeler.get_alignments(function_description.__hash__(), max=5)
             examples = "\n".join([f"Inputs:\nArgs: {align['args']}\nKwargs {align['kwargs']}\nOutput: {align['output']}" for align in aligns])
             choice = language_modeler.repair_generate(args, kwargs, f, failed_outputs_list, examples, teacher_models)
             if not choice:
