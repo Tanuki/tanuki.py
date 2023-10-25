@@ -247,7 +247,7 @@ class BufferedLogger(Logger):
         log_file_path = os.path.join(log_directory, func_hash)
         config_path = f"{log_file_path}.json"
         if not os.path.exists(config_path):
-            function_config = {"current_model": "gpt-4",
+            function_config = {"distilled_model": "",
                                            "current_model_stats": {
                                                "trained_on_datapoints": 0,
                                                "running_faults": []},

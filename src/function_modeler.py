@@ -14,16 +14,21 @@ class FunctionModeler(object):
     def __init__(self, data_worker) -> None:
         self.function_configs = {}
         self.data_worker = data_worker
-        self.finetune_token_limit = 3000 # the token limit for finetuning
+        self.distillation_token_limit = 3000 # the token limit for finetuning
         self.align_buffer = {}
         self._get_dataset_sizes()
     
 
     def _get_dataset_sizes(self):
+        """
+        Get the dataset sizes from the data worker
+        """
         self.dataset_sizes = self.data_worker._load_dataset_sizes()
 
     def save_align_statements(self, function_hash, args, kwargs, output):
-
+        """
+        Save the align statements and add to the align buffer
+        """
         args, kwargs, output = args
         example = FunctionExample(args, kwargs, output)
 
@@ -40,6 +45,9 @@ class FunctionModeler(object):
 
     
     def save_datapoint(self, func_hash, example):
+        """
+        Save datapoint to the training data
+        """
         written_datapoints = self.data_worker.log_patch(func_hash, example)
         for func_hash, datapoints in written_datapoints.items():
             if func_hash in self.dataset_sizes["patches"]:
@@ -86,10 +94,16 @@ class FunctionModeler(object):
         return list(examples)[:max]
 
     def load_align_statements(self):
+        """
+        Load all align statements
+        """
         self.align_buffer = self.data_worker.load_alignments()
 
 
     def postprocess_datapoint(self, func_hash, function_description, example, repaired=True):
+        """
+        Postprocess the datapoint
+        """
         try:
             
             added = self.save_datapoint(func_hash, example)
@@ -103,6 +117,9 @@ class FunctionModeler(object):
         self.check_for_finetuning(function_description, func_hash)
 
     def _load_function_config(self, func_hash):
+        """
+        Load the config file for a function hash
+        """
         
         config = self.data_worker._load_function_config(func_hash)
         self.function_configs[func_hash] = config
@@ -116,10 +133,19 @@ class FunctionModeler(object):
     
         if func_hash in self.function_configs:
             func_config = self.function_configs[func_hash]
-            return func_config["current_model"], func_config["teacher_models"]
         else:
             func_config = self._load_function_config(func_hash)
-            return func_config["current_model"], func_config["teacher_models"]
+        
+        # for backwards compatibility
+        if "distilled_model" not in func_config:
+            if func_config["current_model"] in func_config["teacher_models"]:
+                distilled_model = ""
+            else:
+                distilled_model = func_config["current_model"]
+        else:
+            distilled_model = func_config["distilled_model"]
+
+        return distilled_model, func_config["teacher_models"]
         
     def _update_datapoint_config(self, repaired, func_hash):
         """
@@ -142,7 +168,7 @@ class FunctionModeler(object):
 
             # check if the last 10 datapoints are 50% faulty, this is the switch condition
             if sum(self.function_configs[func_hash]["current_model_stats"]["running_faults"][-10:]) / 10 > 0.5:
-                self.function_configs[func_hash]["current_model"] = self.function_configs[func_hash]["teacher_models"][0]
+                self.function_configs[func_hash]["distilled_model"] = ""
                 self.function_configs[func_hash]["current_model_stats"]["trained_on_datapoints"] = 0
                 self.function_configs[func_hash]["current_model_stats"]["running_faults"] = []
             self._update_config_file(func_hash)
@@ -185,7 +211,7 @@ class FunctionModeler(object):
 
         last_training_run_datapoints = self.function_configs[func_hash]["last_training_run"]["trained_on_datapoints"]
 
-        training_threshold = (2 ** self.function_configs[func_hash]["nr_of_training_runs"]) * 10
+        training_threshold = (2 ** self.function_configs[func_hash]["nr_of_training_runs"]) * 200
 
         align_dataset_size = self.dataset_sizes["alignments"][func_hash] if func_hash in self.dataset_sizes["alignments"] else 0
         patch_dataset_size = self.dataset_sizes["patches"][func_hash] if func_hash in self.dataset_sizes["patches"] else 0
@@ -279,7 +305,7 @@ class FunctionModeler(object):
         if status == "failed":
             self.function_configs[func_hash]["current_training_run"] = {}
         else:    
-            self.function_configs[func_hash]["current_model"] = response["fine_tuned_model"]
+            self.function_configs[func_hash]["distilled_model"] = response["fine_tuned_model"]
             self.function_configs[func_hash]["last_training_run"] = self.function_configs[func_hash]["current_training_run"]
             self.function_configs[func_hash]["current_model_stats"] = {
                 "trained_on_datapoints": self.function_configs[func_hash]["current_training_run"]["trained_on_datapoints"],

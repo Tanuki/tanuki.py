@@ -16,7 +16,7 @@ from repair import repair_output
 import json
 import datetime
 from utils import get_model
-from language_modeler import LanguageModel
+from language_models.language_modeler import LanguageModel
 from function_modeler import FunctionModeler
 
 
@@ -307,7 +307,7 @@ class Monkey:
             function_description = Register.load_function_description(test_func)
             # f = json_dumps(function_description.__dict__)
             f = str(function_description.__dict__.__repr__() + "\n")
-            output = language_modeler.generate(args, kwargs, function_modeler, function_description, model_type = "openai")
+            output = language_modeler.generate(args, kwargs, function_modeler, function_description)
             # start parsing the object, WILL NEED TO BE CHANGED, VERY HACKY
             try:
                 # json load
@@ -333,6 +333,8 @@ class Monkey:
                 
 
             datapoint = FunctionExample(args, kwargs, output.generated_response)
+            output.distilled_model = False
+            output.suitable_for_finetuning = True
             if output.suitable_for_finetuning and not output.distilled_model:
                 function_modeler.postprocess_datapoint(function_description.__hash__(), f, datapoint, repaired = not valid)
 
