@@ -90,7 +90,7 @@ def approximate_token_count(content):
     Returns:
         number_of_tokens (int): the number of tokens
     """
-    common_special_characters = r"\/(){}[]<>|`~@#$%^&*+=-_:;"
+    common_special_characters = r"\/(){}[]<>|`~@#$%^&*+=-_:;\""
     # check if input type is string
     if isinstance(content, str):
         number_of_word_tokens = int(len(content.split(" "))*1.333)
