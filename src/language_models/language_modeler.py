@@ -60,30 +60,6 @@ class LanguageModel(object):
         else:
             raise ValueError("This teacher model is not supported")
 
-    def openai_generate(self, model, prompt,  temperature = 0, top_p = 1, frequency_penalty = 0, presence_penalty = 0):
-        """
-        Generate a response from the openai api with the parameters
-        """
-        response = openai.ChatCompletion.create(
-                model=model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": self.system_message
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                temperature=temperature,
-                max_tokens=512,
-                top_p=top_p,
-                frequency_penalty=frequency_penalty,
-                presence_penalty=presence_penalty
-            )
-        choice = response.choices[0].message.content.strip("'")
-        return choice
 
     def get_models(self, function_modeler, func_hash):
         """
@@ -107,7 +83,7 @@ class LanguageModel(object):
         # no examples needed, using a finetuned model. Dont save to finetune dataset
         if is_distilled_model and suitable_for_distillation:
             prompt = self.construct_prompt(f, args, kwargs, None)
-            return prompt, distilled_model, False, True
+            return prompt, distilled_model, suitable_for_distillation, True
         
         else:
             aligns = function_modeler.get_alignments(function_description.__hash__(), max=5)
@@ -140,15 +116,16 @@ class LanguageModel(object):
         content = f"{self.instruction}\nFunction: {f}\n{example_input}---\nInputs:\nArgs: {args}\nKwargs: {kwargs}\nOutput:"
         return content
 
-    def repair_generate(self, input, f, failed_outputs_list, examples, models):
+    def repair_generate(self, args, kwargs, f, failed_outputs_list, examples, models):
         """
         Repair the output given the input, function description, failed outputs list, examples and models
         """
-        prompt = self.generate_repair_prompt(input, f, failed_outputs_list, examples)
+        prompt = self.generate_repair_prompt(args, kwargs, f, failed_outputs_list, examples)
         prompt_token_count = approximate_token_count(prompt)
         model = self.choose_model_from_tokens(models, prompt_token_count)
         if model:
-            choice = self.openai_generate(model, prompt)
+            model_type = self.get_teacher_model_type(model)
+            choice = self.synthesise_answer(prompt, model, model_type, {})
             return choice
         else:
             return None
