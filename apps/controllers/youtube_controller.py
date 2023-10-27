@@ -7,7 +7,6 @@ from youtube_transcript_api import YouTubeTranscriptApi
 # local
 from monkey import Monkey
 
-print(f"{os.getenv('OPENAI_API_KEY')=}")
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
