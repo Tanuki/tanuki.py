@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.8 (monkeyFunctions) (2)" project-jdk-type="Python SDK" />
+  <component name="Black">
+    <option name="enabledOnReformat" value="true" />
+    <option name="enabledOnSave" value="true" />
+    <option name="sdkUUID" value="252aff0b-d044-411a-9e0d-768badf00964" />
+  </component>
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.11 (monkey-patch)" project-jdk-type="Python SDK" />
 </project>
