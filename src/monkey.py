@@ -208,10 +208,9 @@ class Monkey:
         @wraps(test_func)
         def wrapper(*args, **kwargs):
             function_description = Register.load_function_description(test_func)
-            # f = json_dumps(function_description.__dict__)
             f = str(function_description.__dict__.__repr__() + "\n")
             output = Monkey.language_modeler.generate(args, kwargs, Monkey.function_modeler, function_description)
-            # start parsing the object, WILL NEED TO BE CHANGED, VERY HACKY
+            # start parsing the object, very hacky way for the time being
             try:
                 # json load
                 choice_parsed = json.loads(output.generated_response)
