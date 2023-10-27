@@ -12,7 +12,7 @@ from abc import abstractmethod
 
 class DatasetWorker(Logger):
     def __init__(self, name, level=15):
-        super().__init__(self, level)
+        super().__init__(name, level)
 
     @abstractmethod
     def _load_dataset_sizes(self):
