@@ -15,7 +15,7 @@ router = APIRouter(
 
 
 @router.get("/")
-async def analyze_reviews(url: str) -> dict[str, str]:
+async def analyze_reviews(url: str):
     reviews = get_yelp_reviews(url)
     ratings = get_ratings(reviews)
     best_dishes = get_best_dishes(reviews)
