@@ -9,6 +9,10 @@ from typing import List
 
 from pydantic import BaseModel
 
+import sys
+
+sys.path.append("src")
+
 from monkey import Monkey as monkey
 from todo_item import TodoItem
 
@@ -26,11 +30,13 @@ async def define_behavior():
     We define 2 input/output pairs for the LLM to learn from.
     """
 
-    assert create_todolist_item("I would like to go to the store and buy some milk") \
-           == TodoItem(goal="Go to the store and buy some milk", people=["Me"])
+    assert create_todolist_item("I would like to go to the store and buy some milk") == TodoItem(
+        goal="Go to the store and buy some milk", people=["Me"]
+    )
 
-    assert create_todolist_item("I need to go and visit Jeff at 3pm tomorrow") \
-           == TodoItem(goal="Go and visit Jeff", people=["Me"], deadline=datetime.datetime(2021, 1, 1, 15, 0))
+    assert create_todolist_item("I need to go and visit Jeff at 3pm tomorrow") == TodoItem(
+        goal="Go and visit Jeff", people=["Me"], deadline=datetime.datetime(2021, 1, 1, 15, 0)
+    )
 
 
 @asynccontextmanager
@@ -44,6 +50,7 @@ async def lifespan(app: FastAPI):
 
     await define_behavior()
     yield
+
 
 app = FastAPI(lifespan=lifespan)
 
@@ -75,6 +82,8 @@ async def create_todolist_items_route(input: Query):
 async def create_todolist_item_route(input: Query):
     return create_todolist_item(input.input)
 
+
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

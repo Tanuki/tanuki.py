@@ -10,9 +10,10 @@ import datetime
 from utils import approximate_token_count
 from abc import abstractmethod
 
+
 class DatasetWorker(Logger):
     def __init__(self, name, level=15):
-        super().__init__(self, level)
+        super().__init__(name, level)
 
     @abstractmethod
     def _load_dataset_sizes(self):
@@ -28,7 +29,7 @@ class DatasetWorker(Logger):
             }
         }
         Returns:
-            dict: dictionary with the structure above 
+            dict: dictionary with the structure above
         """
         pass
 
@@ -52,7 +53,7 @@ class DatasetWorker(Logger):
             "func_hash": bytearray
         }
         where func_hash is the hash of the function and bytearray is the byte representation of the alignments for this function
-        
+
         Returns:
             dict: dictionary with the structure above
         """
@@ -67,19 +68,18 @@ class DatasetWorker(Logger):
             "func_hash": int
         }
         Where func_hash is the hash of the function and int is the number of datapoints written to the dataset for this function
-        
+
         Args:
             func_hash (str): the function hash
             example (FunctionExample): the example to be saved
-        
+
         Returns:
             dict: dictionary with the structure above
-        
+
         """
 
     @abstractmethod
     def _load_function_config(self, func_hash):
-
         """
         Get the config file for the function.
         Function config must be a dictionary and have the following structure:
@@ -90,7 +90,7 @@ class DatasetWorker(Logger):
                     "trained_on_datapoints" (int): 12 (number of datapoints trained on, 0 if not trained yet),
                     "running_faults" (list): [0, 0, 1] (list of 0s and 1s, where 0 is no fault and 1 is fault)
                 }
-            
+
             last_training_run (dict): dict for the last training run
                 example:
                 {
@@ -113,7 +113,7 @@ class DatasetWorker(Logger):
 
             nr_of_training_runs (int): number of training runs that have been done in total
             }
-        
+
         The config file must be returned as a dictionary
 
         Args:
@@ -129,7 +129,7 @@ class DatasetWorker(Logger):
         Load the datasets for a function hash
         The datasets loaded must be a string, where different datapoints are on new lines
         The output must be a tuple of two strings, where the first string is the alignments dataset and the second string is the patches
-        
+
         Args:
             func_hash (str): the function hash
         Returns:
@@ -144,6 +144,6 @@ class DatasetWorker(Logger):
         Args:
             func_hash (str): the function hash
             config_to_be_saved (dict): the config to be saved
-        
+
         """
         pass

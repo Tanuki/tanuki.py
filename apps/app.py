@@ -6,8 +6,11 @@ import uvicorn
 
 # Configure sys path to include src dir for monkey patching
 sys.path.append("../src")
-
 from monkey import Monkey
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # local
 from routers import router

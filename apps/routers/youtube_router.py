@@ -12,6 +12,6 @@ router = APIRouter(
 
 
 @router.get("/")
-async def summarize_youtube_video(url: str):
-    analyze_video(url=url)
-    return "HELLO HELLO"
+async def summarize_youtube_video(url: str, prompt: str) -> str:
+    reasoning = analyze_video(url=url, prompt=prompt)
+    return reasoning
