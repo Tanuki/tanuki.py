@@ -36,11 +36,10 @@ class TestClassifySentiment(unittest.TestCase):
         print(self.classify_sentiment_2(i_love_you, "I love woo"))
         assert self.classify_sentiment_2(i_love_you, "I love woo") == 'Good'
 
-        print(self.classify_sentiment("I love you"))
         assert self.classify_sentiment("I love you") == 'Good'
 
         assert self.classify_sentiment("I hate you") == 'Bad'
-        assert self.classify_sentiment("I hate you") != 'Good'
+
         assert not self.classify_sentiment("Wednesdays are in the middle of the week")
 
 
