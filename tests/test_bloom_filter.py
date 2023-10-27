@@ -7,30 +7,30 @@ from trackers.buffered_logger import BufferedLogger, EXPECTED_ITEMS, FALSE_POSIT
 
 def test_add():
     #bloom_filter = BloomFilter(*optimal_bloom_filter_params(EXPECTED_ITEMS, FALSE_POSITIVE_RATE))
-    logger = BufferedLogger()
+    logger = BufferedLogger("test")
     example = FunctionExample((0,), {}, 0 * 2)
     example_data = str(example.__dict__).encode('utf-8') + b'\n'
 
     before_bit_array = logger.bloom_filter.bit_array.copy()
 
-    logger._log_patch("test", example)
+    logger.log_patch("test", example)
 
     after_bit_array = logger.bloom_filter.bit_array
     is_same = before_bit_array == after_bit_array
 
     assert is_same == False
 
-    looked_up = logger.bloom_filter.lookup(example_data.decode('utf-8'))
+    looked_up = logger.bloom_filter.lookup("test_" + example_data.decode('utf-8'))
     assert looked_up == True
 
 def test_add2():
-    logger = BufferedLogger()
+    logger = BufferedLogger("test")
     example = FunctionExample((0,), {}, 0 * 2)
     print(id(logger.bloom_filter))
-    logger._log_patch("test", example)
+    logger.log_patch("test", example)
     print(id(logger.bloom_filter))
 
-    looked_up = logger.bloom_filter.lookup(str(example.__dict__))
+    looked_up = logger.bloom_filter.lookup("test_" + str(example.__dict__)+"\n")
     assert looked_up == True
 
 def test_add_lookup():

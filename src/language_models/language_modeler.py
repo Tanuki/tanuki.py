@@ -16,7 +16,7 @@ class LanguageModel(object):
         self.repair_instruction = "Below are an outputs of a function applied to inputs, which failed type validation. The input to the function is brought out in the INPUT section and function description is brought out in the FUNCTION DESCRIPTION section. Your task is to apply the function to the input and return a correct output in the right type. The FAILED EXAMPLES section will show previous outputs of this function applied to the data, which failed type validation and hence are wrong outputs. Using the input and function description output the accurate output following the output_class_definition and output_type_hint attributes of the function description, which define the output type. Make sure the output is an accurate function output and in the correct type. Return None if you can't apply the function to the input or if the output is optional and the correct output is None."
         self.generation_length = generation_token_limit
         self.models = {"gpt-4":{"token_limit": 8192 - self.generation_length, "type": "openai"},
-                        "gpt-32k": {"token_limit": 32768 - self.generation_length, "type": "openai"}
+                        "gpt-4-32k": {"token_limit": 32768 - self.generation_length, "type": "openai"}
                         } # models and token counts
 
 

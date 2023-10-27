@@ -143,8 +143,10 @@ def test_validate_dataclasses():
         height: float
         is_cool: bool
 
-    assert validator.check_type(Person('John', 20, 1.8, True), Person)
-    assert not validator.check_type(Person('John', 20, 1.8, True), str)
+    person = Person(name='John', age=20, height=1.8, is_cool=True)
+    person = {'name': 'John', 'age': 20, 'height': 1.8, 'is_cool': True}
+    assert validator.check_type(person, Person)
+    assert not validator.check_type(person, str)
 
 
 if __name__ == "__main__":
