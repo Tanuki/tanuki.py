@@ -1,5 +1,5 @@
 import ast
-import dis
+import datetime
 import inspect
 import json
 import logging
@@ -11,7 +11,6 @@ from typing import Optional
 from unittest.mock import patch
 
 import openai
-from pydantic import BaseModel
 
 from assertion_visitor import AssertionVisitor
 from models.function_description import FunctionDescription
@@ -21,9 +20,7 @@ from repair import repair_output
 from trackers.buffered_logger import BufferedLogger
 from utils import get_key
 from validator import Validator
-from repair import repair_output
-import json
-import datetime
+
 
 # Define a new level
 def _log_align(self, func_hash, *args, **kws):
@@ -93,7 +90,8 @@ class Monkey:
         def wrapper(*args, **kwargs):
             source = textwrap.dedent(inspect.getsource(test_func))
             tree = ast.parse(source)
-            visitor = AssertionVisitor(locals(), patch_names=Register.function_names_to_patch())
+            _locals = locals()
+            visitor = AssertionVisitor(_locals, patch_names=Register.function_names_to_patch())
             visitor.visit(tree)
             mock_behaviors = visitor.mocks
 

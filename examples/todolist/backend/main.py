@@ -1,6 +1,6 @@
 import datetime
 import os
-from contextlib import contextmanager, asynccontextmanager
+from contextlib import asynccontextmanager
 
 import openai
 from dotenv import load_dotenv

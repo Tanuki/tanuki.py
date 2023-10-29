@@ -1,7 +1,13 @@
+import os
 from typing import List
+
+import openai
+from dotenv import load_dotenv
 
 from monkey import Monkey
 
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 @Monkey.patch
 def extract_stock_winners_good(input: str) -> List[str]:

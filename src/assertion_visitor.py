@@ -12,15 +12,17 @@ class Or(list):
 
 
 class AssertionVisitor(ast.NodeVisitor):
-    def __init__(self, scope: Optional[dict] = None, patch_names: List[str] = []):
+    def __init__(self, scope: Optional[dict] = None, patch_names: List[str] = [], wrapper_alias='test_func'):
         self.mocks = {}  # {args: output}
         self.scopes = [{}]  # Stack of scopes to mimic variable scope in code
         self.imported_modules = {}  # keys are module names, values are the actual modules
         self.patch_names = patch_names  # names of functions to patch
         if scope:
             self.local_scope = scope
+
         current_module = sys.modules[__name__]
         self.imported_modules[current_module.__name__] = current_module
+        self.wrapper_alias = wrapper_alias
 
     def load_variable_values(self, var_name):
         for scope in reversed(self.scopes):
@@ -237,6 +239,7 @@ class AssertionVisitor(ast.NodeVisitor):
                 # elif func_name == "datetime":
                 #     return datetime.datetime(*args, **kwargs)
                 _globals = globals()
+                _function_globals = self.local_scope[self.wrapper_alias].__globals__
                 # Generalized object instantiation
                 if func_name in self.imported_modules:
                     module = self.imported_modules[func_name]
@@ -250,12 +253,16 @@ class AssertionVisitor(ast.NodeVisitor):
                 elif func_name in self.local_scope:
                     func = self.local_scope[func_name]
                     return self.instantiate(func, *args, **kwargs)
+                elif func_name in _function_globals:
+                    func = _function_globals[func_name]
+                    return self.instantiate(func, *args, **kwargs)
                 else:
                     raise NotImplementedError(f"Function {func_name} not handled yet")
             elif isinstance(node.func, ast.Attribute):
                 func_name = node.func.attr
                 # obj = self.extract_output(node.func.value, scope)
                 _globals = globals()
+                _function_globals = self.local_scope[self.wrapper_alias].__globals__
                 if isinstance(node.func.value, ast.Name):
                     module_or_class_name = node.func.value.id
                     # Check if module_or_class_name is an imported module
@@ -268,6 +275,8 @@ class AssertionVisitor(ast.NodeVisitor):
                         obj = builtins.__dict__[module_or_class_name]
                     elif module_or_class_name in self.local_scope:
                         obj = self.local_scope[module_or_class_name]
+                    elif module_or_class_name in _function_globals:
+                        obj = _function_globals[module_or_class_name]
                     else:
                         raise NotImplementedError(f"Module or class {module_or_class_name} not found")
                 else:
