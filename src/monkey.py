@@ -1,5 +1,4 @@
 import ast
-import datetime
 import inspect
 import json
 import logging
@@ -9,10 +8,9 @@ import textwrap
 from functools import wraps
 from typing import Optional
 from unittest.mock import patch
-
-import openai
-
 from assertion_visitor import AssertionVisitor
+from function_modeler import FunctionModeler
+from language_models.language_modeler import LanguageModel
 from models.function_description import FunctionDescription
 from models.function_example import FunctionExample
 from register import Register
@@ -68,11 +66,14 @@ class Monkey:
     logging.addLevelName(PATCH_LEVEL_NUM, "PATCH")
     logging.basicConfig(level=ALIGN_LEVEL_NUM)
     logger = logger_factory(__name__)
+    language_modeler = LanguageModel()
+    # currently only use buffered logger as default
+    function_modeler = FunctionModeler(data_worker=logger)
 
 
     @staticmethod
     def _load_alignments():
-        Monkey.logger.load_alignments()
+        Monkey.function_modeler.load_align_statements()
 
     @staticmethod
     def align(test_func):
@@ -136,7 +137,7 @@ class Monkey:
 
                     key = get_key(args, kwargs)
                     mocked_behaviour = mock_behaviors.get(key, None)
-                    Monkey.logger.log_align(hashed_description, args, kwargs, mocked_behaviour)
+                    Monkey.function_modeler.save_align_statements(hashed_description, args, kwargs, mocked_behaviour)
                     return mocked_behaviour
 
                 return mock_func
@@ -199,61 +200,35 @@ class Monkey:
         @wraps(test_func)
         def wrapper(*args, **kwargs):
             function_description = Register.load_function_description(test_func)
-            model = Monkey.logger.get_model(function_description.__hash__())
-            aligns = Monkey.logger.get_alignments(function_description.__hash__(), max=5)
-            examples = "\n".join([f"Input: {align['args']}\nOutput: {align['output']}" for align in aligns])
-            # f = json_dumps(function_description.__dict__)
             f = str(function_description.__dict__.__repr__() + "\n")
-            #instruction = "Optionally convert the input into the output type, using the docstring as a guide. Return None if you can't."
-            instruction  = "You are given below a function description and input data. The function description of what the function must carry out can be found in the Function section, with input and output type hints. The input data can be found in Input section. Using the function description, apply the function to the Input and return a valid output type, that is acceptable by the output_class_definition and output_class_hint. Return None if you can't apply the function to the input or if the output is optional and the correct output is None."
-            warning = "INCREDIBLY IMPORTANT: Only output a JSON-compatible string in the correct response format."
-            example_input = f"Examples:{examples}\n" if examples else ""
-            content = f"{instruction}\n{warning}\nFunction: {f}\n{example_input}---\nInput: {args}\nOutput:"
-            system_message = f"You are a skillful and accurate language model, who applies a described function on input data. Make sure the function is applied accurately and correctly and the outputs follow the output type hints and are valid outputs given the output types. The current time is {datetime.datetime.now()},"
-            response = openai.ChatCompletion.create(
-                model=model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": system_message
-                    },
-                    {
-                        "role": "user",
-                        "content": content
-                    }
-                ],
-                temperature=0,
-                max_tokens=512,
-                top_p=1,
-                frequency_penalty=0,
-                presence_penalty=0
-            )
-
-            choice = response.choices[0].message.content.strip("'")
-            # start parsing the object, WILL NEED TO BE CHANGED, VERY HACKY
+            output = Monkey.language_modeler.generate(args, kwargs, Monkey.function_modeler, function_description)
+            # start parsing the object, very hacky way for the time being
             try:
                 # json load
-                choice_parsed = json.loads(choice)
+                choice_parsed = json.loads(output.generated_response)
             except:
                 # if it fails, it's not a json object, try eval
                 try:
-                    choice_parsed = eval(choice)
+                    choice_parsed = eval(output.generated_response)
                 except: 
-                    choice_parsed = choice
+                    choice_parsed = output.generated_response
 
             validator = Validator()
 
             valid = validator.check_type(choice_parsed, function_description.output_type_hint)
 
             if not valid:
-                error = f"Output type was not valid. Expected an valid object of type {function_description.output_type_hint}, got '{choice}'"
-                choice, choice_parsed, successful_repair = repair_output(args, function_description, choice, error, validator, example_input)
+                choice, choice_parsed, successful_repair = repair_output(args, kwargs, function_description, output.generated_response, validator, Monkey.function_modeler, Monkey.language_modeler)
 
                 if not successful_repair:
-                    raise TypeError(f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{choice}'")
+                    raise TypeError(f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{output.generated_response}'")
+                output.generated_response = choice
+                output.distilled_model = False
+                
 
-            datapoint = FunctionExample(args, kwargs, choice)
-            Monkey.logger.postprocess_datapoint(function_description.__hash__(), f, datapoint, log = not valid)
+            datapoint = FunctionExample(args, kwargs, output.generated_response)
+            if output.suitable_for_finetuning and not output.distilled_model:
+                Monkey.function_modeler.postprocess_datapoint(function_description.__hash__(), f, datapoint, repaired = not valid)
 
             instantiated = validator.instantiate(choice_parsed, function_description.output_type_hint)
 

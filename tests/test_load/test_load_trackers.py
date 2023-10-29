@@ -12,7 +12,7 @@ def logger(request):
     with TemporaryDirectory() as temp_dir:
         global ALIGN_FILE_NAME
         ALIGN_FILE_NAME = temp_dir
-        yield request.param()
+        yield request.param("test")
 
 
 def test_load_log_align(logger):
@@ -21,7 +21,7 @@ def test_load_log_align(logger):
     start_time = time.time()
     for i in range(runs):
         example = FunctionExample((i,), {}, i * 2)
-        logger._log_align(str(i), example)
+        logger.log_align(str(i), example)
     elapsed_time = time.time() - start_time
 
     print(f"Time taken for {logger.__class__.__name__}: {elapsed_time} seconds")
@@ -32,14 +32,14 @@ def test_patch_many_functions(logger):
     start_time = time.time()
     for i in range(runs):
         example = FunctionExample((i,), {}, i * 2)
-        logger._log_patch(str(i), example)
+        logger.log_patch(str(i), example)
     elapsed_time = time.time() - start_time
 
     print(f"Time taken for {logger.__class__.__name__} to patch {runs} functions: {elapsed_time} seconds")
 
 def test_patch_one_function_many_times():
     runs = 100
-    logger = BufferedLogger()
+    logger = BufferedLogger("test")
     start_time = time.time()
     for i in range(runs):
         example = FunctionExample((i,), {}, i * 2)
