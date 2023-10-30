@@ -378,6 +378,12 @@ class Validator:
                 # but you might want to adapt this based on your needs.
                 return defaultdict(int, instantiated_items)
 
+            # Handle set-like dict types like OrderedDict
+            elif any(issubclass(base, dict) for base in origin.__mro__):
+                key_type, value_type = get_args(target_type) if get_args(target_type) else (Any, Any)
+                instantiated_items = {self.instantiate(k, key_type): self.instantiate(v, value_type) for k, v in data.items()}
+                return origin(instantiated_items)
+            
             # Handle other dictionary-like types
             elif origin is dict or self._is_subclass_of_generic(origin, dict):
                 key_type, value_type = get_args(target_type) if get_args(target_type) else (Any, Any)
@@ -389,12 +395,6 @@ class Validator:
                     return target_type(instantiated_dict)
                 else:
                     return dict(instantiated_dict)
-
-            # Handle set-like dict types like OrderedDict
-            elif any(issubclass(base, dict) for base in origin.__mro__):
-                key_type, value_type = get_args(target_type) if get_args(target_type) else (Any, Any)
-                instantiated_items = {self.instantiate(k, key_type): self.instantiate(v, value_type) for k, v in data.items()}
-                return origin(instantiated_items)
 
         # Tuples aren't supported in JSONable types, so we look for lists instead
         if isinstance(data, list):
