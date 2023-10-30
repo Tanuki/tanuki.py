@@ -12,4 +12,3 @@ flake8==6.1.0
 black==23.10.0
 mypy==1.6.1
 beautifulsoup4==4.12.2
-```
