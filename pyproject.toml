@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.poetry]
 name = "monkey-patch.py"
-version = "0.0.1"
+version = "0.0.5"
 description = "The easiest way to build scalable LLM-powered applications, which gets cheaper and faster over time."
 authors = ["Jack Hopkins <jack@paperplane.ai", "Mart Bakler <mart@paperplane.ai>"]
 
