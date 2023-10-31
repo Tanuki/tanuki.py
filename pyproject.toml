@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools_scm]
 
 [tool.poetry]
-name = "monkey-patch"
+name = "monkey-patch.py"
 version = "0.0.1"
 description = "The easiest way to build scalable LLM-powered applications, which gets cheaper and faster over time."
 authors = ["Jack Hopkins <jack@paperplane.ai", "Mart Bakler <mart@paperplane.ai>"]
@@ -43,6 +43,6 @@ exclude = '''
 '''
 
 [[tool.poetry.source]]
-name = "monkey-patch"
+name = "monkey-patch.py"
 url = "https://github.com/monkey-patch-sdk/monkey-patch.py"
 secondary = true
