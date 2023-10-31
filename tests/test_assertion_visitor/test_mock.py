@@ -147,7 +147,6 @@ for input in inputs:
 
 if __name__ == "__main__":
     test_equality()
-    test_rl_equality()
     test_iteration()
     test_non_equality()
     test_none()
@@ -155,4 +154,5 @@ if __name__ == "__main__":
     test_inclusion()
     test_exclusion()
     test_tuple_iteration()
+    test_rl_equality()
 

@@ -239,7 +239,7 @@ class AssertionVisitor(ast.NodeVisitor):
                 # elif func_name == "datetime":
                 #     return datetime.datetime(*args, **kwargs)
                 _globals = globals()
-                _function_globals = self.local_scope[self.wrapper_alias].__globals__
+                _function_globals = self.local_scope[self.wrapper_alias].__globals__ if self.wrapper_alias in self.local_scope else {}
                 # Generalized object instantiation
                 if func_name in self.imported_modules:
                     module = self.imported_modules[func_name]
@@ -262,7 +262,7 @@ class AssertionVisitor(ast.NodeVisitor):
                 func_name = node.func.attr
                 # obj = self.extract_output(node.func.value, scope)
                 _globals = globals()
-                _function_globals = self.local_scope[self.wrapper_alias].__globals__
+                _function_globals = self.local_scope[self.wrapper_alias].__globals__ if self.wrapper_alias in self.local_scope else {}
                 if isinstance(node.func.value, ast.Name):
                     module_or_class_name = node.func.value.id
                     # Check if module_or_class_name is an imported module

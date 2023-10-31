@@ -225,8 +225,8 @@ def test_extended_list(validator):
 
 
 if __name__ == "__main__":
-    test_generics()
-    test_extended_generics()
     test_instantiate_pydantic()
     test_instantiate_dataclass()
     test_primitives()
+    test_generics()
+    test_extended_generics()
