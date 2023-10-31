@@ -12,7 +12,6 @@ authors = ["Jack Hopkins <jack@paperplane.ai", "Mart Bakler <mart@paperplane.ai>
 
 [tool.poetry.dependencies]
 python = "^3.8"
-pydantic= "^1.8.2"
 appdirs= "1.4.4"
 openai = "0.28.1"
 numpy = "1.24.4"
