@@ -59,6 +59,7 @@ ALIGN_FILE_NAME = ".align"
 
 alignable_functions = {}
 
+
 class Monkey:
     # Set up basic configuration
     logging.setLoggerClass(BufferedLogger)
