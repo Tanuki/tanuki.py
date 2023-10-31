@@ -43,6 +43,6 @@ exclude = '''
 '''
 
 [[tool.poetry.source]]
-name = "monkey-patch.py"
+name = "monkey-patch"
 url = "https://github.com/monkey-patch-sdk/monkey-patch.py"
 secondary = true
