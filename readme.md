@@ -2,8 +2,8 @@
 
 The easiest way to build scalable, LLM-powered applications and functions that get cheaper and faster the more you use them. 
 
-
 ## Contents
+
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
    * [Introduction](#introduction)
    * [Features](#features)
