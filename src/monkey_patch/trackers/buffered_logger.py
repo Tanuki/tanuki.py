@@ -202,6 +202,7 @@ class BufferedLogger(DatasetWorker):
             self.buffer_rolling_size[log_file_path] = 0
 
             self.flush_limit[log_file_path] = 2 * self.flush_limit[log_file_path]
+            self.save_bloom_filter()
             return written_datapoints
         return {}
 
