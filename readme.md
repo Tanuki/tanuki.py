@@ -2,41 +2,17 @@
 
 The easiest way to build scalable, LLM-powered applications and functions that get cheaper and faster the more you use them. 
 
+## Contents
 
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
    * [Introduction](#introduction)
    * [Features](#features)
    * [Installation and getting started](#installation-and-getting-started)
-      + [Installation](#installation)
-      + [Getting Started](#getting-started)
    * [How it works](#how-it-works)
    * [Typed Outputs](#typed-outputs)
    * [Test-Driven Alignment](#test-driven-alignment)
    * [Scaling and Finetuning](#scaling-and-finetuning)
    * [Frequently Asked Questions](#frequently-asked-questions)
-      + [Intro](#intro)
-         - [What is Monkey-patch in plain words?](#what-is-monkey-patch-in-plain-words)
-         - [How does this compare to other frameworks like Langchain?](#how-does-this-compare-to-other-frameworks-like-langchain)
-         - [What are some sample use-cases?](#what-are-some-sample-use-cases)
-         - [Why would I need typed responses?](#why-would-i-need-typed-responses)
-         - [Do you offer this for other languages (eg Typescript)?](#do-you-offer-this-for-other-languages-eg-typescript)
-      + [Getting Started](#getting-started-1)
-         - [How do I get started?](#how-do-i-get-started)
-         - [How do I align my functions?](#how-do-i-align-my-functions)
-         - [Do I need my own OpenAI key?](#do-i-need-my-own-openai-key)
-         - [Does it only work with OpenAI?](#does-it-only-work-with-openai)
-      + [How It Works](#how-it-works-1)
-         - [How does the LLM get cheaper and faster over time? And by how much?](#how-does-the-llm-get-cheaper-and-faster-over-time-and-by-how-much)
-         - [How many calls does it require to get the improvement?](#how-many-calls-does-it-require-to-get-the-improvement)
-         - [Can I link functions together?](#can-i-link-functions-together)
-         - [Does fine tuning reduce the performance of the LLM?](#does-fine-tuning-reduce-the-performance-of-the-llm)
-      + [Accuracy & Reliability](#accuracy-reliability)
-         - [How do you guarantee consistency in the output of patched functions?](#how-do-you-guarantee-consistency-in-the-output-of-patched-functions)
-         - [How reliable are the typed outputs?](#how-reliable-are-the-typed-outputs)
-         - [How do you deal with hallucinations?](#how-do-you-deal-with-hallucinations)
-         - [How do you deal with bias?](#how-do-you-deal-with-bias)
-         - [Will distillation impact performance?](#will-distillation-impact-performance)
-         - [What is this not suitable for?](#what-is-this-not-suitable-for)
    * [Simple ToDo List App](#simple-todo-list-app)
 
 <!-- TOC end -->
@@ -45,8 +21,11 @@ The easiest way to build scalable, LLM-powered applications and functions that g
 
 Monkey Patch is a way to programmatically invoke an LLM in place of the function body in Python, with the same parameters and output that you would expect from a function implemented by hand. 
 
-It allows you to mix-and-match programmed and LLM powered functions in your code, using the same function signatures and input parameters. This enables you to drop in well-typed, stateless and production-ready LLM capabilities into your app seamlessly.
+It allows you to mix-and-match programmed and LLM powered functions in your code, using the same function signatures and input parameters. 
 
+This enables you to drop in well-typed, stateless and production-ready LLM capabilities into your app seamlessly.
+
+The more you use the patched function, the cheaper and faster it gets through automatic model distillation.
 ```python
 @monkey.patch
 def some_function(input: TypedInput) -> TypedOutput:
@@ -114,7 +93,7 @@ def classify_sentiment(msg: str) -> Optional[Literal['Good', 'Bad']]:
 def align_classify_sentiment():
     assert classify_sentiment("I love you") == 'Good'
     assert classify_sentiment("I hate you") == 'Bad'
-    assert not classify_sentiment("Wednesdays are in the middle of the week")
+    assert not classify_sentiment("People from Phoenix are called Phoenicians")
 
 if __name__ == "__main__":
     align_classify_sentiment()
