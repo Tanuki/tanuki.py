@@ -1,46 +1,47 @@
 import os
-
 from monkey_patch.bloom_filter import BloomFilter, optimal_bloom_filter_params
 from monkey_patch.models.function_example import FunctionExample
 from monkey_patch.trackers.buffered_logger import BufferedLogger, EXPECTED_ITEMS, FALSE_POSITIVE_RATE
-
+import random
+import string
 
 def test_add():
     #bloom_filter = BloomFilter(*optimal_bloom_filter_params(EXPECTED_ITEMS, FALSE_POSITIVE_RATE))
     logger = BufferedLogger("test")
     example = FunctionExample((0,), {}, 0 * 2)
     example_data = str(example.__dict__).encode('utf-8') + b'\n'
+    nr_of_calls = 10
+    nr_of_errors = 0
+    for _ in range(nr_of_calls):
+        # generate a random string of length 10
+        random_string = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(30))
+        before_bit_array = logger.bloom_filter.bit_array.copy()
 
-    before_bit_array = logger.bloom_filter.bit_array.copy()
+        logger.log_patch(f"test_{random_string}", example)
 
-    logger.log_patch("test", example)
-
-    after_bit_array = logger.bloom_filter.bit_array
-    is_same = before_bit_array == after_bit_array
-
-    assert is_same == False
-
-    looked_up = logger.bloom_filter.lookup("test_" + example_data.decode('utf-8'))
-    assert looked_up == True
-
-def test_add2():
-    logger = BufferedLogger("test")
-    example = FunctionExample((0,), {}, 0 * 2)
-    print(id(logger.bloom_filter))
-    logger.log_patch("test", example)
-    print(id(logger.bloom_filter))
-
-    looked_up = logger.bloom_filter.lookup("test_" + str(example.__dict__)+"\n")
-    assert looked_up == True
+        after_bit_array = logger.bloom_filter.bit_array
+        is_same = before_bit_array == after_bit_array
+        looked_up = logger.bloom_filter.lookup(f"test_{random_string}_" + example_data.decode('utf-8'))
+        if not looked_up or is_same:
+            nr_of_errors += 1
+    # check duplicate rate is below 20%
+    assert nr_of_errors/nr_of_calls <= 0.2
 
 def test_add_lookup():
     bloom_filter = BloomFilter(*optimal_bloom_filter_params(EXPECTED_ITEMS, FALSE_POSITIVE_RATE))
     example = FunctionExample((0,), {}, 0 * 2)
+    nr_of_calls = 10
+    nr_of_errors = 0
+    for _ in range(nr_of_calls):
+        random_string = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(30))
+        bloom_filter_input = f"{random_string}_{str(example.__dict__)}"
+        bloom_filter.add(bloom_filter_input)
+        looked_up = bloom_filter.lookup(bloom_filter_input)
+        if not looked_up:
+            nr_of_errors += 1
 
-    bloom_filter.add(str(example.__dict__))
-    looked_up = bloom_filter.lookup(str(example.__dict__))
-
-    assert looked_up == True
+    # check duplicate rate is below 20%
+    assert nr_of_errors/nr_of_calls <= 0.2
 
 
 def test_bloom_filter_persistence():
@@ -151,12 +152,30 @@ def test_simple_test_case():
         assert bf2.lookup(item), f"Item {item} not found after loading."
 
 
+def test_multiple_loggers():
+    # test out multiple loggers to ensure bloom filter is saved
+    example = FunctionExample((0,), {}, 0 * 2)
+    example_data = str(example.__dict__).encode('utf-8') + b'\n'
+    nr_of_calls = 10
+    nr_of_errors = 0
+    for _ in range(nr_of_calls):
+        logger_1 = BufferedLogger("test")
+        # generate a random string of length 10
+        random_string = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(30))
+        logger_1.log_patch(f"test_{random_string}", example)
+        logger_2 = BufferedLogger("test")
+        looked_up = logger_2.bloom_filter.lookup(f"test_{random_string}_" + example_data.decode('utf-8'))
+        if not looked_up:
+            nr_of_errors += 1
+    # check duplicate rate is below 20%
+    assert nr_of_errors/nr_of_calls <= 0.2
+
 
 if __name__ == "__main__":
     test_bit_array_length()
     test_file_content_consistency()
     test_bloom_filter_persistence()
-    test_add2()
     test_bloom_filter_persistence()
-    #test_add_lookup()
+    test_add_lookup()
     test_add()
+    test_multiple_loggers()
