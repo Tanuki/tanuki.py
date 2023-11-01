@@ -37,7 +37,5 @@ class TestActionItems(unittest.TestCase):
         assert len(output) == 3
 
 
-
-
 if __name__ == '__main__':
     unittest.main()
