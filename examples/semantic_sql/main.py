@@ -1,6 +1,6 @@
 import dis
 
-from monkey import Monkey as monkey
+from monkey_patch.monkey import Monkey as monkey
 
 
 @monkey.patch
