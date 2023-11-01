@@ -4,7 +4,7 @@ from typing import List
 import openai
 from dotenv import load_dotenv
 
-from monkey import Monkey
+from monkey_patch.monkey import Monkey as monkey
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
