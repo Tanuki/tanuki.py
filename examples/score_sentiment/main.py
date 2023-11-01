@@ -1,6 +1,6 @@
-from dataclasses import Field
+from pydantic import Field
 from typing import Annotated
-from monkey import Monkey as monkey
+from monkey_patch.monkey import Monkey as monkey
 
 @monkey.patch
 def score_sentiment(input: str) -> Annotated[int, Field(gt=0, lt=10)]:
@@ -22,3 +22,6 @@ def align_score_sentiment():
 def test_score_sentiment():
     """We can test the function as normal using Pytest or Unittest"""
     assert score_sentiment("I like you") == 7
+
+align_score_sentiment()
+test_score_sentiment()
