@@ -22,6 +22,3 @@ def align_score_sentiment():
 def test_score_sentiment():
     """We can test the function as normal using Pytest or Unittest"""
     assert score_sentiment("I like you") == 7
-
-align_score_sentiment()
-test_score_sentiment()
