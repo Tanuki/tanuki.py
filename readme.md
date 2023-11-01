@@ -2,8 +2,10 @@
 
 The easiest way to build scalable, LLM-powered applications and functions that get cheaper and faster the more you use them. 
 
-<!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
+---
 
+<!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
+   * [Introduction](#introduction)
    * [Features](#features)
    * [Installation and getting started](#installation-and-getting-started)
       + [Installation](#installation)
@@ -39,6 +41,8 @@ The easiest way to build scalable, LLM-powered applications and functions that g
    * [Simple ToDo List App](#simple-todo-list-app)
 
 <!-- TOC end -->
+<!-- TOC --><a name="introduction"></a>
+## Introduction 
 Monkey Patch is a way to programmatically invoke an LLM in place of the function body in Python, with the same parameters and output that you would expect from a function implemented by hand. 
 
 It allows you to mix-and-match programmed and LLM powered functions in your code, using the same function signatures and input parameters. This enables you to drop in well-typed, stateless and production-ready LLM capabilities into your app seamlessly.
