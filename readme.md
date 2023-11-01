@@ -39,9 +39,11 @@ The easiest way to build scalable, LLM-powered applications and functions that g
    * [Simple ToDo List App](#simple-todo-list-app)
 
 <!-- TOC end -->
-Monkey Patch is a way to programmatically invoke an LLM in place of the function body in Python, with the same parameters and output that you would expect from a function implemented by hand. 
+Monkey Patch is a simple way to call an LLM in place of the function body in Python, with the same parameters and output that you would expect from a function implemented by hand. 
 
-It allows you to mix-and-match programmed and LLM powered functions in your code, using the same function signatures and input parameters. This enables you to drop in well-typed, stateless and production-ready LLM capabilities into your app seamlessly.
+It allows you to mix-and-match programmed and LLM-powered functions in your code, using the same function signatures and input parameters. This enables you to drop in well-typed, stateless and production-ready LLM capabilities into your app with a few lines of Python. 
+
+Lastly, the more you call the function, the faster and cheaper it gets (3-10x). With more use, Monkey Patch leverages distillation to fine-tune smaller and smaller models for your function or app. The fine-tuning, implementation, and data ops all handled in the background. 
 
 ```python
 @monkey.patch
@@ -119,7 +121,7 @@ if __name__ == "__main__":
 ```
 
 <!-- TOC --><a name="how-it-works"></a>
-## How it works
+## How It Works
 
 When you call a monkey-patched function during development, an LLM in a n-shot configuration is invoked to generate the typed response. 
 
@@ -250,13 +252,13 @@ Training smaller function-specific models and deploying them is handled by the M
 <!-- TOC --><a name="intro"></a>
 ### Intro
 <!-- TOC --><a name="what-is-monkey-patch-in-plain-words"></a>
-#### What is Monkey-patch in plain words?
-Monkey-patch is a simple and seamless way to create LLM augmented functions in python, which ensure the outputs of the LLMs follow a specific structure. Moreover, the more you call a patched function, the cheaper and faster the execution gets.
+#### What is Monkey Patch in plain words?
+Monkey-Patch is a simple way to create LLM-powered functions in Python, which ensure the outputs of the LLMs follow a specific structure. Instead of large text responses like in GPT-4, these functions behave just like Python function calls, but without the manual coding and testing. Moreover, the more you call a patched function, the cheaper and faster the execution gets. 
 
 <!-- TOC --><a name="how-does-this-compare-to-other-frameworks-like-langchain"></a>
-#### How does this compare to other frameworks like Langchain?
-- **Langchain**: Monkey-Patch has a narrower scope than Langchain. Our mission is to ensure predictable and consistent LLM execution, with automatic reductions in cost and latency through finetuning.
-- **Magentic**: Monkey-Patch offers two main benefits compared to Magentic, namely; lower cost and latency through automatic distillation, and more predictable behaviour through test-driven alignment. Currently, there are two cases where you should use Magentic, namely: where you need support for tools (functions) - a feature that is on our roadmap, and where you need support for asynchronous functions.
+#### How does this compare to other frameworks like LangChain?
+- **Langchain**: Monkey-Patch has a narrower scope than LangChain. Our mission is to ensure predictable and consistent LLM execution, with automatic reductions in cost and latency through finetuning.
+- **Marvin AI**: Monkey-Patch offers two main benefits compared to Magentic, namely; lower cost and latency through automatic distillation, and more predictable behaviour through test-driven alignment. Currently, there are two cases where you should use Magentic, namely: where you need support for tools (functions) - a feature that is on our roadmap, and where you need support for asynchronous functions.
 
 <!-- TOC --><a name="what-are-some-sample-use-cases"></a>
 #### What are some sample use-cases?
@@ -292,13 +294,15 @@ Yes
 
 <!-- TOC --><a name="does-it-only-work-with-openai"></a>
 #### Does it only work with OpenAI?
-Currently yes but there are plans to support Anthropic and popular open-source models. If you have a specific request, either join our Discord server, or create a Github issue.
+Currently yes but there are plans to support Anthropic and popular open-source models. If you have a specific request, either join [our Discord server](https://discord.gg/kEGS5sQU), or create a Github issue.
 
 <!-- TOC --><a name="how-it-works-1"></a>
 ### How It Works
 <!-- TOC --><a name="how-does-the-llm-get-cheaper-and-faster-over-time-and-by-how-much"></a>
 #### How does the LLM get cheaper and faster over time? And by how much?
-Using the outputs of the larger (teacher) model, a smaller (student) model will be trained to emulate the teacher model behaviour while being faster and cheaper to run due to smaller size. In some cases it is possible to achieve up to 90% lower cost and 80% lower latency with a small number of executions of your patched functions.  
+In short, we use distillation of LLM models.
+
+Expanded, using the outputs of the larger (teacher) model, a smaller (student) model will be trained to emulate the teacher model behaviour while being faster and cheaper to run due to smaller size. In some cases it is possible to achieve up to 90% lower cost and 80% lower latency with a small number of executions of your patched functions.  
 <!-- TOC --><a name="how-many-calls-does-it-require-to-get-the-improvement"></a>
 #### How many calls does it require to get the improvement?
 The default minimum is 200 calls, although this can be changed by adding flags to the patch decorator.
@@ -306,7 +310,7 @@ The default minimum is 200 calls, although this can be changed by adding flags t
 #### Can I link functions together?
 Yes! It is possible to use the output of one patched function as the input to another patched function. Simply carry this out as you would do with normal python functions.
 <!-- TOC --><a name="does-fine-tuning-reduce-the-performance-of-the-llm"></a>
-#### Does fine tuning reduce the performance of the LLM?
+#### Does fine-tuning reduce the performance of the LLM?
 Not necessarily. Currently the only way to improve the LLM performance is to have better align statements. As the student model is trained on both align statements and input-output calls, it is possible for the fine tuned student model to exceed the performance of the N-shot teacher model during inference.
 
 
@@ -314,13 +318,13 @@ Not necessarily. Currently the only way to improve the LLM performance is to hav
 ### Accuracy & Reliability
 <!-- TOC --><a name="how-do-you-guarantee-consistency-in-the-output-of-patched-functions"></a>
 #### How do you guarantee consistency in the output of patched functions?
-Each output of the LLM will be programmatically instantiated into the output class ensuring the output will be of the correct type. If the LLM output is incorrect and instantiating the correct output object fails, an automatic feedback repair loop kicks in to correct the mistake.
+Each output of the LLM will be programmatically instantiated into the output class ensuring the output will be of the correct type, just like your Python functions. If the output is incorrect and instantiating the correct output object fails, an automatic feedback repair loop kicks in to correct the mistake.
 <!-- TOC --><a name="how-reliable-are-the-typed-outputs"></a>
 #### How reliable are the typed outputs?
 For simpler-medium complexity classes GPT4 with align statements has been shown to be very reliable in outputting the correct type. Additionally we have implemented a repair loop with error feedback to “fix” incorrect outputs and add the correct output to the training dataset.
 <!-- TOC --><a name="how-do-you-deal-with-hallucinations"></a>
 #### How do you deal with hallucinations?
-Hallucinations can’t be 100% removed from LLMs. However, by creating test functions decorated with `@monkey.align`, you can use normal `assert` statements to align the model to behave in the way that you expect. Additionally, you can create types with Pydantic, which act as guardrails to prevent any nasty surprises and provide correct error handling.
+Hallucinations can’t be 100% removed from LLMs at the moment, if ever. However, by creating test functions decorated with `@monkey.align`, you can use normal `assert` statements to align the model to behave in the way that you expect. Additionally, you can create types with Pydantic, which act as guardrails to prevent any nasty surprises and provide correct error handling.
 <!-- TOC --><a name="how-do-you-deal-with-bias"></a>
 #### How do you deal with bias?
 By adding more align statements that cover a wider range of inputs, you can ensure that the model is less biased.
@@ -333,7 +337,9 @@ However, distillation can be manually turned off in these cases. Additionally, i
 #### What is this not suitable for?
 - Time-series data
 - Tasks that requires a lot of context to completed correctly
-- For tasks that output natural language, you will get less value from monkey-patch and may want to consider the OpenAI API directly.
+- For tasks that output natural language, you will get less value from Monkey-Patch and may want to consider the OpenAI API directly.
+
+If there are others, please let us know!
 
 ---
 
