@@ -59,9 +59,20 @@ def test_recommended_dishes():
     """We can test the function as normal using Pytest or Unittest"""
 
 
-def get_yelp_reviews(yelp_url: str) -> List[str]:
-    response = requests.get(yelp_url)
-    soup = BeautifulSoup(response.text, "html.parser")
-    # get all "p" tags with class beginning with comment__
-    reviews = soup.find_all("p", class_=lambda x: x and x.startswith("comment__"))
-    return [review.text for review in reviews]
+def get_yelp_reviews(business_id_or_alias: str) -> List[str]:
+    url = f"https://api.yelp.com/v3/businesses/{business_id_or_alias}/reviews?offset=100&limit=20&sort_by=yelp_sort"
+    headers = {
+        "accept": "application/json",
+        "Authorization": f"Bearer {os.getenv('YELP_API_KEY')}",
+    }
+    response = requests.get(url, headers=headers)
+    data = response.json()
+    reviews = [review["text"] for review in data["reviews"]]
+
+    url = f"https://api.yelp.com/v3/businesses/{business_id_or_alias}/review_highlights"
+    response = requests.get(url, headers=headers)
+    data = response.json()
+    print("This is the data")
+    print(data)
+
+    return reviews
