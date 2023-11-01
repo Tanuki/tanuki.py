@@ -2,7 +2,7 @@ import hashlib
 from dataclasses import dataclass
 from typing import Dict
 
-import utils
+from monkey_patch.utils import json_dumps
 
 
 @dataclass(frozen=True)
@@ -15,6 +15,6 @@ class FunctionDescription:
     output_class_definition: str
 
     def __hash__(self):
-        json_encoded = utils.json_dumps(self).encode('utf-8')
+        json_encoded = json_dumps(self).encode('utf-8')
         h = hashlib.md5(json_encoded).hexdigest()
         return str(h)

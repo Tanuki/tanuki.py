@@ -3,8 +3,8 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from models.function_example import FunctionExample
-from trackers.buffered_logger import BufferedLogger
+from monkey_patch.models.function_example import FunctionExample
+from monkey_patch.trackers.buffered_logger import BufferedLogger
 
 
 @pytest.fixture(params=[BufferedLogger])

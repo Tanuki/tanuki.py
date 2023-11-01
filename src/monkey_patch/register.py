@@ -1,7 +1,7 @@
 import inspect
 from typing import get_type_hints, Literal, Optional
 
-from models.function_description import FunctionDescription
+from monkey_patch.models.function_description import FunctionDescription
 
 alignable_functions = {}
 

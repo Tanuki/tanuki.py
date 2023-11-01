@@ -1,8 +1,8 @@
 import os
 
-from bloom_filter import BloomFilter, optimal_bloom_filter_params
-from models.function_example import FunctionExample
-from trackers.buffered_logger import BufferedLogger, EXPECTED_ITEMS, FALSE_POSITIVE_RATE
+from monkey_patch.bloom_filter import BloomFilter, optimal_bloom_filter_params
+from monkey_patch.models.function_example import FunctionExample
+from monkey_patch.trackers.buffered_logger import BufferedLogger, EXPECTED_ITEMS, FALSE_POSITIVE_RATE
 
 
 def test_add():

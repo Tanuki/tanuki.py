@@ -1,8 +1,6 @@
-from utils import approximate_token_count
-import openai
-import datetime
-from models.language_model_output import LanguageModelOutput
-from language_models.openai_api import Openai_API
+from monkey_patch.language_models.openai_api import Openai_API
+from monkey_patch.models.language_model_output import LanguageModelOutput
+from monkey_patch.utils import approximate_token_count
 
 
 class LanguageModel(object):

@@ -1,14 +1,10 @@
-import os
-from logging import Logger
 import json
+import os
+
 from appdirs import user_data_dir
 
-from bloom_filter import BloomFilter, optimal_bloom_filter_params
-import openai
-import ast
-import datetime
-from utils import approximate_token_count
-from trackers.dataset_worker import DatasetWorker
+from monkey_patch.bloom_filter import BloomFilter, optimal_bloom_filter_params
+from monkey_patch.trackers.dataset_worker import DatasetWorker
 
 PATCH_FILE_EXTENSION = ".patches"
 ALIGN_FILE_EXTENSION = ".alignments"

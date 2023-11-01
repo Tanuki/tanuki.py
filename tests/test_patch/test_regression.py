@@ -1,7 +1,6 @@
 from typing import Optional, Literal
 
-from monkey import Monkey as monkey
-
+from monkey_patch.monkey import Monkey as monkey
 
 @monkey.patch
 def classify_sentiment_2(input: str, input_2: str) -> Optional[Literal['Good', 'Bad']]:

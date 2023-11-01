@@ -1,9 +1,10 @@
 import os
-from typing import Optional, Literal, List
-import unittest
+from typing import List
+
 import openai
 from dotenv import load_dotenv
-from monkey import Monkey
+
+from monkey_patch.monkey import Monkey
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")

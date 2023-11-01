@@ -1,14 +1,15 @@
-from utils import approximate_token_count
-import openai
-import datetime
-from models.language_model_output import LanguageModelOutput
-import os
 import ast
-import json
+import datetime
 import io
-from models.function_example import FunctionExample
+import json
+
+import openai
+
+from monkey_patch.models.function_example import FunctionExample
+from monkey_patch.utils import approximate_token_count
 
 EXAMPLE_ELEMENT_LIMIT = 1000
+
 
 class FunctionModeler(object):
     def __init__(self, data_worker) -> None:

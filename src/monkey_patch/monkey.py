@@ -8,16 +8,17 @@ import textwrap
 from functools import wraps
 from typing import Optional
 from unittest.mock import patch
-from assertion_visitor import AssertionVisitor
-from function_modeler import FunctionModeler
-from language_models.language_modeler import LanguageModel
-from models.function_description import FunctionDescription
-from models.function_example import FunctionExample
-from register import Register
-from repair import repair_output
-from trackers.buffered_logger import BufferedLogger
-from utils import get_key
-from validator import Validator
+
+from monkey_patch.assertion_visitor import AssertionVisitor
+from monkey_patch.function_modeler import FunctionModeler
+from monkey_patch.language_models.language_modeler import LanguageModel
+from monkey_patch.models.function_description import FunctionDescription
+from monkey_patch.models.function_example import FunctionExample
+from monkey_patch.register import Register
+from monkey_patch.repair import repair_output
+from monkey_patch.trackers.buffered_logger import BufferedLogger
+from monkey_patch.utils import get_key
+from monkey_patch.validator import Validator
 
 
 # Define a new level
@@ -91,6 +92,7 @@ class Monkey:
         @wraps(test_func)
         def wrapper(*args, **kwargs):
             source = textwrap.dedent(inspect.getsource(test_func))
+            #bytecode = compile(test_func.__code__, "", "exec")
             tree = ast.parse(source)
             _locals = locals()
             visitor = AssertionVisitor(_locals, patch_names=Register.function_names_to_patch())

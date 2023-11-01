@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from pydantic import Field
-from monkey import Monkey as monkey
+from monkey_patch.monkey import Monkey as monkey
 import unittest
 from typing import Literal, Optional, List
 

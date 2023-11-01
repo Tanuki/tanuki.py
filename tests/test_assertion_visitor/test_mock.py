@@ -6,7 +6,7 @@ from typing import Optional, List
 
 from pydantic import BaseModel
 
-from assertion_visitor import AssertionVisitor, Or
+from monkey_patch.assertion_visitor import AssertionVisitor, Or
 
 
 def _parse(source):

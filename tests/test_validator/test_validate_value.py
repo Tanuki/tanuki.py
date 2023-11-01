@@ -4,7 +4,7 @@ from typing import List, Tuple, Set, Dict, Mapping, MutableMapping, OrderedDict,
 
 from pydantic import BaseModel
 
-from validator import Validator
+from monkey_patch.validator import Validator
 
 
 

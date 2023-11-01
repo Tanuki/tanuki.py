@@ -4,7 +4,7 @@ import sys
 from _ast import NotEq, NotIn, IsNot, In
 from typing import Optional, List
 
-from utils import get_key
+from monkey_patch.utils import get_key
 
 
 class Or(list):

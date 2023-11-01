@@ -1,11 +1,9 @@
-import os
-from typing import Optional, Literal, List
-from register import Register
-from trackers.buffered_logger import BufferedLogger
-from language_models.language_modeler import LanguageModel
-from function_modeler import FunctionModeler
-from utils import get_model
-import json
+from typing import List
+
+from monkey_patch.function_modeler import FunctionModeler
+from monkey_patch.language_models.language_modeler import LanguageModel
+from monkey_patch.register import Register
+from monkey_patch.trackers.buffered_logger import BufferedLogger
 
 
 def dummy_func(input: str) -> List[str]:

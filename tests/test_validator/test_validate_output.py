@@ -1,10 +1,8 @@
 from dataclasses import dataclass
-from typing import List, Tuple, Set, Dict, Mapping, MutableMapping, OrderedDict, ChainMap, Counter, DefaultDict, Deque, \
-    MutableSequence, Sequence, Union, Literal
 
 from pydantic import BaseModel
 
-from validator import Validator
+from monkey_patch.validator import Validator
 
 
 def test_validate_output():

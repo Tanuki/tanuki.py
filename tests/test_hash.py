@@ -1,4 +1,4 @@
-from bloom_filter import BloomFilter
+from monkey_patch.bloom_filter import BloomFilter
 
 
 def test_hash():

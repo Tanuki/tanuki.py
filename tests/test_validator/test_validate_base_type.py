@@ -1,8 +1,4 @@
-from dataclasses import dataclass
-from typing import List, Tuple, Set, Dict, Mapping, MutableMapping, OrderedDict, ChainMap, Counter, DefaultDict, Deque, \
-    MutableSequence, Sequence, Union, Literal
-
-from validator import Validator
+from monkey_patch.validator import Validator
 
 
 def test_validate_base_type():

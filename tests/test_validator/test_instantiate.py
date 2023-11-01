@@ -5,7 +5,7 @@ from typing import List, Dict, Tuple, Union, Optional, Sequence, Iterable, Mappi
 
 from pydantic import BaseModel
 
-from validator import Validator
+from monkey_patch.validator import Validator
 
 
 

@@ -2,8 +2,7 @@ from dataclasses import dataclass
 from typing import List, Tuple, Set, Dict, Mapping, MutableMapping, OrderedDict, ChainMap, Counter, DefaultDict, Deque, \
     MutableSequence, Sequence, Union, Literal
 
-from validator import Validator
-
+from monkey_patch.validator import Validator
 
 
 def test_validate_base_types():
@@ -17,7 +16,7 @@ def test_validate_base_types():
     assert not validator.check_type(1, float)
     assert not validator.check_type(1.0, int)
     assert not validator.check_type("1", int)
-    #assert not validator.validate_value(True, int)
+    # assert not validator.validate_value(True, int)
     assert not validator.check_type(None, int)
     assert not validator.check_type(1, str)
     assert not validator.check_type(1.0, str)
@@ -31,6 +30,7 @@ def test_validate_base_types():
     assert not validator.check_type(1.0, None)
     assert not validator.check_type("1", None)
     assert not validator.check_type(True, None)
+
 
 def test_validate_complex_types():
     print("test_validate_complex_types")
@@ -72,6 +72,7 @@ def test_validate_type_annotations():
     assert validator.check_type({"a": 1, "b": 2}, Dict)
     assert not validator.check_type({"a": 1, "b": 2}, Dict[str, str])
 
+
 def test_validate_collection_dict_types():
     print("test_validate_collection_types")
     validator = Validator()
@@ -93,6 +94,7 @@ def test_validate_collection_dict_types():
     assert validator.check_type({"a": 1, "b": 2}, DefaultDict[str, int])
     assert validator.check_type({"a": 1, "b": 2}, DefaultDict)
 
+
 def test_validate_collection_list_types():
     print("test_validate_collection_list_types")
     validator = Validator()
@@ -110,6 +112,7 @@ def test_validate_collection_list_types():
     assert not validator.check_type([1, 2], Sequence[str])
 
     assert validator.check_type([1, '2'], Sequence[Union[int, str]])
+
 
 def test_validate_literal_types():
     print("test_validate_literal_types")
