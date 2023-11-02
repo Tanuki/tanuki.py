@@ -5,4 +5,3 @@ python-dotenv==1.0.0
 bitarray==2.8.2
 pydantic==2.4.2
 fastapi~=0.104.0
-dill~=0.3.7
