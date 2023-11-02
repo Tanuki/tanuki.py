@@ -181,19 +181,6 @@ class Monkey:
             else:
                 return patched_func(*args, **kwargs)
 
-        def _get_args(func_args, kwarg_names, num_args):
-            num_pos_args = num_args - len(kwarg_names)  # Calculate number of positional arguments
-            args_for_call = func_args[:num_pos_args]
-            # Pop keyword arguments off the stack
-            kwargs_for_call = {}  # New dictionary to hold keyword arguments for the call
-            for name in reversed(kwarg_names):  # Reverse to match the order on the stack
-                try:
-                    kwargs_for_call[name] = func_args.pop()  # Pop the value off the stack
-                except IndexError:
-                    print(f"Debug: func_args is empty, can't pop for {name}")
-            func_args = func_args[:-num_pos_args]  # Remove the positional arguments from func_args
-            return args_for_call, func_args, kwargs_for_call
-
         return wrapper
 
     @staticmethod
@@ -227,7 +214,6 @@ class Monkey:
                     raise TypeError(f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{output.generated_response}'")
                 output.generated_response = choice
                 output.distilled_model = False
-                
 
             datapoint = FunctionExample(args, kwargs, output.generated_response)
             if output.suitable_for_finetuning and not output.distilled_model:

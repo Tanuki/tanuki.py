@@ -2,6 +2,7 @@ import inspect
 from typing import get_type_hints, Literal, Optional
 
 from monkey_patch.models.function_description import FunctionDescription
+from monkey_patch.utils import get_source
 
 alignable_functions = {}
 
@@ -74,7 +75,7 @@ class Register:
                 elif hasattr(class_type, "__args__"):  # Access inner types
                     return [get_class_definition(arg) for arg in class_type.__args__ if arg is not None]
             elif inspect.isclass(class_type) and class_type.__module__ != "builtins":
-                return inspect.getsource(class_type)
+                return get_source(class_type)
             return class_type.__name__
 
         # Extract class definitions for input and output types
