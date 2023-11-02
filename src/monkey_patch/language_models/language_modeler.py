@@ -59,11 +59,11 @@ class LanguageModel(object):
             raise ValueError("This teacher model is not supported")
 
 
-    def get_models(self, function_modeler, func_hash):
+    def get_models(self, function_modeler, function_description):
         """
         Get the loggers models given the function hash
         """
-        distilled_model, teacher_models = function_modeler.get_models(func_hash)
+        distilled_model, teacher_models = function_modeler.get_models(function_description)
         return distilled_model, teacher_models
 
 
@@ -75,7 +75,7 @@ class LanguageModel(object):
         """
         f = str(function_description.__dict__.__repr__())
         
-        distilled_model, teacher_models = self.get_models(function_modeler, function_description.__hash__())
+        distilled_model, teacher_models = self.get_models(function_modeler, function_description)
         is_distilled_model = distilled_model != ""
         suitable_for_distillation, input_prompt_token_count = self.suitable_for_finetuning_token_check(args, kwargs, f, function_modeler.distillation_token_limit)
         # no examples needed, using a finetuned model. Dont save to finetune dataset

@@ -3,7 +3,7 @@ import datetime
 import json
 import typing
 from typing import get_args, Literal
-
+import string
 
 def json_default(thing):
     try:
@@ -121,3 +121,13 @@ def get_key(args, kwargs) -> tuple:
     args_tuple = _deep_tuple(args)
     kwargs_tuple = _deep_tuple(kwargs)
     return args_tuple, kwargs_tuple
+
+def encode_int(n):
+    # Define the character set for encoding
+    charset = string.ascii_lowercase + string.digits + "_"
+    return charset[n]
+
+def decode_int(s):
+    # Define the character set for encoding
+    charset = string.ascii_lowercase + string.digits + "_"
+    return charset.index(s)
