@@ -54,7 +54,9 @@ def test_validate_output_pydantic():
     validator = Validator()
     assert validator.validate_output(input_str, PersonPydantic)
 
+
 if __name__ == "__main__":
+
     test_validate_output_dataclass()
     test_validate_output_pydantic()
     test_validate_output()

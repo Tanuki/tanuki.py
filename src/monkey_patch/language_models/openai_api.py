@@ -1,3 +1,6 @@
+import os
+
+import httpx as httpx
 import openai
 
 # import abstract base class
@@ -37,3 +40,34 @@ class Openai_API(LLM_Api):
             )
         choice = response.choices[0].message.content.strip("'")
         return choice
+
+    async def generate_async(self, model, system_message, prompt, **kwargs):
+        temperature = kwargs.get("temperature", 0)
+        top_p = kwargs.get("top_p", 1)
+        frequency_penalty = kwargs.get("frequency_penalty", 0)
+        presence_penalty = kwargs.get("presence_penalty", 0)
+
+        messages = [
+            {
+                "role": "system",
+                "content": system_message
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
+
+        response = openai.ChatCompletion.create(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=512,
+            top_p=top_p,
+            frequency_penalty=frequency_penalty,
+            presence_penalty=presence_penalty,
+            stream=True
+        )
+
+        for chunk in response:
+            yield chunk
