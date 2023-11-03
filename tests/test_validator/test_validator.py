@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import List, Tuple, Set, Dict, Mapping, MutableMapping, OrderedDict, ChainMap, Counter, DefaultDict, Deque, \
-    MutableSequence, Sequence, Union, Literal
+    MutableSequence, Sequence, Union, Literal, Iterator, Iterable, AsyncIterator, AsyncIterable
 
 from monkey_patch.validator import Validator
 
@@ -152,7 +152,35 @@ def test_validate_dataclasses():
     assert not validator.check_type(person, str)
 
 
+presidents = {'James A. Garfield', 'Harry S. Truman', 'Ulysses S. Grant', 'Abraham Lincoln', 'James Madison',
+             'Theodore Roosevelt', 'John Quincy Adams', 'Gerald Ford', 'Calvin Coolidge', 'Martin Van Buren',
+             'William Henry Harrison', 'Rutherford B. Hayes', 'Jimmy Carter', 'James Monroe', 'Zachary Taylor',
+             'Chester A. Arthur', 'Herbert Hoover', 'Joe Biden', 'Andrew Johnson', 'Warren G. Harding',
+             'Franklin Pierce', 'Millard Fillmore', 'John Tyler', 'Woodrow Wilson', 'George Washington',
+             'Barack Obama', 'Ronald Reagan', 'Bill Clinton', 'Thomas Jefferson', 'Dwight D. Eisenhower',
+             'Lyndon B. Johnson', 'George W. Bush', 'James Buchanan', 'John F. Kennedy', 'Richard Nixon',
+             'James K. Polk', 'Andrew Jackson', 'Benjamin Harrison', 'John Adams', 'William Howard Taft',
+             'William McKinley', 'George H. W. Bush', 'Grover Cleveland', 'Franklin D. Roosevelt', 'Donald Trump'}
+
+
+
+def test_validate_iterator():
+    validator = Validator()
+    assert validator.check_type(presidents, Iterator[str])
+    assert validator.check_type(presidents, Iterable)
+    assert validator.check_type(presidents, Iterable[str])
+    assert validator.check_type(presidents, Iterator)
+
+def test_validate_async_iterator():
+    validator = Validator()
+    assert validator.check_type(presidents, AsyncIterator[str])
+    assert validator.check_type(presidents, AsyncIterable)
+    assert validator.check_type(presidents, AsyncIterable[str])
+    assert validator.check_type(presidents, AsyncIterator)
+
 if __name__ == "__main__":
+    test_validate_async_iterator()
+    test_validate_iterator()
     test_validate_dataclasses()
     test_validate_literal_types()
     test_validate_collection_list_types()

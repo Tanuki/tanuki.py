@@ -155,7 +155,7 @@ class BufferedLogger(DatasetWorker):
         # Check Bloom Filter
         if self.bloom_filter.lookup(bloom_filter_representation):
             self.hit_count += 1
-            return False
+            return {}
 
         self.miss_count += 1
         # Add to Bloom Filter

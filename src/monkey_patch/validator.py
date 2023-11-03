@@ -1,5 +1,5 @@
 import abc
-from collections import defaultdict
+from collections import defaultdict, AsyncIterator, AsyncIterable
 import collections
 import typing
 from collections import deque
@@ -34,6 +34,12 @@ class Validator:
             cls for cls in collection_types.union(abc_collection_types)
             if hasattr(cls, 'add') and hasattr(cls, 'discard')
         }
+
+        self.iterator_like_types = {
+            cls for cls in collection_types.union(abc_collection_types)
+            if hasattr(cls, '__iter__')
+        }
+
         # Add the general Sequence to list-like types
         # if python version is 3.9 or above, use collections.abc.Sequence
         if hasattr(collections.abc, 'Sequence'):
@@ -70,6 +76,14 @@ class Validator:
     def is_base_type(self, _type: Any) -> bool:
         """Determine if a type is a base type."""
         return _type in {int, float, str, bool, None}
+
+    def is_async_iterable(self, value: Any) -> bool:
+        """Check if a value is an async iterable."""
+        return isinstance(value, collections.abc.AsyncIterable)
+
+    def is_async_iterator(self, value: Any) -> bool:
+        """Check if a value is an async iterator."""
+        return isinstance(value, collections.abc.AsyncIterator)
 
     def validate_base_type(self, value: Any, typ: Any) -> bool:
         """Validate base types."""
@@ -162,6 +176,21 @@ class Validator:
                 self.check_type(k, key_type) and self.check_type(v, value_type)
                 for k, v in value.items()
             )
+
+        # Handle async iterators and async iterables
+        # TODO: this does not actually validate async iterables, as they behave like generators
+        if origin in {AsyncIterator, AsyncIterable}:
+            return True
+
+        # Handle iterators, iterables
+        if origin in self.iterator_like_types:
+            item_type = args[0] if args else Any
+            if isinstance(item_type, typing.TypeVar):
+                item_type = Any
+            try:
+                return all(self.check_type(v, item_type) for v in value)
+            except TypeError:
+                return False
 
         # Handle pydantic models
         if self.is_pydantic_model(origin):
