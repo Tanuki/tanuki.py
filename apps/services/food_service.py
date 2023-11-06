@@ -132,6 +132,8 @@ def get_yelp_reviews(business_id_or_alias: str) -> List[str]:
     }
     params = {"autoparse": "true"}
     response = client.get(url, params=params)
+    if "review" not in response.json():
+        return []
     res_json = response.json()["review"]
     reviews = [review["description"] for review in res_json]
 
