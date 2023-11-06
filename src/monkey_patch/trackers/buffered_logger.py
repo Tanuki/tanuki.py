@@ -34,6 +34,15 @@ class BufferedLogger(DatasetWorker):
 
         super().__init__(name, level)
 
+        self.default_function_config = {"distilled_model": "",
+                                               "current_model_stats": {
+                                                   "trained_on_datapoints": 0,
+                                                   "running_faults": []},
+                                               "last_training_run": {"trained_on_datapoints": 0},
+                                               "current_training_run": {},
+                                               "teacher_models": ["gpt-4","gpt-4-32k"], # currently supported teacher models
+                                               "nr_of_training_runs": 0}
+
     def _get_log_directory(self):
 
         filename = "functions"
@@ -65,12 +74,17 @@ class BufferedLogger(DatasetWorker):
         """
 
         log_directory = self._get_log_directory()
-        if not os.path.exists(log_directory):
-            os.makedirs(log_directory)
-        # get all the files in the log directory
-        files = os.listdir(log_directory)
-        # discard all .json files
-        files = [x for x in files if ".json" not in x]
+        
+        try:
+            if not os.path.exists(log_directory):
+                os.makedirs(log_directory)
+            # get all the files in the log directory
+            files = os.listdir(log_directory)
+            # discard all .json files
+            files = [x for x in files if ".json" not in x]
+        except Exception as e:
+            return {"alignments": {}, "patches": {}}
+        
         dataset_lengths = {"alignments": {}, "patches": {}}
         for file in files:
             if ALIGN_FILE_EXTENSION not in file and PATCH_FILE_EXTENSION not in file:
@@ -94,9 +108,14 @@ class BufferedLogger(DatasetWorker):
 
 
     def log_align(self, func_hash, *args, **kws):
-        log_directory = self._get_log_directory()
-        if not os.path.exists(log_directory):
-            os.makedirs(log_directory)
+        successfully_saved, new_datapoint = False, False
+        try:
+            log_directory = self._get_log_directory()
+            # Create the folder if it doesn't exist
+            if not os.path.exists(log_directory):
+                os.makedirs(log_directory)
+        except Exception as e:
+            return successfully_saved, new_datapoint
 
         example = args[0]
 
@@ -104,19 +123,21 @@ class BufferedLogger(DatasetWorker):
         bloom_filter_representation = func_hash + '_' + str(example.__dict__) + '\n'
         # Check Bloom Filter
         if self.bloom_filter.lookup(bloom_filter_representation):
-            return False
+            return successfully_saved, new_datapoint
+        new_datapoint = True
         # add to bloom filter
         self.bloom_filter.add(bloom_filter_representation)
 
-        # Create the folder if it doesn't exist
-        if not os.path.exists(log_directory):
-            os.makedirs(log_directory)
-
         log_file_path = os.path.join(log_directory, func_hash+ALIGN_FILE_EXTENSION)
 
-        # Now, write to the file
-        with open(log_file_path, "a") as f:
-            f.write(str(example.__dict__) + "\n")
+        try:
+            # Now, write to the file
+            with open(log_file_path, "a") as f:
+                f.write(str(example.__dict__) + "\n")
+            successfully_saved = True
+        except Exception as e:
+            pass
+        return successfully_saved, new_datapoint
 
 
     def load_alignments(self):
@@ -127,7 +148,7 @@ class BufferedLogger(DatasetWorker):
 
         log_directory = self._get_log_directory()
         if not os.path.exists(log_directory):
-            os.makedirs(log_directory)
+            return align_buffers
         # get all the files in the log directory
         files = os.listdir(log_directory)
         # discard all non align files
@@ -135,12 +156,16 @@ class BufferedLogger(DatasetWorker):
         for file in files:
             func_hash = file.replace(ALIGN_FILE_EXTENSION, "")
             log_file_path = os.path.join(log_directory, file)
-            with open(log_file_path, "rb") as f:
-                try:
-                    align_buffers[func_hash] = bytearray(f.read())
-                except UnicodeDecodeError:
-                    align_buffers[func_hash] = bytearray()
-                    continue
+            try:
+                with open(log_file_path, "rb") as f:
+                    try:
+                        align_buffers[func_hash] = bytearray(f.read())
+                    except UnicodeDecodeError:
+                        align_buffers[func_hash] = bytearray()
+                        continue
+            except Exception as e:
+                align_buffers[func_hash] = bytearray()
+                continue
         return align_buffers
 
 
@@ -155,19 +180,19 @@ class BufferedLogger(DatasetWorker):
         # Check Bloom Filter
         if self.bloom_filter.lookup(bloom_filter_representation):
             self.hit_count += 1
-            return False
+            return {}
 
         self.miss_count += 1
         # Add to Bloom Filter
         self.bloom_filter.add(bloom_filter_representation)
+        
+        try:
+            log_directory = self._get_log_directory()
+            if not os.path.exists(log_directory):
+                os.makedirs(log_directory)
 
-        log_directory = self._get_log_directory()
-        path = os.path.join(log_directory, func_hash)
-        if not os.path.exists(log_directory):
-            os.makedirs(log_directory)
-
-        if os.path.exists(log_directory):
-            pass
+        except Exception as e:
+            return {}
 
         log_file_path = os.path.join(log_directory, func_hash+PATCH_FILE_EXTENSION)
 
@@ -191,23 +216,27 @@ class BufferedLogger(DatasetWorker):
             return written_datapoints
         
         if len(self.buffers[log_file_path]) >= min(self.flush_limit[log_file_path], 4096):  # Flush after reaching 4KB
+            written_datapoints = {}
             try:
-                written_datapoints = {}
                 with open(log_file_path, "a+b") as f:
                     f.write(self.buffers[log_file_path])
+                # update buffers
                 written_datapoints[func_hash] = self.buffer_rolling_size[log_file_path]
+                self.buffers[log_file_path].clear()
+                self.buffer_rolling_size[log_file_path] = 0
+                self.flush_limit[log_file_path] = 2 * self.flush_limit[log_file_path]
+                self.save_bloom_filter()
             except Exception as e:
-                print(f"Error writing to file: {e}")
-            self.buffers[log_file_path].clear()
-            self.buffer_rolling_size[log_file_path] = 0
+                pass
 
-            self.flush_limit[log_file_path] = 2 * self.flush_limit[log_file_path]
-            self.save_bloom_filter()
             return written_datapoints
         return {}
 
     def save_bloom_filter(self):
-        self.bloom_filter.save(self.log_directory)
+        try:
+            self.bloom_filter.save(self.log_directory)
+        except Exception as e:
+            pass
 
     def flush(self):
         # get log directory
@@ -215,12 +244,15 @@ class BufferedLogger(DatasetWorker):
         written_datapoints = {}
         for log_file_path, buffer in self.buffers.items():
             if len(buffer) > 0:
-                with open(log_file_path, "a+b") as f:
-                    f.write(buffer)
-                func_hash = log_file_path.replace(PATCH_FILE_EXTENSION, "").replace(log_directory, "").lstrip("/").lstrip("\\")
-                written_datapoints[func_hash] = self.buffer_rolling_size[log_file_path]
-                self.buffer_rolling_size[log_file_path] = 0
-                buffer.clear()
+                try:
+                    with open(log_file_path, "a+b") as f:
+                        f.write(buffer)
+                    func_hash = log_file_path.replace(PATCH_FILE_EXTENSION, "").replace(log_directory, "").lstrip("/").lstrip("\\")
+                    written_datapoints[func_hash] = self.buffer_rolling_size[log_file_path]
+                    self.buffer_rolling_size[log_file_path] = 0
+                    buffer.clear()
+                except Exception as e:
+                    pass
         return written_datapoints
                 
 
@@ -230,28 +262,27 @@ class BufferedLogger(DatasetWorker):
         Get the config file for the function. Uses the message and log directory
         Config file has to have to be in .json
         """
-        log_directory = self._get_log_directory()
-        if not os.path.exists(log_directory):
-            os.makedirs(log_directory)
-        
-        log_file_path = os.path.join(log_directory, func_hash)
-        config_path = f"{log_file_path}.json"
-        if not os.path.exists(config_path):
-            function_config = {"distilled_model": "",
-                                           "current_model_stats": {
-                                               "trained_on_datapoints": 0,
-                                               "running_faults": []},
-                                           "last_training_run": {"trained_on_datapoints": 0},
-                                           "current_training_run": {},
-                                           "teacher_models": ["gpt-4","gpt-4-32k"], # currently supported teacher models
-                                           "nr_of_training_runs": 0}
+        default = False
+        try: # try to get the config from the disk. If unacessible, create a new default one 
+            log_directory = self._get_log_directory()
+            if not os.path.exists(log_directory):
+                os.makedirs(log_directory)
 
-            with open(config_path, "w") as f:
-                json.dump(function_config, f)
-        else:
-            with open(config_path, "r") as f:
-                function_config = json.load(f)
-        return function_config
+            log_file_path = os.path.join(log_directory, func_hash)
+            config_path = f"{log_file_path}.json"
+            if not os.path.exists(config_path):
+                function_config = self.default_function_config
+                default = True
+
+                with open(config_path, "w") as f:
+                    json.dump(function_config, f)
+            else:
+                with open(config_path, "r") as f:
+                    function_config = json.load(f)
+        except Exception as e:
+            function_config = self.default_function_config
+            default = True
+        return function_config, default
 
     def load_datasets(self, func_hash):
         """
@@ -263,14 +294,20 @@ class BufferedLogger(DatasetWorker):
             align_dataset = ""
         else:
             # read in the dataset file
-            with open(log_file_path+ALIGN_FILE_EXTENSION, "rb") as f:
-                align_dataset = f.read().decode('utf-8')
+            try:
+                with open(log_file_path+ALIGN_FILE_EXTENSION, "rb") as f:
+                    align_dataset = f.read().decode('utf-8')
+            except Exception as e:
+                align_dataset = ""
         
         if not os.path.exists(log_file_path+PATCH_FILE_EXTENSION):
             patch_dataset = ""
         else:
-            with open(log_file_path+PATCH_FILE_EXTENSION, "rb") as f:
-                patch_dataset = f.read().decode('utf-8')
+            try:
+                with open(log_file_path+PATCH_FILE_EXTENSION, "rb") as f:
+                    patch_dataset = f.read().decode('utf-8')
+            except Exception as e:
+                patch_dataset = ""
         return align_dataset, patch_dataset
 
 
@@ -280,5 +317,8 @@ class BufferedLogger(DatasetWorker):
         """
         log_directory = self._get_log_directory()
         log_file_path = os.path.join(log_directory, func_hash)
-        with open(f"{log_file_path}.json", "w") as f:
-            json.dump(config_to_be_saved, f)
+        try:
+            with open(f"{log_file_path}.json", "w") as f:
+                json.dump(config_to_be_saved, f)
+        except Exception as e:
+            pass

@@ -1,0 +1,57 @@
+from typing import List
+from monkey_patch.function_modeler import FunctionModeler
+from monkey_patch.language_models.language_modeler import LanguageModel
+from monkey_patch.register import Register
+from monkey_patch.trackers.buffered_logger import BufferedLogger
+from monkey_patch.utils import encode_int, decode_int
+
+def dummy_func(input: str) -> List[str]:
+    """
+    Below you will find an article with stocks analysis. Bring out the stock symbols of companies who are expected to go up or have positive sentiment
+    """
+
+def initiate_test(func_modeler, func_hash):
+    # initiate the config
+    _ = func_modeler._load_function_config(func_hash)
+    for keys, values in func_modeler.function_configs.items():
+        if func_hash in keys:
+            values["distilled_model"] = "test_ft_1"
+            values["teacher_models"] = ["gpt-4","gpt-4-32k"] # model and its token limit]
+    func_modeler._update_config_file(func_hash)
+
+def test_encoding():
+    ints = []
+    characters = []
+    for i in range(37):
+        character = encode_int(i)
+        assert character not in characters
+        characters.append(character)
+        integer = decode_int(character)
+        assert integer not in ints
+        ints.append(integer)
+        assert i == integer
+
+
+def test_encode_decode_hash():
+    nr_of_training_runs = 5
+    workspace_id = 12
+    function_description = function_description = Register.load_function_description(dummy_func)
+    logger = BufferedLogger("test")
+    func_modeler = FunctionModeler(logger, workspace_id=workspace_id)
+    finetune_hash = function_description.__hash__(purpose = "finetune") + encode_int(func_modeler.workspace_id) + encode_int(nr_of_training_runs)
+    finetune = {"fine_tuned_model": f"Test_model:__{finetune_hash}:asd[]asd",}
+    config = func_modeler._construct_config_from_finetune(finetune_hash[:-1], finetune)
+    assert config["distilled_model"] == f"Test_model:__{finetune_hash}:asd[]asd"
+    assert config["current_model_stats"]["trained_on_datapoints"] == 12800
+    assert config["last_training_run"]["trained_on_datapoints"] == 12800
+    assert config["teacher_models"] == ["gpt-4","gpt-4-32k"]
+    assert config["nr_of_training_runs"] == nr_of_training_runs + 1
+
+
+if __name__ == '__main__':
+    #test_token_counter_finetunable()
+    #test_token_counter_non_finetunable_1()
+    #test_token_counter_non_finetunable_2()
+    #test_error_raise()
+    test_encoding()
+    test_encode_decode_hash()

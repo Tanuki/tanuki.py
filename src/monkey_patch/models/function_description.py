@@ -14,7 +14,12 @@ class FunctionDescription:
     output_type_hint: type
     output_class_definition: str
 
-    def __hash__(self):
-        json_encoded = json_dumps(self).encode('utf-8')
-        h = hashlib.md5(json_encoded).hexdigest()
-        return str(h)
+    def __hash__(self, purpose: str = "general"):
+        if purpose == "general": 
+            json_encoded = json_dumps(self).encode('utf-8')
+            h = hashlib.md5(json_encoded).hexdigest()
+            return str(h)
+        if purpose == "finetune": 
+            json_encoded = json_dumps(self).encode('utf-8')
+            h = hashlib.shake_256(json_encoded).hexdigest(8)
+            return str(h)

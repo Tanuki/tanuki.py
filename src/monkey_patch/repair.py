@@ -29,7 +29,7 @@ def repair_output(args: tuple,
         """
         
         # get the teacher models
-        teacher_models = function_modeler.get_models(function_description.__hash__())[1]
+        teacher_models = function_modeler.get_models(function_description)[1]
         valid = False
         retry_index = 5
         f = str(function_description.__dict__.__repr__() + "\n")
