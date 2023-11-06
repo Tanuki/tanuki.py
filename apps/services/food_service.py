@@ -1,5 +1,6 @@
 from pydantic import Field, BaseModel
 from typing import List, Annotated, Dict
+
 from monkey import Monkey
 import openai
 import requests
@@ -8,6 +9,7 @@ from bs4 import BeautifulSoup
 # from dotenv import load_dotenv
 import os
 
+from extenders.yelp_scraper import yelp_scraper
 
 # load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -59,20 +61,21 @@ def test_recommended_dishes():
     """We can test the function as normal using Pytest or Unittest"""
 
 
-def get_yelp_reviews(business_id_or_alias: str) -> List[str]:
-    url = f"https://api.yelp.com/v3/businesses/{business_id_or_alias}/reviews?offset=100&limit=20&sort_by=yelp_sort"
-    headers = {
-        "accept": "application/json",
-        "Authorization": f"Bearer {os.getenv('YELP_API_KEY')}",
-    }
-    response = requests.get(url, headers=headers)
-    data = response.json()
-    reviews = [review["text"] for review in data["reviews"]]
+def get_yelp_reviews(url: str) -> List[str]:
+    # url = f"https://api.yelp.com/v3/businesses/{business_id_or_alias}/reviews?offset=100&limit=20&sort_by=yelp_sort"
+    # headers = {
+    #     "accept": "application/json",
+    #     "Authorization": f"Bearer {os.getenv('YELP_API_KEY')}",
+    # }
+    # response = requests.get(url, headers=headers)
+    # data = response.json()
+    # reviews = [review["text"] for review in data["reviews"]]
+    # url = f"https://api.yelp.com/v3/businesses/{business_id_or_alias}/review_highlights"
+    # response = requests.get(url, headers=headers)
+    # data = response.json()
 
-    url = f"https://api.yelp.com/v3/businesses/{business_id_or_alias}/review_highlights"
-    response = requests.get(url, headers=headers)
-    data = response.json()
-    print("This is the data")
-    print(data)
+    data = yelp_scraper(url)
+    reviews = [entry["reviews"] for entry in data if "reviews" in entry.keys()]
+    reviews = [item["text"] for item in reviews[0]]
 
     return reviews
