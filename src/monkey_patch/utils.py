@@ -126,7 +126,6 @@ def get_key(args, kwargs) -> tuple:
     kwargs_tuple = _deep_tuple(kwargs)
     return args_tuple, kwargs_tuple
 
-<<<<<<< HEAD
 
 def prepare_object_for_saving(input_object):
     """
@@ -145,7 +144,6 @@ def prepare_object_for_saving(input_object):
         return attributes
 
     return input_object
-=======
 def encode_int(n):
     # Define the character set for encoding
     charset = string.ascii_lowercase + string.digits + "_"
@@ -155,4 +153,3 @@ def decode_int(s):
     # Define the character set for encoding
     charset = string.ascii_lowercase + string.digits + "_"
     return charset.index(s)
->>>>>>> master

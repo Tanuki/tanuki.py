@@ -273,7 +273,7 @@ class FunctionModeler(object):
             return False
 
 
-        training_threshold = (2 ** self.function_configs[func_hash]["nr_of_training_runs"]) * 10
+        training_threshold = (2 ** self.function_configs[func_hash]["nr_of_training_runs"]) * 200
 
         align_dataset_size = self.dataset_sizes["alignments"][func_hash] if func_hash in self.dataset_sizes["alignments"] else 0
         patch_dataset_size = self.dataset_sizes["patches"][func_hash] if func_hash in self.dataset_sizes["patches"] else 0
