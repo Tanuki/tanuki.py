@@ -3,11 +3,8 @@ import datetime
 import json
 import typing
 from typing import get_args, Literal
-<<<<<<< HEAD
-import inspect
-=======
 import string
->>>>>>> master
+
 
 def json_default(thing):
     try:
