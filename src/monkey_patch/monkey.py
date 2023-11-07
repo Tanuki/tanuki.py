@@ -203,7 +203,6 @@ class Monkey:
         @wraps(test_func)
         def wrapper(*args, **kwargs):
             function_description = Register.load_function_description(test_func)
-            f = str(function_description.__dict__.__repr__() + "\n")
             output = Monkey.language_modeler.generate(args, kwargs, Monkey.function_modeler, function_description)
             # start parsing the object, very hacky way for the time being
             try:
@@ -231,7 +230,7 @@ class Monkey:
 
             datapoint = FunctionExample(args, kwargs, output.generated_response)
             if output.suitable_for_finetuning and not output.distilled_model:
-                Monkey.function_modeler.postprocess_datapoint(function_description.__hash__(), f, datapoint, repaired = not valid)
+                Monkey.function_modeler.postprocess_datapoint(function_description.__hash__(), function_description, datapoint, repaired = not valid)
 
             instantiated = validator.instantiate(choice_parsed, function_description.output_type_hint)
 
@@ -240,3 +239,9 @@ class Monkey:
         wrapper._is_alignable = True
         Register.add_function(test_func, wrapper)
         return wrapper
+    
+    @staticmethod
+    def configure(**kwargs):
+        if "workspace_id" in kwargs:
+            Monkey.function_modeler.workspace_id = kwargs["workspace_id"]
+            
