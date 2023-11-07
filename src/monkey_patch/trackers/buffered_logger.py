@@ -107,6 +107,7 @@ class BufferedLogger(DatasetWorker):
             return False
         # add to bloom filter
         self.bloom_filter.add(bloom_filter_representation)
+        self.save_bloom_filter()
 
         # Create the folder if it doesn't exist
         if not os.path.exists(log_directory):
