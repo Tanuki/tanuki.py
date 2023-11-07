@@ -1,14 +1,14 @@
 # 🙈 Monkey Patch
 
-The easiest way to build scalable, LLM-powered applications and functions that get cheaper and faster the more you use them. 
+The easiest way to build scalable, LLM-powered functions and applications that get cheaper and faster the more you use them. 
 
 ## Contents
 
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
    * [Introduction](#introduction)
    * [Features](#features)
-   * [Installation and getting started](#installation-and-getting-started)
-   * [How it works](#how-it-works)
+   * [Installation and Getting Started](#installation-and-getting-started)
+   * [How It Works](#how-it-works)
    * [Typed Outputs](#typed-outputs)
    * [Test-Driven Alignment](#test-driven-alignment)
    * [Scaling and Finetuning](#scaling-and-finetuning)
@@ -21,11 +21,9 @@ The easiest way to build scalable, LLM-powered applications and functions that g
 
 Monkey Patch is a way to programmatically invoke an LLM in place of the function body in Python, with the same parameters and output that you would expect from a function implemented by hand. 
 
-It allows you to mix-and-match programmed and LLM powered functions in your code, using the same function signatures and input parameters. 
+These LLM-powered functions are typed, reliable, stateless, and production-ready to be dropped into your app seamlessly. Rather than endless prompt-wrangling and failures, these LLM-powered functions and applicatiosn behave like traditional functions.
 
-This enables you to drop in well-typed, stateless and production-ready LLM capabilities into your app seamlessly.
-
-The more you use the patched function, the cheaper and faster it gets through automatic model distillation.
+Lastly, the more you use the patched function, the cheaper and faster it gets through automatic model distillation.
 ```python
 @monkey.patch
 def some_function(input: TypedInput) -> TypedOutput:
@@ -49,7 +47,7 @@ def test_some_function(example_typed_input: TypedInput,
 - **Batteries included** - No remote dependencies other than OpenAI. 
 
 <!-- TOC --><a name="installation-and-getting-started"></a>
-## Installation and getting started
+## Installation and Getting Started
 <!-- TOC --><a name="installation"></a>
 ### Installation
 ```
@@ -102,7 +100,7 @@ if __name__ == "__main__":
 ```
 
 <!-- TOC --><a name="how-it-works"></a>
-## How it works
+## How It Works
 
 When you call a monkey-patched function during development, an LLM in a n-shot configuration is invoked to generate the typed response. 
 
@@ -322,4 +320,3 @@ However, distillation can be manually turned off in these cases. Additionally, i
 
 <!-- TOC --><a name="simple-todo-list-app"></a>
 ## (Simple ToDo List App)[https://github.com/monkey-patch-sdk/monkey-patch.py/tree/master/examples/todolist]
-
