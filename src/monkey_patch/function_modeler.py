@@ -6,7 +6,9 @@ import json
 import openai
 
 from monkey_patch.models.function_example import FunctionExample
-from monkey_patch.utils import approximate_token_count
+from monkey_patch.utils import approximate_token_count, prepare_object_for_saving
+import jsonpickle
+import copy
 
 EXAMPLE_ELEMENT_LIMIT = 1000
 
@@ -30,7 +32,11 @@ class FunctionModeler(object):
         """
         Save the align statements and add to the align buffer
         """
-        example = FunctionExample(args, kwargs, output)
+        # make a deepcopy of the output to avoid changing the original object
+        copy_output = copy.deepcopy(output)
+        parsed_output = prepare_object_for_saving(copy_output)
+
+        example = FunctionExample(args, kwargs, parsed_output)
 
         self.data_worker.log_align(function_hash, example)
         if function_hash in self.dataset_sizes["alignments"]:
@@ -41,7 +47,7 @@ class FunctionModeler(object):
         # update align buffer
         if function_hash not in self.align_buffer:
             self.align_buffer[function_hash] = bytearray()
-        self.align_buffer[function_hash].extend(str(example.__dict__).encode('utf-8') + b'\r\n')
+        self.align_buffer[function_hash].extend(jsonpickle.encode(example.__dict__).encode('utf-8') + b'\r\n')
 
     
     def save_datapoint(self, func_hash, example):
@@ -87,7 +93,8 @@ class FunctionModeler(object):
                 if example_element_limit < 0:
                     break
                 example = example_bytes.decode('utf-8')
-                example = ast.literal_eval(example)
+                # json load the example
+                example = jsonpickle.decode(example)
                 examples.append(example)
                 example_set.remove(example_bytes)
 
