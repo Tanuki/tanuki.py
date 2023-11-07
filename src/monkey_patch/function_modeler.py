@@ -7,7 +7,6 @@ import openai
 
 from monkey_patch.models.function_example import FunctionExample
 from monkey_patch.utils import approximate_token_count, prepare_object_for_saving
-import jsonpickle
 import copy
 
 EXAMPLE_ELEMENT_LIMIT = 1000
@@ -47,7 +46,7 @@ class FunctionModeler(object):
         # update align buffer
         if function_hash not in self.align_buffer:
             self.align_buffer[function_hash] = bytearray()
-        self.align_buffer[function_hash].extend(jsonpickle.encode(example.__dict__).encode('utf-8') + b'\r\n')
+        self.align_buffer[function_hash].extend(str(example.__dict__).encode('utf-8') + b'\r\n')
 
     
     def save_datapoint(self, func_hash, example):
@@ -94,7 +93,10 @@ class FunctionModeler(object):
                     break
                 example = example_bytes.decode('utf-8')
                 # json load the example
-                example = jsonpickle.decode(example)
+                try:
+                    example = json.loads(example)
+                except:
+                    example = ast.literal_eval(example)
                 examples.append(example)
                 example_set.remove(example_bytes)
 
@@ -218,7 +220,7 @@ class FunctionModeler(object):
 
         last_training_run_datapoints = self.function_configs[func_hash]["last_training_run"]["trained_on_datapoints"]
 
-        training_threshold = (2 ** self.function_configs[func_hash]["nr_of_training_runs"]) * 200
+        training_threshold = (2 ** self.function_configs[func_hash]["nr_of_training_runs"]) * 10
 
         align_dataset_size = self.dataset_sizes["alignments"][func_hash] if func_hash in self.dataset_sizes["alignments"] else 0
         patch_dataset_size = self.dataset_sizes["patches"][func_hash] if func_hash in self.dataset_sizes["patches"] else 0

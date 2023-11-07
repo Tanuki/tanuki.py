@@ -5,7 +5,8 @@ from appdirs import user_data_dir
 
 from monkey_patch.bloom_filter import BloomFilter, optimal_bloom_filter_params
 from monkey_patch.trackers.dataset_worker import DatasetWorker
-import jsonpickle
+import json
+
 PATCH_FILE_EXTENSION = ".patches"
 ALIGN_FILE_EXTENSION = ".alignments"
 EXPECTED_ITEMS = 10000
@@ -114,8 +115,9 @@ class BufferedLogger(DatasetWorker):
             os.makedirs(log_directory)
 
         log_file_path = os.path.join(log_directory, func_hash+ALIGN_FILE_EXTENSION)
-        # use json pickle dump to write the example to the file
-        dumpable_object = jsonpickle.encode(example.__dict__)
+
+        # Now, write to the file
+        dumpable_object = str(example.__dict__)
         with open(log_file_path, "a") as f:
             f.write(dumpable_object + "\n")
 
