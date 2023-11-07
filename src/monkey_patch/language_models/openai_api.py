@@ -1,7 +1,11 @@
 import openai
-
+import time
 # import abstract base class
 from monkey_patch.language_models.llm_api_abc import LLM_Api
+import os
+API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+import requests
 
 
 class Openai_API(LLM_Api):
@@ -9,6 +13,7 @@ class Openai_API(LLM_Api):
         # initialise the abstract base class
         super().__init__()
         
+    
     def generate(self, model, system_message, prompt, **kwargs):
         """
         The main generation function, given the args, kwargs, function_modeler, function description and model type, generate a response and check if the datapoint can be saved to the finetune dataset
@@ -17,9 +22,15 @@ class Openai_API(LLM_Api):
         top_p = kwargs.get("top_p", 1)
         frequency_penalty = kwargs.get("frequency_penalty", 0)
         presence_penalty = kwargs.get("presence_penalty", 0)
-        response = openai.ChatCompletion.create(
-                model=model,
-                messages=[
+        params = {
+            "model": model,
+            "temperature": temperature,
+            "max_tokens": 512,
+            "top_p": top_p,
+            "frequency_penalty": frequency_penalty,
+            "presence_penalty": presence_penalty,
+        }
+        messages=[
                     {
                         "role": "system",
                         "content": system_message
@@ -28,12 +39,29 @@ class Openai_API(LLM_Api):
                         "role": "user",
                         "content": prompt
                     }
-                ],
-                temperature=temperature,
-                max_tokens=512,
-                top_p=top_p,
-                frequency_penalty=frequency_penalty,
-                presence_penalty=presence_penalty
-            )
-        choice = response.choices[0].message.content.strip("'")
+                ]
+        params["messages"] = messages
+
+        counter = 0
+        choice = None
+        while counter < 5:
+            try:
+                openai_headers = {
+                    "Authorization": f"Bearer {API_KEY}",
+                    "Content-Type": "application/json",
+                }
+                response = requests.post(
+                    OPENAI_URL, headers=openai_headers, json=params, timeout=50
+                )
+                response = response.json()
+                choice = response["choices"][0]["message"]["content"].strip("'")
+                break
+            except Exception:
+                time.sleep(1 + 3 * counter)
+                counter += 1
+                continue
+        
+        if not choice:
+            raise Exception("OpenAI API failed to generate a response")
+            
         return choice
