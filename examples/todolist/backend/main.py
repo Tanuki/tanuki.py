@@ -19,7 +19,6 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 class Query(BaseModel):
     input: str
 
-
 @monkey.align
 async def define_behavior():
     """
@@ -79,3 +78,34 @@ async def create_todolist_item_route(input: Query):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+from typing import Type, Generic, TypeVar, Any
+import datetime
+
+
+def tool1(*args):
+    pass
+
+
+def tool2(*args):
+    pass
+
+@contextmanager
+def chain(*tools):
+    print(f"Executing tool chain: {' -> '.join(tool.name for tool in tools)}")
+    yield
+    # additional code to execute the tool chain can be placed here
+
+def process_feedback(user, time):
+    # Mock implementation of the function
+    return 'Feedback Analyzed, Not Summarized, Email Not Sent'
+
+user = "User A"
+time = "Time B"
+
+with chain(tool1(..., tool2(..., tool1(...)))):
+    assert process_feedback(user, time) == 'Feedback Analyzed, Not Summarized, Email Not Sent'
+
+from typing import Type, Generic, TypeVar, Any
+import datetime
+

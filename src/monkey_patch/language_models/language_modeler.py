@@ -128,7 +128,6 @@ class LanguageModel(object):
         else:
             return None
 
-
     def generate_repair_prompt(self, args, kwargs, f, failed_outputs_list, examples):
         """
         Generate a repair prompt given the args, kwargs, function description, failed outputs list and examples
