@@ -1,14 +1,14 @@
 # 🙈 Monkey Patch
 
-The easiest way to build scalable, LLM-powered applications and functions that get cheaper and faster the more you use them. 
+The easiest way to build scalable, LLM-powered functions and applications that get cheaper and faster the more you use them. 
 
 ## Contents
 
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
    * [Introduction](#introduction)
    * [Features](#features)
-   * [Installation and getting started](#installation-and-getting-started)
-   * [How it works](#how-it-works)
+   * [Installation and Getting Started](#installation-and-getting-started)
+   * [How It Works](#how-it-works)
    * [Typed Outputs](#typed-outputs)
    * [Test-Driven Alignment](#test-driven-alignment)
    * [Scaling and Finetuning](#scaling-and-finetuning)
@@ -26,6 +26,7 @@ It allows you to mix-and-match programmed and LLM-powered functions in your code
 Lastly, the more you call the function, the faster and cheaper it gets (3-10x). With more use, Monkey Patch leverages distillation to fine-tune smaller and smaller models for your function or app. The fine-tuning, implementation, and data ops all handled in the background.
 
 The more you use the patched function, the cheaper and faster it gets through automatic model distillation.
+
 ```python
 @monkey.patch
 def some_function(input: TypedInput) -> TypedOutput:
@@ -49,7 +50,7 @@ def test_some_function(example_typed_input: TypedInput,
 - **Batteries included** - No remote dependencies other than OpenAI. 
 
 <!-- TOC --><a name="installation-and-getting-started"></a>
-## Installation and getting started
+## Installation and Getting Started
 <!-- TOC --><a name="installation"></a>
 ### Installation
 ```
