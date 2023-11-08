@@ -76,7 +76,10 @@ class AssertionVisitor(ast.NodeVisitor):
             self.process_assert_helper(operand, ast.NameConstant(value=None), iter_name, op=ast.Eq())
             return
 
-        left = node.test.left
+        try:
+            left = node.test.left
+        except AttributeError:
+            raise Exception(f"Unsupported assert statement: {ast.dump(node)}. Please use equality.")
         right = node.test.comparators[0]
 
         if isinstance(node.test.ops[0], (NotEq, NotIn, IsNot)):
