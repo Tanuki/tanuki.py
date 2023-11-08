@@ -84,7 +84,7 @@ class LanguageModel(object):
             return prompt, distilled_model, suitable_for_distillation, True
         
         else:
-            aligns = function_modeler.get_alignments(function_description.__hash__(), max=5)
+            aligns = function_modeler.get_alignments(function_description.__hash__(), max=16)
             examples = "\n".join([f"Inputs:\nArgs: {align['args']}\nKwargs: {align['kwargs']}\nOutput: {align['output']}" for align in aligns])
             prompt = self.construct_prompt(f, args, kwargs, examples)
             examples_token_count = approximate_token_count(examples)
