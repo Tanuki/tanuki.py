@@ -5,6 +5,7 @@ from appdirs import user_data_dir
 
 from monkey_patch.bloom_filter import BloomFilter, optimal_bloom_filter_params
 from monkey_patch.trackers.dataset_worker import DatasetWorker
+import json
 
 PATCH_FILE_EXTENSION = ".patches"
 ALIGN_FILE_EXTENSION = ".alignments"
@@ -127,13 +128,15 @@ class BufferedLogger(DatasetWorker):
         new_datapoint = True
         # add to bloom filter
         self.bloom_filter.add(bloom_filter_representation)
+        self.save_bloom_filter()
 
         log_file_path = os.path.join(log_directory, func_hash+ALIGN_FILE_EXTENSION)
 
         try:
             # Now, write to the file
+            dumpable_object = str(example.__dict__)
             with open(log_file_path, "a") as f:
-                f.write(str(example.__dict__) + "\n")
+                f.write(dumpable_object + "\n")
             successfully_saved = True
         except Exception as e:
             pass

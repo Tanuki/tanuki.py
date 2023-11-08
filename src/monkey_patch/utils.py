@@ -5,6 +5,7 @@ import typing
 from typing import get_args, Literal
 import string
 
+
 def json_default(thing):
     try:
         return dataclasses.asdict(thing)
@@ -122,6 +123,24 @@ def get_key(args, kwargs) -> tuple:
     kwargs_tuple = _deep_tuple(kwargs)
     return args_tuple, kwargs_tuple
 
+
+def prepare_object_for_saving(input_object):
+    """
+    Get a dictionary representation of the object
+    """
+    if hasattr(input_object, "__dict__"):
+        attributes = input_object.__dict__
+        for key, value in attributes.items():
+            attributes[key] = prepare_object_for_saving(value)
+        return attributes
+        # 
+    # check if datetime for custom logic
+    elif isinstance(input_object, datetime.datetime):
+        attrs = ['year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond', 'tzinfo']
+        attributes = {attr: getattr(input_object, attr, None) for attr in attrs}
+        return attributes
+
+    return input_object
 def encode_int(n):
     # Define the character set for encoding
     charset = string.ascii_lowercase + string.digits + "_"

@@ -5,7 +5,8 @@ import json
 
 import openai
 from monkey_patch.models.function_example import FunctionExample
-from monkey_patch.utils import approximate_token_count, encode_int, decode_int
+from monkey_patch.utils import approximate_token_count, prepare_object_for_saving, encode_int, decode_int
+import copy
 
 
 EXAMPLE_ELEMENT_LIMIT = 1000
@@ -31,7 +32,11 @@ class FunctionModeler(object):
         """
         Save the align statements and add to the align buffer
         """
-        example = FunctionExample(args, kwargs, output)
+        # make a deepcopy of the output to avoid changing the original object
+        copy_output = copy.deepcopy(output)
+        parsed_output = prepare_object_for_saving(copy_output)
+
+        example = FunctionExample(args, kwargs, parsed_output)
 
         successfully_saved, new_datapoint = self.data_worker.log_align(function_hash, example)
         if successfully_saved:
@@ -90,7 +95,11 @@ class FunctionModeler(object):
                 if example_element_limit < 0:
                     break
                 example = example_bytes.decode('utf-8')
-                example = ast.literal_eval(example)
+                # json load the example
+                try:
+                    example = json.loads(example)
+                except:
+                    example = ast.literal_eval(example)
                 examples.append(example)
                 example_set.remove(example_bytes)
 
