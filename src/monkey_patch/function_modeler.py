@@ -18,15 +18,21 @@ class FunctionModeler(object):
         self.data_worker = data_worker
         self.distillation_token_limit = 3000 # the token limit for finetuning
         self.align_buffer = {}
-        self._get_dataset_sizes()
+        self._get_datasets()
         self.workspace_id = workspace_id
     
 
-    def _get_dataset_sizes(self):
+    def _get_dataset_info(self, dataset_type, func_hash, type = "length"):
         """
-        Get the dataset sizes from the data worker
+        Get the dataset size for a function hash
         """
-        self.dataset_sizes = self.data_worker._load_dataset_sizes()
+        return self.data_worker._load_dataset(dataset_type, func_hash, return_type = type)
+
+    def _get_datasets(self):
+        """
+        Get the existing datasets from the data worker
+        """
+        self.dataset_sizes = self.data_worker._load_existing_datasets()
 
     def save_align_statements(self, function_hash, args, kwargs, output):
         """
@@ -59,6 +65,9 @@ class FunctionModeler(object):
         written_datapoints = self.data_worker.log_patch(func_hash, example)
         for func_hash, datapoints in written_datapoints.items():
             if func_hash in self.dataset_sizes["patches"]:
+                # if the dataset size is -1, it means we havent read in the dataset size yet
+                if self.dataset_sizes["patches"][func_hash] == -1:
+                    self.dataset_sizes["patches"][func_hash] = self._get_dataset_info("patches", func_hash, type = "length")
                 self.dataset_sizes["patches"][func_hash] += datapoints
             else:
                 self.dataset_sizes["patches"][func_hash] = datapoints
@@ -105,11 +114,15 @@ class FunctionModeler(object):
 
         return list(examples)[:max]
 
-    def load_align_statements(self):
+    def load_align_statements(self, function_hash):
         """
         Load all align statements
         """
-        self.align_buffer = self.data_worker.load_alignments()
+        if function_hash not in self.align_buffer:
+            dataset_size, align_dataset = self._get_dataset_info("alignments", function_hash, type = "both")
+            if align_dataset:
+                self.align_buffer[function_hash] = bytearray(align_dataset)
+            self.dataset_sizes["alignments"][function_hash] = dataset_size
 
 
     def postprocess_datapoint(self, func_hash, function_description, example, repaired=True):
@@ -278,6 +291,10 @@ class FunctionModeler(object):
         align_dataset_size = self.dataset_sizes["alignments"][func_hash] if func_hash in self.dataset_sizes["alignments"] else 0
         patch_dataset_size = self.dataset_sizes["patches"][func_hash] if func_hash in self.dataset_sizes["patches"] else 0
 
+        if patch_dataset_size == -1:
+            # if havent read in the patch dataset size, read it in
+            patch_dataset_size = self._get_dataset_info("patches", func_hash, type = "length")
+            self.dataset_sizes["patches"][func_hash] = patch_dataset_size
         return (patch_dataset_size + align_dataset_size) > training_threshold
     
     def _execute_finetuning(self, function_description, func_hash):
@@ -289,8 +306,21 @@ class FunctionModeler(object):
         """
         # get function description
         function_string = str(function_description.__dict__.__repr__() + "\n")
+        
+        # get the align dataset
+        align_dataset = self._get_dataset_info("alignments", func_hash, type = "dataset")
+        if not align_dataset:
+            align_dataset = ""
+        else:
+            align_dataset = align_dataset.decode('utf-8')
 
-        align_dataset, patch_dataset = self.data_worker.load_datasets(func_hash)
+        # get the patch dataset
+        patch_dataset = self._get_dataset_info("patches", func_hash, type = "dataset")
+        if not patch_dataset:
+            patch_dataset = ""
+        else:
+            patch_dataset = patch_dataset.decode('utf-8')
+        
         if align_dataset == "" and patch_dataset == "":
             return
         
@@ -337,6 +367,7 @@ class FunctionModeler(object):
         except Exception as e:
             return
 
+        # here can be sure that datasets were read in as that is checked in the finetune_check
         align_dataset_size = self.dataset_sizes["alignments"][func_hash] if func_hash in self.dataset_sizes["alignments"] else 0
         patch_dataset_size = self.dataset_sizes["patches"][func_hash] if func_hash in self.dataset_sizes["patches"] else 0
         total_dataset_size = align_dataset_size + patch_dataset_size

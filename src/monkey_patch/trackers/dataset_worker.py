@@ -25,6 +25,24 @@ class DatasetWorker(Logger):
         pass
 
     @abstractmethod
+    def _load_existing_datasets(self):
+        """
+        Get all existing datasets for functions
+        Output must be a dictionary with the following structure:
+        {
+            "alignments": {
+                "func_hash": -1
+            },
+            "patches": {
+                "func_hash": -1
+            }
+        }
+        Returns:
+            dict: dictionary with the structure above 
+        """
+        pass
+
+    @abstractmethod
     def log_align(self, func_hash, *args, **kws):
         """
         Log an alignment statement to the dataset defined by func_hash
@@ -116,16 +134,18 @@ class DatasetWorker(Logger):
         pass
 
     @abstractmethod
-    def load_datasets(self, func_hash):
+    def _load_dataset(self, dataset_type, func_hash, return_type):
         """
         Load the datasets for a function hash
         The datasets loaded must be a string, where different datapoints are on new lines
-        The output must be a tuple of two strings, where the first string is the alignments dataset and the second string is the patches
+        The output depends on the return type, is it either dataset, dataset_length or both
         
         Args:
+            dataset_type (str): either "alignments" or "patches"
             func_hash (str): the function hash
+            return_type (str): the return type, either "dataset", "length" or "both"
         Returns:
-            tuple: tuple of two strings, where the first string is the alignments dataset and the second string is the patches
+            tuple: tuple of the form (dataset, length) if return_type is "both", otherwise just dataset or length
         """
         pass
 
