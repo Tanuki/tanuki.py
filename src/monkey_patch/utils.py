@@ -110,7 +110,7 @@ def _deep_tuple(obj):
     :param obj:
     :return:
     """
-    if isinstance(obj, list):
+    if isinstance(obj, list) or isinstance(obj, tuple):
         return tuple(_deep_tuple(e) for e in obj)
     elif isinstance(obj, dict):
         return tuple((k, _deep_tuple(v)) for k, v in sorted(obj.items()))
