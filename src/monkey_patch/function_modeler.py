@@ -13,13 +13,14 @@ EXAMPLE_ELEMENT_LIMIT = 1000
 
 
 class FunctionModeler(object):
-    def __init__(self, data_worker, workspace_id = 0) -> None:
+    def __init__(self, data_worker, workspace_id = 0, check_for_finetunes = True) -> None:
         self.function_configs = {}
         self.data_worker = data_worker
         self.distillation_token_limit = 3000 # the token limit for finetuning
         self.align_buffer = {}
         self._get_datasets()
         self.workspace_id = workspace_id
+        self.check_for_finetunes = check_for_finetunes
     
 
     def _get_dataset_info(self, dataset_type, func_hash, type = "length"):
@@ -147,8 +148,8 @@ class FunctionModeler(object):
         """
         
         config, default = self.data_worker._load_function_config(func_hash)
-        if default:
-            finetuned, finetune_config =self._check_for_finetunes(function_description)
+        if default and self.check_for_finetunes:
+            finetuned, finetune_config = self._check_for_finetunes(function_description)
             if finetuned:
                 config = finetune_config
         self.function_configs[func_hash] = config

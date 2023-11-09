@@ -86,6 +86,14 @@ class BufferedLogger(DatasetWorker):
         try:
             with open(log_file_path, "rb") as f:
                 dataset = f.read()
+            dataset_string = repr(dataset)
+            dataset_length  = dataset_string.count("\\n") - dataset_string.count("\\\\n")
+            if return_type == "both":
+                return dataset_length, dataset
+            elif return_type == "dataset":
+                return dataset
+            elif return_type == "length":
+                return dataset_length
         except Exception as e:
             if return_type == "both":
                 return 0, None
@@ -93,14 +101,6 @@ class BufferedLogger(DatasetWorker):
                 return None
             elif return_type == "length":
                 return 0
-        dataset_string = repr(dataset)
-        dataset_length  = dataset_string.count("\\n") - dataset_string.count("\\\\n")
-        if return_type == "both":
-            return dataset_length, dataset
-        elif return_type == "dataset":
-            return dataset
-        elif return_type == "length":
-            return dataset
         
 
 
