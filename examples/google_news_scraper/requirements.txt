@@ -1,0 +1,9 @@
+apscheduler
+python-dotenv
+openai
+monkey-patch.py
+bs4
+requests-html
+selenium
+webdriver-manager
+boto3
