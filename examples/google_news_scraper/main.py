@@ -48,6 +48,7 @@ def configure_selenium_user_agent():
     options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
     return options
 
+
 def get_absolute_redirect_url_from_google_rss(url):
     """
     This function uses requests-html to get the absolute URL of a give link in a Google RSS feed.
@@ -67,6 +68,7 @@ def get_absolute_redirect_url_from_google_rss(url):
     absolute_links = list(response.html.absolute_links)
     redirected_url = absolute_links[0] if absolute_links else None
     return redirected_url
+
 
 def parse_article_with_selenium(url: str) -> str:
     """
@@ -88,6 +90,7 @@ def parse_article_with_selenium(url: str) -> str:
         return article_text
     finally:
         driver.quit()
+
 
 def scrape_google_news(search_term: str, recipient: str, max=5):
     """
@@ -126,6 +129,7 @@ def scrape_google_news(search_term: str, recipient: str, max=5):
 
     return relevant_articles
 
+
 def email_if_relevant(relevant_articles: List[ArticleSummary], search_term: str, recipient: str):
     """
     This function sends an email if relevant articles were found relating to the search term.
@@ -142,14 +146,35 @@ def email_if_relevant(relevant_articles: List[ArticleSummary], search_term: str,
 
         send_email(subject, body, recipient)
 
+
 @monkey.patch
 def analyze_article(html_content: str, subject: str) -> ArticleSummary:
     """
     Analyzes the article's HTML content and extracts information relevant to the subject.
     """
 
+
+@monkey.align
+def align_analyze_article():
+
+    html_content = "<head></head><body><p>Nvidia has made the terrible decision to buy ARM for $40b on 8th November. This promises to "\
+                   "be an extremely important decision for the industry, even though it creates a monopoly.</p></body> "
+    assert analyze_article(html_content, "nvidia") == ArticleSummary(
+        impact=10,
+        sentiment=-0.9,
+        date=datetime.date(2023, 11, 8),
+        companies_involved=["Nvidia", "ARM"],
+        people_involved=[],
+        summary="Nvidia is acquiring ARM for $40 billion, which will have a huge impact on the semiconductor industry.",
+    )
+
+
+
+
 # Example usage:
 if __name__ == '__main__':
+    align_analyze_article()
+
     recipient = 'dummy@example.com'
     search_term = 'nvidia'
     relevant_articles = scrape_google_news(search_term, recipient)
