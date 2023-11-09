@@ -44,6 +44,8 @@ class Openai_API(LLM_Api):
 
         counter = 0
         choice = None
+        # initiate response so exception logic doesnt error out when checking for error in response
+        response = {}
         while counter < 5:
             try:
                 openai_headers = {
