@@ -6,23 +6,6 @@ class DatasetWorker(Logger):
     def __init__(self, name, level=15):
         super().__init__(name, level)
 
-    @abstractmethod
-    def _load_dataset_sizes(self):
-        """
-        Get dataset sizes for all existing datasets for functions
-        Output must be a dictionary with the following structure:
-        {
-            "alignments": {
-                "func_hash": int
-            },
-            "patches": {
-                "func_hash": int
-            }
-        }
-        Returns:
-            dict: dictionary with the structure above 
-        """
-        pass
 
     @abstractmethod
     def _load_existing_datasets(self):
