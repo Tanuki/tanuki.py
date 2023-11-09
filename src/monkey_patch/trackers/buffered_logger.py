@@ -115,7 +115,7 @@ class BufferedLogger(DatasetWorker):
             # discard all .json files
             files = [x for x in files if ".json" not in x]
         except Exception as e:
-            return {}
+            return dataset_lengths
         
         for file in files:
             if ALIGN_FILE_EXTENSION not in file and PATCH_FILE_EXTENSION not in file:
