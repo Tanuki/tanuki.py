@@ -220,7 +220,13 @@ class Monkey:
             valid = validator.check_type(choice_parsed, function_description.output_type_hint)
 
             if not valid:
-                choice, choice_parsed, successful_repair = repair_output(args, kwargs, function_description, output.generated_response, validator, Monkey.function_modeler, Monkey.language_modeler)
+                choice, choice_parsed, successful_repair = repair_output(args,
+                                                                         kwargs,
+                                                                         function_description,
+                                                                         output.generated_response,
+                                                                         validator,
+                                                                         Monkey.function_modeler,
+                                                                         Monkey.language_modeler)
 
                 if not successful_repair:
                     raise TypeError(f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{output.generated_response}'")
