@@ -54,21 +54,6 @@ class DatasetWorker(Logger):
         pass
 
     @abstractmethod
-    def load_alignments(self):
-        """
-        Load all alignments from persistent storage into memory for faster access.
-        Output must be a dictionary with the following structure:
-        {
-            "func_hash": bytearray
-        }
-        where func_hash is the hash of the function and bytearray is the byte representation of the alignments for this function
-        
-        Returns:
-            dict: dictionary with the structure above
-        """
-        pass
-
-    @abstractmethod
     def log_patch(self, func_hash, example):
         """
         Save the example to the patch dataset for the function hash
