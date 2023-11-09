@@ -195,6 +195,12 @@ class AssertionVisitor(ast.NodeVisitor):
             return node.n  # Assume it's a number for simplicity
         elif isinstance(node, ast.Str):
             return node.s  # Assume it's a string for simplicity
+        elif isinstance(node, ast.List):
+            return [self.eval_expr(x) for x in node.elts]  # Assume it's a list for simplicity
+        elif isinstance(node, ast.Tuple):
+            return tuple([self.eval_expr(x) for x in node.elts])  # Assume it's a tuple for simplicity
+        elif isinstance(node, ast.Dict):
+            return {self.eval_expr(k): self.eval_expr(v) for k, v in zip(node.keys, node.values)}
         else:
             raise NotImplementedError(f"Node type {type(node).__name__} not handled yet")
 
