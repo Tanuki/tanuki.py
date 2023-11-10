@@ -7,7 +7,7 @@ from services.food_service import (
 
 
 def get_ratings(reviews: List[str]) -> Dict[str, int]:
-    # test_specific_ratings()
+    test_specific_ratings()
     rating = specific_ratings(reviews)
     return rating.model_dump()
 
