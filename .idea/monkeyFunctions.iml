@@ -5,8 +5,9 @@
       <sourceFolder url="file://$MODULE_DIR$/apps" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/venv" />
       <excludeFolder url="file://$MODULE_DIR$/venv3.11" />
+      <excludeFolder url="file://$MODULE_DIR$/.venv" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.11 (monkey-patch)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.12 (monkey-patch)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>
