@@ -14,7 +14,7 @@ router = APIRouter(
 )
 
 
-@router.get("/")
+@router.get("")
 async def analyze_reviews(url: str):
     print("Got ALIAS:", url)
     print("Fetching reviews")
