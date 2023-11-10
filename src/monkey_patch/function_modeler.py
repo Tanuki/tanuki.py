@@ -69,7 +69,8 @@ class FunctionModeler(object):
                 # if the dataset size is -1, it means we havent read in the dataset size yet
                 if self.dataset_sizes["patches"][func_hash] == -1:
                     self.dataset_sizes["patches"][func_hash] = self._get_dataset_info("patches", func_hash, type = "length")
-                self.dataset_sizes["patches"][func_hash] += datapoints
+                else:
+                    self.dataset_sizes["patches"][func_hash] += datapoints
             else:
                 self.dataset_sizes["patches"][func_hash] = datapoints
         return len(written_datapoints) > 0
