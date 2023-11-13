@@ -1,5 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()
+import sys
+sys.path.append("src")
 from monkey_patch.monkey import Monkey as monkey
 from pydantic import BaseModel
 from typing import Literal
@@ -11,7 +13,7 @@ class Persona(BaseModel):
     company : str = None
 
 @monkey.patch
-def classify_email_test(email: str) -> Literal["Real", "Fake"]:
+def classify_email(email: str) -> Literal["Real", "Fake"]:
     """
     Classify the email addresses as Fake or Real. The usual signs of an email being fake is the following:
     1) Using generic email addresses like yahoo, google, etc
@@ -21,18 +23,18 @@ def classify_email_test(email: str) -> Literal["Real", "Fake"]:
 
 @monkey.align
 def align_classify():
-    assert classify_email_test("jeffrey.sieker@gmail.com") == "Fake"
-    assert classify_email_test("jeffrey.sieker@apple.com") == "Real"
-    assert classify_email_test("jon123121@apple.com") == "Fake"
-    assert classify_email_test("jon@apple.com") == "Real"
-    assert classify_email_test("jon.lorna@apple.com") == "Real"
-    assert classify_email_test("jon.lorna@mircosoft.com") == "Fake"
-    assert classify_email_test("jon.lorna@jklstarkka.com") == "Fake"
-    assert classify_email_test("unicorn_rider123@yahoo.com") == "Fake"
+    assert classify_email("jeffrey.sieker@gmail.com") == "Fake"
+    assert classify_email("jeffrey.sieker@apple.com") == "Real"
+    assert classify_email("jon123121@apple.com") == "Fake"
+    assert classify_email("jon@apple.com") == "Real"
+    assert classify_email("jon.lorna@apple.com") == "Real"
+    assert classify_email("jon.lorna@mircosoft.com") == "Fake"
+    assert classify_email("jon.lorna@jklstarkka.com") == "Fake"
+    assert classify_email("unicorn_rider123@yahoo.com") == "Fake"
 
 
 @monkey.patch
-def extract_persona_test(email: str) -> Persona:
+def extract_persona(email: str) -> Persona:
     """
     Using the email and email handler, extract the persona from the email
     The persona must have the email of the user,
@@ -42,10 +44,10 @@ def extract_persona_test(email: str) -> Persona:
 
 @monkey.align
 def align_extract():
-    assert extract_persona_test("jeffrey.sieker@apple.com") == Persona(email="jeffrey.sieker@apple.com", name="Jeffrey Sieker", company="Apple")
-    assert extract_persona_test("jon@amazon.com") == Persona(email="jon@apple.com", name="Jon", company="Amazon")
-    assert extract_persona_test("jon.lorna@Lionmunch.com") == Persona(email="jon.lorna@apple.com", name="Jon Lorna", company="Lionmunch")
-    assert extract_persona_test("jon.lorna@gmail.com") == Persona(email="jon.lorna@gmail.com", name="Jon Lorna")
+    assert extract_persona("jeffrey.sieker@apple.com") == Persona(email="jeffrey.sieker@apple.com", name="Jeffrey Sieker", company="Apple")
+    assert extract_persona("jon@amazon.com") == Persona(email="jon@apple.com", name="Jon", company="Amazon")
+    assert extract_persona("jon.lorna@Lionmunch.com") == Persona(email="jon.lorna@apple.com", name="Jon Lorna", company="Lionmunch")
+    assert extract_persona("jon.lorna@gmail.com") == Persona(email="jon.lorna@gmail.com", name="Jon Lorna")
 
 def main(data_path, save_path):
     """
@@ -71,15 +73,16 @@ def main(data_path, save_path):
     personas = []
     # classify and extract
     for email in emails:
-        output = classify_email_test(email)
+        output = classify_email(email)
         print(f"Checked {email} and classified as {output}")
         if output == "Real":
-            personas.append(extract_persona_test(email))
+            personas.append(extract_persona(email))
     # save to excel
     import pandas as pd
     df = pd.DataFrame([persona.dict() for persona in personas])
     df.to_excel(save_path)
+
 if __name__ == '__main__':
-    data_path = r"data\test_emails.txt"
-    save_path = r"data\personas.xlsx"
+    data_path = r"examples\email_cleaner\data\test_emails.txt"
+    save_path = r"examples\email_cleaner\data\personas.xlsx"
     main(data_path, save_path)
