@@ -19,11 +19,11 @@ The easiest way to build scalable, LLM-powered functions and applications that g
 <!-- TOC --><a name="introduction"></a>
 ## Introduction 
 
-MonkeyPatch is a way to programmatically invoke an LLM in place of the function body in Python, with the same parameters and output that you would expect from a function implemented by hand. 
+MonkeyPatch is a way to easilly call an LLM in place of the function body in Python, with the same parameters and output that you would expect from a function implemented by hand. 
 
-These LLM-powered functions are typed, reliable, stateless, and production-ready to be dropped into your app seamlessly. Rather than endless prompt-wrangling and failures, these LLM-powered functions and applicatiosn behave like traditional functions.
+These LLM-powered functions are typed, reliable, stateless, and production-ready to be dropped into your app seamlessly. Rather than endless prompt-wrangling and nasty surprises, these LLM-powered functions and applicatiosn behave like traditional functions with proper error handling.
 
-Lastly, the more you use the patched function, the cheaper and faster it gets through automatic model distillation.
+Lastly, the more you use MonkeyPatch functions, the cheaper and faster they gets (up to 9-10x!) through automatic model distillation.
 ```python
 @monkey.patch
 def some_function(input: TypedInput) -> TypedOutput:
