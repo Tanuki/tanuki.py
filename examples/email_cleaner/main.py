@@ -1,7 +1,5 @@
 from dotenv import load_dotenv
 load_dotenv()
-import sys
-sys.path.append("src")
 from monkey_patch.monkey import Monkey as monkey
 from pydantic import BaseModel
 from typing import Literal
