@@ -1,7 +1,5 @@
 from dotenv import load_dotenv
 load_dotenv()
-import sys
-sys.path.append("src")
 from monkey_patch.monkey import Monkey as monkey
 from pydantic import BaseModel
 from typing import Literal
@@ -14,7 +12,7 @@ class Response(BaseModel):
     requires_ticket: bool 
     response: str 
 
-class Support_Ticket(BaseModel):
+class SupportTicket(BaseModel):
     """
     Support ticket object, where the tweet_text is the text of the tweet
     """
@@ -40,24 +38,59 @@ def align_respond():
     input_tweet_4 = "Jillian Murphy: Just bought the new goodybox and so far I'm loving it!"
     assert classify_and_respond(input_tweet_4) == Response(requires_ticket=False, response="Hi, thanks for reaching out. We are happy to hear that you are enjoying the product")
 
+@monkey.patch
+def create_support_ticket(tweet_text: str) -> SupportTicket:
+    """
+    Using the tweet text create a support ticket for to be saved to the internal database
+    """
+
+@monkey.align
+def align_supportticket():
+    input_tweet_1 = "Laia Johnson: I really like the new shovel but the handle broke after 2 days of use. Can I get a replacement?"
+    assert create_support_ticket(input_tweet_1) == SupportTicket(name = "Laia Johnson", issue="Needs a replacement product because the handle broke", urgency = "high")
+    input_tweet_2 = "Thomas Bell: @Amazonsupport. I have a question about ordering, do you deliver to Finland?"
+    assert create_support_ticket(input_tweet_2) == SupportTicket(name="Thomas Bell", issue="Answer whether we deliver to Finland", urgency="low")
+    input_tweet_3 = "Jillian Murphy: Just bought the new goodybox and so far I'm loving it! The cream package was slightly damaged however, would need that to be replaced"
+    assert classify_and_respond(input_tweet_3) == SupportTicket(name="Jillian Murphy", issue="Needs a new cream as package was slightly damaged", urgency="medium")
 
 def main():
     """
-    Run through the workflow of the email cleaner
-    First get data from the data_path
-    Then call aligns for both MP functions
-    Then classify emails and if real, extract personas
-    Finally save personas to a excel file
-
-    Args:
-        data_path (str): the path to the data
-        save_path (str): the path to save the personas to
+    Run through the workflow of twitter support bot.
+    Example usecase uses 3 tweets, where first two require a support ticket and final one does not 
     """
+    # start with calling aligns
     align_respond()
-    input_tweet = "Jack Bell: WTF why did my order not arrive? I ordered it 2 weeks ago. Horrible service"
-    response = classify_and_respond(input_tweet)
-    print(response)
+    align_supportticket()
+
+    input_tweet_1 = "Jack Bell: Bro @Argos why did my order not arrive? I ordered it 2 weeks ago. Horrible service"
+    response = classify_and_respond(input_tweet_1)
+    # requires_ticket=True 
+    # response="Hi Jack, we're really sorry to hear about this. We'll look into it right away and get back to you as soon as possible. Could you please provide us with your order number?"
+    
     if response.requires_ticket:
-        print("The tweet was a direct issue, the support team will get back to you")
+        ticket = create_support_ticket(input_tweet_1)
+        # name='Jack Bell' 
+        # issue='Order did not arrive' 
+        # urgency='high'
+    
+    input_tweet_2 = "Casey Montgomery: @Argos The delivery time was 3 weeks but was promised 1. Not a fan. "
+    response = classify_and_respond(input_tweet_2)
+    # requires_ticket=True 
+    # response='Hi, we are sorry to hear about the delay. We will look into this issue and get back to you as soon as possible. Can you provide us with your order number?
+    if response.requires_ticket:
+        ticket = create_support_ticket(input_tweet_2)
+        # name='Casey Montgomery' 
+        # issue='Complaint about delivery time' 
+        # urgency='medium'
+    
+    input_tweet_3 = "Jacks Parrow: @Argos The new logo looks quite ugly, wonder why they changed it"
+    response = classify_and_respond(input_tweet_3)
+    # requires_ticket=False 
+    # response='Hi, we are sorry to hear that. We will take this into consideration and let the product team know of the feedback'
+
+    if response.requires_ticket:
+        ticket = create_support_ticket(input_tweet_3)
+        # No ticket
+
 if __name__ == '__main__':
     main()

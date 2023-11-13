@@ -1,8 +1,8 @@
-# Email cleaner
+# Twitter Support bot
 
-This example first classifies email addresses as real or fake, extracts the name and company from the email address and saves them as a excel file. The data folder has the data and is where the excel will be written
+This example takes in a tweet to a company's support account and first creates an empathetic response to the tweet and classifies the tweet as if it requires further action from the company's support team. If the tweet does require further action, then a support ticket is created that can be saved to the company's internal database for further action.
 
-Moneypatch is used in this example to first classify the emails and then extract information in a easily parsable way
+Moneypatch is used in this example to create the response, classify the tweet and create the support ticket if needed
 
 ## Configuration
 
