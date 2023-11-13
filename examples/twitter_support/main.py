@@ -14,7 +14,9 @@ class Response(BaseModel):
 
 class SupportTicket(BaseModel):
     """
-    Support ticket object, where the tweet_text is the text of the tweet
+    Support ticket object, where the name attribute is customers name,
+    issue is a brief description of the issue customer had
+    urgency conveys how urgently the team should respond to the issue
     """
     name: str
     issue: str
@@ -23,7 +25,7 @@ class SupportTicket(BaseModel):
 @monkey.patch
 def classify_and_respond(tweet_text: str) -> Response:
     """
-    Respont to the customer support tweet text empathetically and nicely. 
+    Respond to the customer support tweet text empathetically and nicely. 
     Convey that you care about the issue and if the problem was a direct issue that the support team should fix or a question, the team will respond to it. 
     """
 
@@ -41,7 +43,7 @@ def align_respond():
 @monkey.patch
 def create_support_ticket(tweet_text: str) -> SupportTicket:
     """
-    Using the tweet text create a support ticket for to be saved to the internal database
+    Using the tweet text create a support ticket for saving to the internal database
     """
 
 @monkey.align
