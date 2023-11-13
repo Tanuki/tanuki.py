@@ -1,4 +1,4 @@
-# 🙈 Monkey Patch
+# 🙈 MonkeyPatch
 
 The easiest way to build scalable, LLM-powered functions and applications that get cheaper and faster the more you use them. 
 
@@ -19,7 +19,7 @@ The easiest way to build scalable, LLM-powered functions and applications that g
 <!-- TOC --><a name="introduction"></a>
 ## Introduction 
 
-Monkey Patch is a way to programmatically invoke an LLM in place of the function body in Python, with the same parameters and output that you would expect from a function implemented by hand. 
+MonkeyPatch is a way to programmatically invoke an LLM in place of the function body in Python, with the same parameters and output that you would expect from a function implemented by hand. 
 
 These LLM-powered functions are typed, reliable, stateless, and production-ready to be dropped into your app seamlessly. Rather than endless prompt-wrangling and failures, these LLM-powered functions and applicatiosn behave like traditional functions.
 
@@ -172,7 +172,7 @@ if __name__ == "__main__":
     print(score_sentiment("Apples might be red")) # None
 ```
 
-To see more examples using Monkey Patch for different use cases (including how to integrate with FastAPI), have a look at [examples](https://github.com/monkey-patch-sdk/monkey-patch.py/tree/master/examples).
+To see more examples using MonkeyPatch for different use cases (including how to integrate with FastAPI), have a look at [examples](https://github.com/monkey-patch-sdk/monkey-patch.py/tree/master/examples).
 
 
 <!-- TOC --><a name="test-driven-alignment"></a>
@@ -195,11 +195,11 @@ def align_score_sentiment():
     assert score_sentiment("I like you") == 7
 ```
 
-By writing a test that encapsulates the expected behaviour of the monkey patched function, you declare the contract that the function must fulfill. This enables you to:
+By writing a test that encapsulates the expected behaviour of the monkeypatched function, you declare the contract that the function must fulfill. This enables you to:
 
 1. **Verify Expectations:** Confirm that the function adheres to the desired output. 
 2. **Capture Behavioural Nuances:** Make sure that the LLM respects the edge cases and nuances stipulated by your test.
-3. **Develop Iteratively:** Refine and update the behavior of the monkey patched function by declaring the desired behaviour as tests.
+3. **Develop Iteratively:** Refine and update the behavior of the monkeypatched function by declaring the desired behaviour as tests.
 
 Unlike traditional TDD, where the objective is to write code that passes the test, TDA flips the script: **tests do not fail**. Their existence and the form they take are sufficient for LLMs to align themselves with the expected behavior.
 
@@ -217,11 +217,11 @@ def test_score_sentiment():
 <!-- TOC --><a name="scaling-and-finetuning"></a>
 ## Scaling and Finetuning
 
-An advantage of using Monkey-Patch in your workflow is the cost and latency benefits that will be provided as the number of datapoints increases. 
+An advantage of using MonkeyPatch in your workflow is the cost and latency benefits that will be provided as the number of datapoints increases. 
 
 Successful executions of your patched function suitable for finetuning will be persisted to a training dataset, which will be used to distil smaller models for each patched function. This results in significant decreases in cost and latency while keeping performance on the same level. 
 
-Training smaller function-specific models and deploying them is handled by the Monkey-Patch library, so the user will get the benefits without any additional MLOps or DataOps effort. Currently only OpenAI GPT style models are supported (Teacher - GPT4, Student GPT-3.5) 
+Training smaller function-specific models and deploying them is handled by the MonkeyPatch library, so the user will get the benefits without any additional MLOps or DataOps effort. Currently only OpenAI GPT style models are supported (Teacher - GPT4, Student GPT-3.5) 
 
 
 <!-- TOC --><a name="frequently-asked-questions"></a>
@@ -231,17 +231,17 @@ Training smaller function-specific models and deploying them is handled by the M
 <!-- TOC --><a name="intro"></a>
 ### Intro
 <!-- TOC --><a name="what-is-monkey-patch-in-plain-words"></a>
-#### What is Monkey-patch in plain words?
-Monkey-patch is a simple and seamless way to create LLM augmented functions in python, which ensure the outputs of the LLMs follow a specific structure. Moreover, the more you call a patched function, the cheaper and faster the execution gets.
+#### What is MonkeyPatch in plain words?
+MonkeyPatch is a simple and seamless way to create LLM augmented functions in python, which ensure the outputs of the LLMs follow a specific structure. Moreover, the more you call a patched function, the cheaper and faster the execution gets.
 
 <!-- TOC --><a name="how-does-this-compare-to-other-frameworks-like-langchain"></a>
-#### How does this compare to other frameworks like Langchain?
-- **Langchain**: Monkey-Patch has a narrower scope than Langchain. Our mission is to ensure predictable and consistent LLM execution, with automatic reductions in cost and latency through finetuning.
-- **Magentic**: Monkey-Patch offers two main benefits compared to Magentic, namely; lower cost and latency through automatic distillation, and more predictable behaviour through test-driven alignment. Currently, there are two cases where you should use Magentic, namely: where you need support for tools (functions) - a feature that is on our roadmap, and where you need support for asynchronous functions.
+#### How does this compare to other frameworks like LangChain?
+- **Langchain**: MonkeyPatch has a narrower scope than Langchain. Our mission is to ensure predictable and consistent LLM execution, with automatic reductions in cost and latency through finetuning.
+- **Magentic**: MonkeyPatch offers two main benefits compared to Magentic, namely; lower cost and latency through automatic distillation, and more predictable behaviour through test-driven alignment. Currently, there are two cases where you should use Magentic, namely: where you need support for tools (functions) - a feature that is on our roadmap, and where you need support for asynchronous functions.
 
 <!-- TOC --><a name="what-are-some-sample-use-cases"></a>
 #### What are some sample use-cases?
-We've created a few examples to show how to use Monkey-Patch for different problems. You can find them [here](https://github.com/monkey-patch-sdk/monkey-patch.py/tree/master/examples).
+We've created a few examples to show how to use MonkeyPatch for different problems. You can find them [here](https://github.com/monkey-patch-sdk/monkey-patch.py/tree/master/examples).
 A few ideas are as follows:
 - Adding an importance classifier to customer requests
 - Creating a offensive-language classification feature
@@ -314,13 +314,13 @@ However, distillation can be manually turned off in these cases. Additionally, i
 #### What is this not suitable for?
 - Time-series data
 - Tasks that requires a lot of context to completed correctly
-- For tasks that output natural language, you will get less value from monkey-patch and may want to consider the OpenAI API directly.
+- For tasks that output natural language, you will get less value from MonkeyPatch and may want to consider the OpenAI API directly.
 
 ---
 
 <!-- TOC --><a name="simple-todo-list-app"></a>
 ## Simple ToDo List App
-Here is a complete example of how to use Monkey-Patch to create a ToDo list app with FastAPI.
+Here is a complete example of how to use MonkeyPatch to create a ToDo list app with FastAPI.
 
 ```
 from datetime import datetime
