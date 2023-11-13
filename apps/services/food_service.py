@@ -33,6 +33,7 @@ class RatingModel(BaseModel):
     service: RatingItem = Field(..., description="The service-only rating")
     atmosphere: RatingItem = Field(..., description="The atmosphere-only rating")
     location: RatingItem = Field(..., description="The location-only rating")
+    best_dishes: List[str] = Field(..., description="The best dishes based on reviews")
 
 
 @Monkey.patch
@@ -51,6 +52,8 @@ def specific_ratings(reviews: List[str]) -> RatingModel:
     - location
         rating: 1-10
         confidence: 1-10
+    - best_dishes
+        list of strings
     """
 
 
@@ -62,12 +65,14 @@ def test_specific_ratings():
         service=RatingItem(rating=5, confidence=1),
         atmosphere=RatingItem(rating=5, confidence=1),
         location=RatingItem(rating=5, confidence=1),
+        best_dishes=[],
     )
     assert specific_ratings(["The service was great"]) == RatingModel(
         food=RatingItem(rating=5, confidence=1),
         service=RatingItem(rating=10, confidence=10),
         atmosphere=RatingItem(rating=5, confidence=1),
         location=RatingItem(rating=5, confidence=1),
+        best_dishes=[],
     )
     assert specific_ratings(
         [
@@ -78,6 +83,7 @@ def test_specific_ratings():
         service=RatingItem(rating=1, confidence=10),
         atmosphere=RatingItem(rating=5, confidence=10),
         location=RatingItem(rating=10, confidence=10),
+        best_dishes=[],
     )
     assert specific_ratings(
         [
@@ -88,6 +94,7 @@ def test_specific_ratings():
         service=RatingItem(rating=4, confidence=10),
         atmosphere=RatingItem(rating=7, confidence=10),
         location=RatingItem(rating=9, confidence=10),
+        best_dishes=[],
     )
     assert specific_ratings(
         [
@@ -99,7 +106,49 @@ def test_specific_ratings():
         service=RatingItem(rating=5, confidence=1),
         atmosphere=RatingItem(rating=5, confidence=1),
         location=RatingItem(rating=5, confidence=1),
+        best_dishes=[],
     )
+
+    assert specific_ratings(
+        [
+            "The lobster was YUMMY, but we didn't like the steak",
+
+        ]
+    ) == RatingModel(
+        food=RatingItem(rating=5, confidence=5),
+        service=RatingItem(rating=5, confidence=1),
+        atmosphere=RatingItem(rating=5, confidence=1),
+        location=RatingItem(rating=5, confidence=1),
+        best_dishes=['Lobster'],
+    )
+    assert specific_ratings(
+        [
+            "The food is overall amazing! Must haves: Steak, Spaghetti Bloufori, Norma alla Forma. The burger was fine..",
+
+        ]
+    ) == RatingModel(
+        food=RatingItem(rating=9, confidence=10),
+        service=RatingItem(rating=5, confidence=1),
+        atmosphere=RatingItem(rating=5, confidence=1),
+        location=RatingItem(rating=5, confidence=1),
+        best_dishes=['Steak, Spagetthi Bloufori, Norma alla Forma'],
+    )
+    assert specific_ratings(
+        [
+            "I loved the Fries",
+            "I hated the fish",
+            "Yummy poridge",
+            "Best burger ever",
+            "Rice was too salty",
+        ]
+    ) == RatingModel(
+        food=RatingItem(rating=9, confidence=5),
+        service=RatingItem(rating=5, confidence=1),
+        atmosphere=RatingItem(rating=5, confidence=1),
+        location=RatingItem(rating=5, confidence=1),
+        best_dishes=['Fries', 'Porridge', 'Burger'],
+    )
+
 
 
 @Monkey.patch
