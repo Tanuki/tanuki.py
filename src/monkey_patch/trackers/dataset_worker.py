@@ -6,17 +6,18 @@ class DatasetWorker(Logger):
     def __init__(self, name, level=15):
         super().__init__(name, level)
 
+
     @abstractmethod
-    def _load_dataset_sizes(self):
+    def _load_existing_datasets(self):
         """
-        Get dataset sizes for all existing datasets for functions
+        Get all existing datasets for functions
         Output must be a dictionary with the following structure:
         {
             "alignments": {
-                "func_hash": int
+                "func_hash": -1
             },
             "patches": {
-                "func_hash": int
+                "func_hash": -1
             }
         }
         Returns:
@@ -32,21 +33,6 @@ class DatasetWorker(Logger):
             func_hash (str): the function hash
             *args: the args for the datapoint, where args[0] is a FunctionExample(args, kwargs, output) object
             **kws: the kwargs for the datapoint
-        """
-        pass
-
-    @abstractmethod
-    def load_alignments(self):
-        """
-        Load all alignments from persistent storage into memory for faster access.
-        Output must be a dictionary with the following structure:
-        {
-            "func_hash": bytearray
-        }
-        where func_hash is the hash of the function and bytearray is the byte representation of the alignments for this function
-        
-        Returns:
-            dict: dictionary with the structure above
         """
         pass
 
@@ -116,16 +102,18 @@ class DatasetWorker(Logger):
         pass
 
     @abstractmethod
-    def load_datasets(self, func_hash):
+    def _load_dataset(self, dataset_type, func_hash, return_type):
         """
         Load the datasets for a function hash
         The datasets loaded must be a string, where different datapoints are on new lines
-        The output must be a tuple of two strings, where the first string is the alignments dataset and the second string is the patches
+        The output depends on the return type, is it either dataset, dataset_length or both
         
         Args:
+            dataset_type (str): either "alignments" or "patches"
             func_hash (str): the function hash
+            return_type (str): the return type, either "dataset", "length" or "both"
         Returns:
-            tuple: tuple of two strings, where the first string is the alignments dataset and the second string is the patches
+            tuple: tuple of the form (dataset, length) if return_type is "both", otherwise just dataset or length
         """
         pass
 

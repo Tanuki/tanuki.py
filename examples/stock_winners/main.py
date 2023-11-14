@@ -3,20 +3,17 @@ from typing import List
 
 import openai
 from dotenv import load_dotenv
-
+load_dotenv()
 from monkey_patch.monkey import Monkey as monkey
 
-load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
-@Monkey.patch
+@monkey.patch
 def extract_stock_winners_good(input: str) -> List[str]:
     """
     Below you will find an article with stocks analysis. Bring out the stock symbols of companies who are expected to go up or have positive sentiment
     """
 
 
-@Monkey.align
+@monkey.align
 def test_stock():
     """We can test the function as normal using Pytest or Unittest"""
 

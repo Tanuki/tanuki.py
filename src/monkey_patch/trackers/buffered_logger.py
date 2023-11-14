@@ -5,6 +5,7 @@ from appdirs import user_data_dir
 
 from monkey_patch.bloom_filter import BloomFilter, optimal_bloom_filter_params
 from monkey_patch.trackers.dataset_worker import DatasetWorker
+import json
 
 PATCH_FILE_EXTENSION = ".patches"
 ALIGN_FILE_EXTENSION = ".alignments"
@@ -67,14 +68,45 @@ class BufferedLogger(DatasetWorker):
         # 4. Write to where the code is being executed from.
         return os.path.join(os.getcwd(), filename)
 
-    def _load_dataset_sizes(self):
+    def _load_dataset(self, dataset_type, func_hash, return_type = "both"):
         """
-        Get all dataset sizes for existing datasets
-    
+        Get the size of the dataset for a function hash
         """
-
         log_directory = self._get_log_directory()
+        dataset_type_map = {"alignments": ALIGN_FILE_EXTENSION, "patches": PATCH_FILE_EXTENSION}
+
+        log_file_path = os.path.join(log_directory, func_hash+dataset_type_map[dataset_type])
+        if not os.path.exists(log_file_path):
+            if return_type == "both":
+                return 0, None
+            elif return_type == "dataset":
+                return None
+            elif return_type == "length":
+                return 0
+        try:
+            with open(log_file_path, "rb") as f:
+                dataset = f.read()
+            dataset_string = repr(dataset)
+            dataset_length  = dataset_string.count("\\n") - dataset_string.count("\\\\n")
+            if return_type == "both":
+                return dataset_length, dataset
+            elif return_type == "dataset":
+                return dataset
+            elif return_type == "length":
+                return dataset_length
+        except Exception as e:
+            if return_type == "both":
+                return 0, None
+            elif return_type == "dataset":
+                return None
+            elif return_type == "length":
+                return 0
         
+
+
+    def _load_existing_datasets(self):
+        log_directory = self._get_log_directory()
+        dataset_lengths = {"alignments": {}, "patches": {}}
         try:
             if not os.path.exists(log_directory):
                 os.makedirs(log_directory)
@@ -83,9 +115,8 @@ class BufferedLogger(DatasetWorker):
             # discard all .json files
             files = [x for x in files if ".json" not in x]
         except Exception as e:
-            return {"alignments": {}, "patches": {}}
+            return dataset_lengths
         
-        dataset_lengths = {"alignments": {}, "patches": {}}
         for file in files:
             if ALIGN_FILE_EXTENSION not in file and PATCH_FILE_EXTENSION not in file:
                 continue
@@ -94,16 +125,7 @@ class BufferedLogger(DatasetWorker):
             else:
                 dataset_type = "patches"
             func_hash = file.replace(ALIGN_FILE_EXTENSION, "").replace(PATCH_FILE_EXTENSION, "")
-            with open(os.path.join(log_directory, file), "rb") as f:
-                try:
-                    dataset = f.read().decode('utf-8')
-                except UnicodeDecodeError:
-                    dataset_lengths[dataset_type][func_hash] = 0
-                    continue
-
-            dataset = repr(dataset)
-            dataset_lengths[dataset_type][func_hash] = dataset.count("\\n") - dataset.count("\\\\n")
-
+            dataset_lengths[dataset_type][func_hash] =  -1
         return dataset_lengths
 
 
@@ -127,46 +149,20 @@ class BufferedLogger(DatasetWorker):
         new_datapoint = True
         # add to bloom filter
         self.bloom_filter.add(bloom_filter_representation)
+        self.save_bloom_filter()
 
         log_file_path = os.path.join(log_directory, func_hash+ALIGN_FILE_EXTENSION)
 
         try:
             # Now, write to the file
+            dumpable_object = str(example.__dict__)
             with open(log_file_path, "a") as f:
-                f.write(str(example.__dict__) + "\n")
+                f.write(dumpable_object + "\r\n")
             successfully_saved = True
         except Exception as e:
             pass
         return successfully_saved, new_datapoint
 
-
-    def load_alignments(self):
-        """
-        Load alignments from persistent storage into memory for faster access.
-        """
-        align_buffers = {}
-
-        log_directory = self._get_log_directory()
-        if not os.path.exists(log_directory):
-            return align_buffers
-        # get all the files in the log directory
-        files = os.listdir(log_directory)
-        # discard all non align files
-        files = [x for x in files if ALIGN_FILE_EXTENSION in x]
-        for file in files:
-            func_hash = file.replace(ALIGN_FILE_EXTENSION, "")
-            log_file_path = os.path.join(log_directory, file)
-            try:
-                with open(log_file_path, "rb") as f:
-                    try:
-                        align_buffers[func_hash] = bytearray(f.read())
-                    except UnicodeDecodeError:
-                        align_buffers[func_hash] = bytearray()
-                        continue
-            except Exception as e:
-                align_buffers[func_hash] = bytearray()
-                continue
-        return align_buffers
 
 
     def log_patch(self, func_hash, example):
@@ -283,33 +279,6 @@ class BufferedLogger(DatasetWorker):
             function_config = self.default_function_config
             default = True
         return function_config, default
-
-    def load_datasets(self, func_hash):
-        """
-        Load the datasets for a function hash
-        """
-        log_directory = self._get_log_directory()
-        log_file_path = os.path.join(log_directory, func_hash)
-        if not os.path.exists(log_file_path+ALIGN_FILE_EXTENSION):
-            align_dataset = ""
-        else:
-            # read in the dataset file
-            try:
-                with open(log_file_path+ALIGN_FILE_EXTENSION, "rb") as f:
-                    align_dataset = f.read().decode('utf-8')
-            except Exception as e:
-                align_dataset = ""
-        
-        if not os.path.exists(log_file_path+PATCH_FILE_EXTENSION):
-            patch_dataset = ""
-        else:
-            try:
-                with open(log_file_path+PATCH_FILE_EXTENSION, "rb") as f:
-                    patch_dataset = f.read().decode('utf-8')
-            except Exception as e:
-                patch_dataset = ""
-        return align_dataset, patch_dataset
-
 
     def _update_function_config(self, func_hash, config_to_be_saved):
         """

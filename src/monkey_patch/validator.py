@@ -8,10 +8,10 @@ import inspect
 import json
 from dataclasses import is_dataclass
 from typing import get_origin, get_args, Any, Mapping, MutableMapping, OrderedDict, Literal, Union, get_type_hints, \
-    Type, Sequence, Tuple
+    Type, Sequence, Tuple, Optional
 
 from pydantic import BaseModel, create_model
-
+import datetime
 
 class Validator:
 
@@ -141,7 +141,15 @@ class Validator:
                 return False
             item_type = args[0] if args else Any
             return all(self.check_type(v, item_type) for v in value)
-
+        
+        # Handle datetime
+        if origin == datetime.datetime:
+            # try to instantiate datetime
+            try:
+                obj = datetime.datetime(**value)
+                return True
+            except:
+                return False
         # Handle dictionaries
         if origin is dict or issubclass(origin, tuple(self.dict_like_types)):
             if not isinstance(value, (dict, Mapping)):#, MutableMapping, OrderedDict)):
@@ -168,9 +176,34 @@ class Validator:
             try:
                 #temp_model = create_model('TempModel', **value)
                 #return isinstance(temp_model, origin)
-                origin.parse_obj(value)
+                # check if value is dict
+                if not isinstance(value, dict):
+                    return False
+                # get all required init arguments for origin
+                # required arguments are the ones withouyt default values
+                required_fields = [field for field, field_type in origin.__annotations__.items() if not (typing.get_origin(field_type) is Union and type(None) in typing.get_args(field_type))]
+                # check that all required arguments are in value and do type checking
+                for arg in required_fields:
+                    # check if it is in value
+                    if arg not in value:
+                        return False
+                    # get the type of the argument
+                    arg_type = origin.__annotations__[arg]
+                    if not self.check_type(value[arg], arg_type):
+                        return False
+                # check that all arguments in value are correct type
+                # this is additional check, because the above check only checks required arguments
+                for arg, obj in value.items():
+                    if arg in required_fields:
+                        continue
+                    arg_type = origin.__annotations__[arg]
+                    if not self.check_type(value[arg], arg_type):
+                        return False
+                
+                #origin.parse_obj(value)
                 return True
-            except:
+            except Exception as e:
+                print(e)
                 return False
 
         # Handle dataclasses
@@ -346,6 +379,22 @@ class Validator:
                     except (ValueError, TypeError):
                         pass
                 raise TypeError(f"Failed to instantiate {target_type} from provided data.")
+        # special handling for datetime
+        if origin == datetime.datetime:
+            # try to instantiate datetime
+            try:
+                return datetime.datetime(**data)
+            except:
+                raise TypeError(f"Failed to instantiate {target_type} from provided data.")
+
+        # check if origin is Union, if so, instantiate the first type that works
+        if origin == Union:
+            for arg in get_args(target_type):
+                try:
+                    return self.instantiate(data, arg)
+                except:
+                    continue
+            raise TypeError(f"Failed to instantiate {target_type} from provided data.")
 
         # If the data is a dictionary and the target is a custom class that can be instantiated from a dictionary.
         if isinstance(data, dict):
@@ -360,6 +409,10 @@ class Validator:
 
                 # Special handling for Pydantic models
                 if issubclass(target_type, BaseModel):
+                    # instantiate the sub attributes
+                    for attr, attr_type in target_type.__annotations__.items():
+                        if attr in data:
+                            data[attr] = self.instantiate(data[attr], attr_type)
                     return target_type.model_validate(data)
 
                 # For general classes, attempt instantiation
@@ -379,7 +432,8 @@ class Validator:
                 return defaultdict(int, instantiated_items)
 
             # Handle set-like dict types like OrderedDict
-            elif any(issubclass(base, dict) for base in origin.__mro__):
+            # the first check needs to be done to ensure origin has the __mro__ attribute
+            elif inspect.isclass(origin)and any(issubclass(base, dict) for base in origin.__mro__):
                 key_type, value_type = get_args(target_type) if get_args(target_type) else (Any, Any)
                 instantiated_items = {self.instantiate(k, key_type): self.instantiate(v, value_type) for k, v in data.items()}
                 return origin(instantiated_items)

@@ -24,6 +24,7 @@ MonkeyPatch is a way to easily call an LLM in place of the function body in Pyth
 These LLM-powered functions are well-typed, reliable, stateless, and production-ready to be dropped into your app seamlessly. Rather than endless prompt-wrangling and nasty surprises, these LLM-powered functions and applications behave like traditional functions with proper error handling.
 
 Lastly, the more you use MonkeyPatch functions, the cheaper and faster they gets (up to 9-10x!) through automatic model distillation.
+
 ```python
 @monkey.patch
 def some_function(input: TypedInput) -> TypedOutput:
@@ -237,7 +238,8 @@ MonkeyPatch is a simple and seamless way to create LLM augmented functions in py
 <!-- TOC --><a name="how-does-this-compare-to-other-frameworks-like-langchain"></a>
 #### How does this compare to other frameworks like LangChain?
 - **Langchain**: MonkeyPatch has a narrower scope than Langchain. Our mission is to ensure predictable and consistent LLM execution, with automatic reductions in cost and latency through finetuning.
-- **Magentic**: MonkeyPatch offers two main benefits compared to Magentic, namely; lower cost and latency through automatic distillation, and more predictable behaviour through test-driven alignment. Currently, there are two cases where you should use Magentic, namely: where you need support for tools (functions) - a feature that is on our roadmap, and where you need support for asynchronous functions.
+- **Magentic** / **Marvin**: MonkeyPatch offers two main benefits compared to Magentic/Marvin, namely; lower cost and latency through automatic distillation, and more predictable behaviour through test-driven alignment. Currently, there are two cases where you should use Magentic, namely: where you need support for tools (functions) - a feature that is on our roadmap, and where you need support for asynchronous functions.
+
 
 <!-- TOC --><a name="what-are-some-sample-use-cases"></a>
 #### What are some sample use-cases?
@@ -273,13 +275,15 @@ Yes
 
 <!-- TOC --><a name="does-it-only-work-with-openai"></a>
 #### Does it only work with OpenAI?
-Currently yes but there are plans to support Anthropic and popular open-source models. If you have a specific request, either join our Discord server, or create a Github issue.
+Currently yes but there are plans to support Anthropic and popular open-source models. If you have a specific request, either join [our Discord server](https://discord.gg/kEGS5sQU), or create a Github issue.
 
 <!-- TOC --><a name="how-it-works-1"></a>
 ### How It Works
 <!-- TOC --><a name="how-does-the-llm-get-cheaper-and-faster-over-time-and-by-how-much"></a>
 #### How does the LLM get cheaper and faster over time? And by how much?
-Using the outputs of the larger (teacher) model, a smaller (student) model will be trained to emulate the teacher model behaviour while being faster and cheaper to run due to smaller size. In some cases it is possible to achieve up to 90% lower cost and 80% lower latency with a small number of executions of your patched functions.  
+In short, we use distillation of LLM models.
+
+Expanded, using the outputs of the larger (teacher) model, a smaller (student) model will be trained to emulate the teacher model behaviour while being faster and cheaper to run due to smaller size. In some cases it is possible to achieve up to 90% lower cost and 80% lower latency with a small number of executions of your patched functions.  
 <!-- TOC --><a name="how-many-calls-does-it-require-to-get-the-improvement"></a>
 #### How many calls does it require to get the improvement?
 The default minimum is 200 calls, although this can be changed by adding flags to the patch decorator.
@@ -287,7 +291,7 @@ The default minimum is 200 calls, although this can be changed by adding flags t
 #### Can I link functions together?
 Yes! It is possible to use the output of one patched function as the input to another patched function. Simply carry this out as you would do with normal python functions.
 <!-- TOC --><a name="does-fine-tuning-reduce-the-performance-of-the-llm"></a>
-#### Does fine tuning reduce the performance of the LLM?
+#### Does fine-tuning reduce the performance of the LLM?
 Not necessarily. Currently the only way to improve the LLM performance is to have better align statements. As the student model is trained on both align statements and input-output calls, it is possible for the fine tuned student model to exceed the performance of the N-shot teacher model during inference.
 
 
@@ -295,13 +299,13 @@ Not necessarily. Currently the only way to improve the LLM performance is to hav
 ### Accuracy & Reliability
 <!-- TOC --><a name="how-do-you-guarantee-consistency-in-the-output-of-patched-functions"></a>
 #### How do you guarantee consistency in the output of patched functions?
-Each output of the LLM will be programmatically instantiated into the output class ensuring the output will be of the correct type. If the LLM output is incorrect and instantiating the correct output object fails, an automatic feedback repair loop kicks in to correct the mistake.
+Each output of the LLM will be programmatically instantiated into the output class ensuring the output will be of the correct type, just like your Python functions. If the output is incorrect and instantiating the correct output object fails, an automatic feedback repair loop kicks in to correct the mistake.
 <!-- TOC --><a name="how-reliable-are-the-typed-outputs"></a>
 #### How reliable are the typed outputs?
 For simpler-medium complexity classes GPT4 with align statements has been shown to be very reliable in outputting the correct type. Additionally we have implemented a repair loop with error feedback to “fix” incorrect outputs and add the correct output to the training dataset.
 <!-- TOC --><a name="how-do-you-deal-with-hallucinations"></a>
 #### How do you deal with hallucinations?
-Hallucinations can’t be 100% removed from LLMs. However, by creating test functions decorated with `@monkey.align`, you can use normal `assert` statements to align the model to behave in the way that you expect. Additionally, you can create types with Pydantic, which act as guardrails to prevent any nasty surprises and provide correct error handling.
+Hallucinations can’t be 100% removed from LLMs at the moment, if ever. However, by creating test functions decorated with `@monkey.align`, you can use normal `assert` statements to align the model to behave in the way that you expect. Additionally, you can create types with Pydantic, which act as guardrails to prevent any nasty surprises and provide correct error handling.
 <!-- TOC --><a name="how-do-you-deal-with-bias"></a>
 #### How do you deal with bias?
 By adding more align statements that cover a wider range of inputs, you can ensure that the model is less biased.
@@ -314,84 +318,9 @@ However, distillation can be manually turned off in these cases. Additionally, i
 #### What is this not suitable for?
 - Time-series data
 - Tasks that requires a lot of context to completed correctly
-- For tasks that output natural language, you will get less value from MonkeyPatch and may want to consider the OpenAI API directly.
+- For tasks that directly output complex natural language, you will get less value from MonkeyPatch and may want to consider the OpenAI API directly.
 
 ---
 
 <!-- TOC --><a name="simple-todo-list-app"></a>
-## Simple ToDo List App
-Here is a complete example of how to use MonkeyPatch to create a ToDo list app with FastAPI.
-
-```
-from datetime import datetime
-from typing import Optional, List
-from pydantic import Field
-from fastapi import FastAPI
-from monkey_patch.monkey import Monkey as monkey
-
-app = FastAPI()
-
-@dataclass
-class TodoItem:
-    goal: str = Field(description="What task must be completed")
-    deadline: datetime = Field(description="The date the goal needs to be achieved")
-    priority: str = Field(description="Priority level of the task")
-    people_involved: List[str] = Field(description="Names of people involved")
-
-
-@monkey.patch
-def generate_todo(input: str) -> TodoItem:
-    """
-    Generate a TodoItem based on the natural language input.
-    """
-
-@monkey.align
-def align_generate_todo():
-    next_tuesday = (datetime.now() + timedelta((1 - datetime.now().weekday() + 7) % 7)).replace(hour=0, minute=0, second=0, microsecond=0)
-    next_friday = (datetime.now() + timedelta((4 - datetime.now().weekday() + 7) % 7)).replace(hour=0, minute=0, second=0, microsecond=0)
-
-    # First example
-    assert generate_todo("Prepare the presentation for John by next Tuesday, high priority") == TodoItem(
-        goal="Prepare the presentation",
-        deadline=next_tuesday,
-        priority="high",
-        people_involved=["John"]
-    )
-
-    # Second example: Different priority and deadline
-    assert generate_todo("Complete the report by Friday, medium priority") == TodoItem(
-        goal="Complete the report",
-        deadline=next_friday,
-        priority="medium",
-        people_involved=[]
-    )
-
-    # Third example: Multiple people involved
-    assert generate_todo("Organize the team meeting with Emily and Sarah for next Tuesday") == TodoItem(
-        goal="Organize the team meeting",
-        deadline=next_tuesday,
-        priority="",
-        people_involved=["Emily", "Sarah"]
-    )
-
-    # Fourth example: No deadline
-    assert generate_todo("Buy groceries, low priority") == TodoItem(
-        goal="Buy groceries",
-        deadline=None,
-        priority="low",
-        people_involved=[]
-    )
-
-    # Fifth example: No priority or people involved
-    assert generate_todo("Read the new book") == TodoItem(
-        goal="Read the new book",
-        deadline=None,
-        priority="",
-        people_involved=[]
-    )
-
-@app.post("/todo/", response_model=TodoItem)
-async def create_todo(input: str):
-    return generate_todo(input)
-
-```
+## [Simple ToDo List App](https://github.com/monkey-patch-sdk/monkey-patch.py/tree/master/examples/todolist)
