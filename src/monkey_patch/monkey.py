@@ -85,7 +85,7 @@ class Monkey:
         Post anonymously to the usage server so we know what configs are commonly used in the project.
         :return:
         """
-        requests.post('https://idhhnusnhkkjkpwkm1fr.monkeypatch.ai/telemetry', data=kwargs)
+        requests.post('https://idhhnusnhkkjkpwkm1fr.monkeypatch.ai/telemetry', data=json.dumps(kwargs))
 
     @staticmethod
     def align(test_func):
