@@ -220,9 +220,13 @@ def test_score_sentiment():
 
 An advantage of using MonkeyPatch in your workflow is the cost and latency benefits that will be provided as the number of datapoints increases. 
 
-Successful executions of your patched function suitable for finetuning will be persisted to a training dataset, which will be used to distil smaller models for each patched function. This results in significant decreases in cost and latency while keeping performance on the same level. 
+Successful executions of your patched function suitable for finetuning will be persisted to a training dataset, which will be used to distil smaller models for each patched function. Model distillation and pseudo-labelling is a verified way how to cut down on model sizes and gain improvements in latency and memory footprints while incurring insignificant and minor cost to performance (https://arxiv.org/pdf/2305.02301.pdf, https://arxiv.org/pdf/2306.13649.pdf, https://arxiv.org/pdf/2311.00430.pdf, etc).
 
 Training smaller function-specific models and deploying them is handled by the MonkeyPatch library, so the user will get the benefits without any additional MLOps or DataOps effort. Currently only OpenAI GPT style models are supported (Teacher - GPT4, Student GPT-3.5) 
+
+We tested out model distillation using MonkeyPatch using OpenAI models on Squad2, Spider and IMDB Movie Reviews datasets. We finetuned the gpt-3.5-turbo model (student) using few-shot responses of gpt-4 (teacher) and our preliminary tests show that using less than 600 datapoints in the training data we were able to get gpt 3.5 turbo to perform essentialy equivalent (less than 1.5% of performance difference on held-out dev sets) to gpt4 while achieving up to 12 times lower cost and over 6 times lower latency (cost and latency reduction are very dependent on task specific characteristics like input-output token sizes and align statement token sizes). These tests show the potential in model-distillation in this form for intelligently cutting costs and lowering latency without sacrificing performance.<br><br>
+
+![Example distillation results](https://github.com/monkeypatch/monkeypatch.py/assets/113173969/2ac4c2fd-7ba6-4598-891d-6aa2c85827c9)
 
 
 <!-- TOC --><a name="frequently-asked-questions"></a>
