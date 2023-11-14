@@ -3,6 +3,7 @@
 .env
 /.env
 /tests/test_load/bloom_filter_state.bin
+src/monkey_patch/__pycache__/*
 src/trackers/__pycache__/*
 src/models/__pycache__/*
 src/__pycache__/*
