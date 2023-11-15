@@ -76,8 +76,8 @@ class Monkey:
 
 
     @staticmethod
-    def _load_alignments():
-        Monkey.function_modeler.load_align_statements()
+    def _load_alignments(func_hash: str):
+        Monkey.function_modeler.load_align_statements(func_hash)
 
     @staticmethod
     def _anonymous_usage(*args, **kwargs):
@@ -207,8 +207,9 @@ class Monkey:
 
     @staticmethod
     def patch(test_func):
-        Monkey._load_alignments()
         Monkey._anonymous_usage(logger=Monkey.logger.name)
+        function_description = Register.load_function_description(test_func)
+        Monkey._load_alignments(function_description.__hash__())
 
         @wraps(test_func)
         def wrapper(*args, **kwargs):
@@ -260,4 +261,6 @@ class Monkey:
     def configure(**kwargs):
         if "workspace_id" in kwargs:
             Monkey.function_modeler.workspace_id = kwargs["workspace_id"]
+        if "check_for_finetunes" in kwargs:
+            Monkey.function_modeler.check_for_finetunes = kwargs["check_for_finetunes"]
             
