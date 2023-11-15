@@ -24,7 +24,7 @@ def summarise_list_generic(input: List[str]) -> str:
     Summarise the input
     """
 @monkey.patch
-def summarise_list_typing(input: List[str]) -> str:
+def summarise_list_typing(input: list[str]) -> str:
     """
     Summarise the input
     """
