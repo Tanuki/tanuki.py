@@ -16,16 +16,16 @@ router = APIRouter(
 
 @router.get("")
 async def analyze_reviews(url: str):
+    max_attempts = 3
     print("Got ALIAS:", url)
     print("Fetching reviews")
     reviews = get_yelp_reviews(url)
     print("Got reviews")
 
     max_reviews = 20
-    if len(reviews) == 0:
-        return {
-            "message": "error",
-        }
+    while len(reviews) == 0 and max_attempts > 0:
+        reviews = get_yelp_reviews(url)
+        max_attempts -= 1
     print("Here is the first review:")
     print(reviews[0])
     if len(reviews) > max_reviews:
