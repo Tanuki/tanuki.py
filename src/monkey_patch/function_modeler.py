@@ -39,11 +39,18 @@ class FunctionModeler(object):
         """
         Save the align statements and add to the align buffer
         """
+        # prepare output for saving and later parsing
         # make a deepcopy of the output to avoid changing the original object
         copy_output = copy.deepcopy(output)
         parsed_output = prepare_object_for_saving(copy_output)
 
-        example = FunctionExample(args, kwargs, parsed_output)
+        # prepare args and kwargs for saving
+        copy_args = copy.deepcopy(args)
+        copy_kwargs = copy.deepcopy(kwargs)
+        parsed_args = prepare_object_for_saving(copy_args)
+        parsed_kwargs = prepare_object_for_saving(copy_kwargs)
+
+        example = FunctionExample(parsed_args, parsed_kwargs, parsed_output)
 
         successfully_saved, new_datapoint = self.data_worker.log_align(function_hash, example)
         if successfully_saved:
