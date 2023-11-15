@@ -4,7 +4,7 @@ import json
 import typing
 from typing import get_args, Literal
 import string
-
+import types
 
 def json_default(thing):
     try:
@@ -29,7 +29,7 @@ def json_default(thing):
         return "None"
     if isinstance(thing, typing._SpecialForm):
         return thing._name
-    if isinstance(thing, typing._GenericAlias):
+    if isinstance(thing, typing._GenericAlias) or isinstance(thing, types.GenericAlias):
         return {
             "GenericAlias": [json_default(arg) for arg in get_args(thing)]
         }
