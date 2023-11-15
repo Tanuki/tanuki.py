@@ -1,7 +1,7 @@
 import openai
 import os
 from dotenv import load_dotenv
-from typing import List
+from typing import List, Optional
 
 load_dotenv()
 
@@ -11,12 +11,13 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
 @monkey.patch
-def match_email(email: str, names: List[str]) -> str:
+def match_email(email: str, names: List[str]) -> Optional[str]:
     """
     Examine the list of names and return the name that is most likely to correspond to the email address.
-    The names array includes both first and last names. Make sure to consider both the first and last name
-    as unique values when searching for a match. If two names have the same score, return an empty string.
-    Return an empty string if no match is found or if more than one name could be an email match.
+    The names array includes both first names and last names. Make sure to consider both the first and last name
+    as unique values when searching for a match. Be very conservative in what you consider to be a match.
+    If there is no clear match, return an empty string. If there are multiple possible matches, return an empty string.
+    If there are multiple partial matches, return an empty string.
     """
 
 

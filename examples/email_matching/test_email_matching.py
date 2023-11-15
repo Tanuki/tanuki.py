@@ -71,5 +71,5 @@ def test_name_list() -> None:
     assert match_email("sedward@example.com", NAMES) == "Sarah Edward"
     assert match_email("l.davis@example.com", NAMES) == "Lisa Davis"
 
-    # assert match_email("davis@example.com", NAMES) == ""
-    # assert match_email("sarah@test.com", NAMES) == ""
+    assert match_email("davis@example.com", NAMES) == ""
+    assert match_email("sarah@test.com", NAMES) == ""

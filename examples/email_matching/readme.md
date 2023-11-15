@@ -6,7 +6,7 @@ Example use case is where a company has an email list of thousands of emails and
 
 ## Configuration
 
-You need to set the following environment variables:
+Set the following environment variables in your `.env` file:
 ```
 OPENAI_API_KEY=sk-XXX
 ```
@@ -26,5 +26,5 @@ pip install -r requirements.txt
 To align and test, run following command(s):
 ```
 python main.py
-ptest test_email_matching.py
+pytest -vv -s test_email_matching.py
 ```
