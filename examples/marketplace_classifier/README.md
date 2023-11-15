@@ -1,6 +1,6 @@
-# Marketplace Product Auto-Tagger using Monkey-Patch 🙈 
+# Marketplace Product Auto-Tagger using Monkey-Patch 🙈
 
-Example of how Monkey-Patch can be used to auto-tag products based on their description and name for a marketplace app.
+Example of how MonkeyPatch can be used to auto-tag products based on their description and name for a marketplace app.
 
 ## Installation
 
@@ -10,9 +10,9 @@ Example of how Monkey-Patch can be used to auto-tag products based on their desc
 pip install -r requirements.txt
 ```
 
-2. Create a `.env` file based on the `.env.example` file and fill in the required information. 
+2. Create a `.env` file based on the `.env.example` file and fill in the required information.
 
-**Note**: You'll need an [OpenAI API key](https://openai.com/blog/openai-api) to use this. *Also note*, this demo uses the [BestBuy Product API](https://bestbuyapis.github.io/api-documentation/#products-api) , but you can use any API you want. Just make sure to update the code accordingly. If you want to use BestBuy, you'll need to create an account and get an API key from them.
+**Note**: You'll need an [OpenAI API key](https://openai.com/blog/openai-api) to use this. *Also note*, this demo uses the [BestBuy Product API](https://bestbuyapis.github.io/api-documentation/#products-api), but you can use any API you want. Just make sure to update the code accordingly. If you want to use BestBuy, you'll need to create an account and get an API key from them.
 
 3. Run the app
 
@@ -30,7 +30,6 @@ Short Description: None
 Description: None
 Long Description: None
 ```
-    
 
 Generated output:
 ```python
@@ -61,7 +60,6 @@ Original input:
     power surge).  If something goes wrong after the manufacturer warranty ends, rest easy; you won't be stuck with a 
     huge repair bill. Geek Squad Protection has your back and will take care of any covered repairs.
 ```
-    
 
 Generated output:
 ```python
@@ -70,7 +68,6 @@ Generated output:
     'brand': 'Geek Squad', 
     'features': 'Extended warranty, Coverage for bulb burnout, Coverage for normal wear and tear, Coverage for power surge'
 }
-
 ```
 
 <hr />
@@ -113,7 +110,6 @@ Generated output:
     up your stream with a Razer Chroma RGB headset featuring 3 interchangeable ear designs, stream reactive lighting for 
     next-level audience engagement, and a solid mic for crystal-clear voice capture.
 ```
-    
 
 Generated output:
 ```python
