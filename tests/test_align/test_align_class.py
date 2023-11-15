@@ -1,8 +1,6 @@
 import os
 import unittest
 from typing import Literal, Optional
-import sys
-sys.path.append("src")
 import openai
 from dotenv import load_dotenv
 
