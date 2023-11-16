@@ -55,7 +55,6 @@ def wrap_match_email(email: str, names: List[str]) -> Optional[str]:
         match_revised = match_email(email, match)
         if match_revised and len(match_revised) == 1:
             return match_revised[0]
-        return None
 
     return None
 

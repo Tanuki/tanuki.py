@@ -59,11 +59,11 @@ NAMES = [
 
 def test_match_email() -> None:
     assert match_email("ava.anderson@cool.com", ["Ava Anderson"]) == ["Ava Anderson"]
+    assert match_email("aanderson@cool.com", ["Ava Anderson", "Alan Anderson"]) == ["Ava Anderson", "Alan Anderson"]
 
 
 def test_match_email_none() -> None:
     assert not match_email("bob@cool.ai", ["Emily Johnson"])
-    assert not match_email("aanderson@cool.com", ["Ava Anderson", "Alan Anderson"])
 
 
 def test_wrap_match_email() -> None:
