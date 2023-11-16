@@ -47,12 +47,16 @@ def align_match_email() -> None:
 
 
 def wrap_match_email(email: str, names: List[str]) -> Optional[str]:
-    """Wrapper method to call `match_email` method multiple times."""
+    """
+    Wrapper method to call `match_email` method multiple times.
+    For this particular use-case, the filter function (match_email) needs to be called atleast twice as GPT4 has quite a high False-Positive rate when working with longer lists of names.
+    Calling the filtering function twice worked well to reduce the final False-Positive rate to a acceptable minimum
+    """
 
-    match = match_email(email, names)
+    match = match_email(email, names) # first call, may include false-positives
 
     if match:
-        match_revised = match_email(email, match)
+        match_revised = match_email(email, match) # second call to remove false positives
         if match_revised and len(match_revised) == 1:
             return match_revised[0]
 
