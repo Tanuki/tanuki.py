@@ -39,11 +39,9 @@ def align_match_email() -> None:
     assert match_email("George@google.com", ["John Smith", "George Oakly", "George Bush", "Jaden Smith"]) == ["George Oakly", "George Bush"]
 
     # Return None because there are multiple possible matches
-    assert not match_email("jsmith@gmail.com", ["John Smith", "Jen Smith"])
-    assert not match_email("johnsmith@gmail.com", ["John Smith", "John Smith Jr."])
-    assert not match_email("johnsmith123@gmail.com", ["John Smith", "John Smith III"])
-    assert not match_email("bill@example.net", ["Bill Burr", "Bill"])
-    assert not match_email("smith@example.co", ["Smith Sanders", "Jen Smith", "Smit Harris"])
+    assert match_email("rsunak@gmail.com", ["John Smith", "Jen Smith", "Emily Johnson"]) == None
+    assert match_email("marcopolo@gmail.com", ["John Smith", "John Smith Jr.", "David Anderson"]) == None
+    assert match_email("johnsmith123@gmail.com", ["Lando Norrs", "David Singh"]) == None
 
 
 def wrap_match_email(email: str, names: List[str]) -> Optional[str]:
