@@ -38,7 +38,7 @@ def align_match_email() -> None:
     assert match_email("jsmith@google.com", ["John Smith", "Ella Oakly", "George Bush", "Jaden Smith"]) == ["John Smith", "Jaden Smith"]
     assert match_email("George@google.com", ["John Smith", "George Oakly", "George Bush", "Jaden Smith"]) == ["George Oakly", "George Bush"]
 
-    # Return None because there are multiple possible matches
+    # Return None because there are no possible matches
     assert match_email("rsunak@gmail.com", ["John Smith", "Jen Smith", "Emily Johnson"]) == None
     assert match_email("marcopolo@gmail.com", ["John Smith", "John Smith Jr.", "David Anderson"]) == None
     assert match_email("johnsmith123@gmail.com", ["Lando Norrs", "David Singh"]) == None
