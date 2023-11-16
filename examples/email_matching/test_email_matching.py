@@ -1,4 +1,4 @@
-from main import match_email
+from main import match_email, wrap_match_email
 
 
 NAMES = [
@@ -58,18 +58,18 @@ NAMES = [
 
 
 def test_match_email() -> None:
-    assert match_email("ava.anderson@cool.com", ["Ava Anderson"]) == "Ava Anderson"
+    assert match_email("ava.anderson@cool.com", ["Ava Anderson"]) == ["Ava Anderson"]
 
 
 def test_match_email_none() -> None:
-    assert match_email("aanderson@cool.com", ["Ava Anderson", "Alan Anderson"]) == ""
-    assert match_email("bob@cool.ai", ["Emily Johnson"]) == ""
+    assert not match_email("bob@cool.ai", ["Emily Johnson"])
+    assert not match_email("aanderson@cool.com", ["Ava Anderson", "Alan Anderson"])
 
 
-def test_name_list() -> None:
-    assert match_email("eharris@example.ai", NAMES) == "Edward Harris"
-    assert match_email("sedward@example.com", NAMES) == "Sarah Edward"
-    assert match_email("l.davis@example.com", NAMES) == "Lisa Davis"
+def test_wrap_match_email() -> None:
+    assert wrap_match_email("eharris@example.ai", NAMES) == "Edward Harris"
+    assert wrap_match_email("sedward@example.com", NAMES) == "Sarah Edward"
+    assert wrap_match_email("l.davis@example.com", NAMES) == "Lisa Davis"
 
-    assert match_email("davis@example.com", NAMES) == ""
-    assert match_email("sarah@test.com", NAMES) == ""
+    assert not wrap_match_email("davis@example.com", NAMES)
+    assert not wrap_match_email("sarah@test.com", NAMES)
