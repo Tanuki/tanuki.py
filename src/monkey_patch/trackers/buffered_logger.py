@@ -4,6 +4,7 @@ import os
 from appdirs import user_data_dir
 
 from monkey_patch.bloom_filter import BloomFilter, optimal_bloom_filter_params
+from monkey_patch.language_models.language_modeler import ApiModelFactory
 from monkey_patch.trackers.dataset_worker import DatasetWorker
 import json
 
@@ -13,6 +14,7 @@ EXPECTED_ITEMS = 10000
 FALSE_POSITIVE_RATE = 0.01
 LIB_NAME = "monkey-patch"
 ENVVAR = "MONKEY_PATCH_LOG_DIR"
+
 
 class BufferedLogger(DatasetWorker):
     def __init__(self, name, level=15):
@@ -35,14 +37,15 @@ class BufferedLogger(DatasetWorker):
 
         super().__init__(name, level)
 
-        self.default_function_config = {"distilled_model": "",
-                                               "current_model_stats": {
-                                                   "trained_on_datapoints": 0,
-                                                   "running_faults": []},
-                                               "last_training_run": {"trained_on_datapoints": 0},
-                                               "current_training_run": {},
-                                               "teacher_models": ["gpt-4","gpt-4-32k"], # currently supported teacher models
-                                               "nr_of_training_runs": 0}
+        self.default_function_config = {"distilled_model": ApiModelFactory.get_distilled_model(os.getenv('API_MODEL')),
+                                        "current_model_stats": {
+                                            "trained_on_datapoints": 0,
+                                            "running_faults": []},
+                                        "last_training_run": {"trained_on_datapoints": 0},
+                                        "current_training_run": {},
+                                        "teacher_models": ApiModelFactory.get_teacher_model(os.getenv('API_MODEL')),
+                                        # currently supported teacher models
+                                        "nr_of_training_runs": 0}
 
     def _get_log_directory(self):
 
@@ -68,14 +71,14 @@ class BufferedLogger(DatasetWorker):
         # 4. Write to where the code is being executed from.
         return os.path.join(os.getcwd(), filename)
 
-    def _load_dataset(self, dataset_type, func_hash, return_type = "both"):
+    def _load_dataset(self, dataset_type, func_hash, return_type="both"):
         """
         Get the size of the dataset for a function hash
         """
         log_directory = self._get_log_directory()
         dataset_type_map = {"alignments": ALIGN_FILE_EXTENSION, "patches": PATCH_FILE_EXTENSION}
 
-        log_file_path = os.path.join(log_directory, func_hash+dataset_type_map[dataset_type])
+        log_file_path = os.path.join(log_directory, func_hash + dataset_type_map[dataset_type])
         if not os.path.exists(log_file_path):
             if return_type == "both":
                 return 0, None
@@ -87,7 +90,7 @@ class BufferedLogger(DatasetWorker):
             with open(log_file_path, "rb") as f:
                 dataset = f.read()
             dataset_string = repr(dataset)
-            dataset_length  = dataset_string.count("\\n") - dataset_string.count("\\\\n")
+            dataset_length = dataset_string.count("\\n") - dataset_string.count("\\\\n")
             if return_type == "both":
                 return dataset_length, dataset
             elif return_type == "dataset":
@@ -101,8 +104,6 @@ class BufferedLogger(DatasetWorker):
                 return None
             elif return_type == "length":
                 return 0
-        
-
 
     def _load_existing_datasets(self):
         log_directory = self._get_log_directory()
@@ -116,7 +117,7 @@ class BufferedLogger(DatasetWorker):
             files = [x for x in files if ".json" not in x]
         except Exception as e:
             return dataset_lengths
-        
+
         for file in files:
             if ALIGN_FILE_EXTENSION not in file and PATCH_FILE_EXTENSION not in file:
                 continue
@@ -125,9 +126,8 @@ class BufferedLogger(DatasetWorker):
             else:
                 dataset_type = "patches"
             func_hash = file.replace(ALIGN_FILE_EXTENSION, "").replace(PATCH_FILE_EXTENSION, "")
-            dataset_lengths[dataset_type][func_hash] =  -1
+            dataset_lengths[dataset_type][func_hash] = -1
         return dataset_lengths
-
 
     def log_align(self, func_hash, *args, **kws):
         successfully_saved, new_datapoint = False, False
@@ -151,7 +151,7 @@ class BufferedLogger(DatasetWorker):
         self.bloom_filter.add(bloom_filter_representation)
         self.save_bloom_filter()
 
-        log_file_path = os.path.join(log_directory, func_hash+ALIGN_FILE_EXTENSION)
+        log_file_path = os.path.join(log_directory, func_hash + ALIGN_FILE_EXTENSION)
 
         try:
             # Now, write to the file
@@ -162,8 +162,6 @@ class BufferedLogger(DatasetWorker):
         except Exception as e:
             pass
         return successfully_saved, new_datapoint
-
-
 
     def log_patch(self, func_hash, example):
 
@@ -181,7 +179,7 @@ class BufferedLogger(DatasetWorker):
         self.miss_count += 1
         # Add to Bloom Filter
         self.bloom_filter.add(bloom_filter_representation)
-        
+
         try:
             log_directory = self._get_log_directory()
             if not os.path.exists(log_directory):
@@ -190,7 +188,7 @@ class BufferedLogger(DatasetWorker):
         except Exception as e:
             return {}
 
-        log_file_path = os.path.join(log_directory, func_hash+PATCH_FILE_EXTENSION)
+        log_file_path = os.path.join(log_directory, func_hash + PATCH_FILE_EXTENSION)
 
         if log_file_path not in self.buffers:
             self.buffers[log_file_path] = bytearray()
@@ -210,7 +208,7 @@ class BufferedLogger(DatasetWorker):
             self.save_bloom_filter()
             self.write_count = 0  # Reset counter
             return written_datapoints
-        
+
         if len(self.buffers[log_file_path]) >= min(self.flush_limit[log_file_path], 4096):  # Flush after reaching 4KB
             written_datapoints = {}
             try:
@@ -243,14 +241,14 @@ class BufferedLogger(DatasetWorker):
                 try:
                     with open(log_file_path, "a+b") as f:
                         f.write(buffer)
-                    func_hash = log_file_path.replace(PATCH_FILE_EXTENSION, "").replace(log_directory, "").lstrip("/").lstrip("\\")
+                    func_hash = log_file_path.replace(PATCH_FILE_EXTENSION, "").replace(log_directory, "").lstrip(
+                        "/").lstrip("\\")
                     written_datapoints[func_hash] = self.buffer_rolling_size[log_file_path]
                     self.buffer_rolling_size[log_file_path] = 0
                     buffer.clear()
                 except Exception as e:
                     pass
         return written_datapoints
-                
 
     def _load_function_config(self, func_hash):
 
@@ -259,7 +257,7 @@ class BufferedLogger(DatasetWorker):
         Config file has to have to be in .json
         """
         default = False
-        try: # try to get the config from the disk. If unacessible, create a new default one 
+        try:  # try to get the config from the disk. If unacessible, create a new default one
             log_directory = self._get_log_directory()
             if not os.path.exists(log_directory):
                 os.makedirs(log_directory)
