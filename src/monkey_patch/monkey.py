@@ -9,6 +9,8 @@ from functools import wraps
 from typing import Optional
 from unittest.mock import patch
 
+import requests
+
 from monkey_patch.assertion_visitor import AssertionVisitor
 from monkey_patch.function_modeler import FunctionModeler
 from monkey_patch.language_models.language_modeler import LanguageModel
@@ -78,6 +80,14 @@ class Monkey:
         Monkey.function_modeler.load_align_statements(func_hash)
 
     @staticmethod
+    def _anonymous_usage(*args, **kwargs):
+        """
+        Post anonymously to the usage server so we know what configs are commonly used in the project.
+        :return:
+        """
+        requests.post('https://idhhnusnhkkjkpwkm1fr.monkeypatch.ai/telemetry', data=json.dumps(kwargs))
+
+    @staticmethod
     def align(test_func):
         """
         Decorator to align a function.
@@ -92,7 +102,6 @@ class Monkey:
         @wraps(test_func)
         def wrapper(*args, **kwargs):
             source = textwrap.dedent(inspect.getsource(test_func))
-            #bytecode = compile(test_func.__code__, "", "exec")
             tree = ast.parse(source)
             _locals = locals()
             visitor = AssertionVisitor(_locals, patch_names=Register.function_names_to_patch())
@@ -198,6 +207,7 @@ class Monkey:
 
     @staticmethod
     def patch(test_func):
+        Monkey._anonymous_usage(logger=Monkey.logger.name)
         function_description = Register.load_function_description(test_func)
         Monkey._load_alignments(function_description.__hash__())
 
@@ -221,7 +231,13 @@ class Monkey:
             valid = validator.check_type(choice_parsed, function_description.output_type_hint)
 
             if not valid:
-                choice, choice_parsed, successful_repair = repair_output(args, kwargs, function_description, output.generated_response, validator, Monkey.function_modeler, Monkey.language_modeler)
+                choice, choice_parsed, successful_repair = repair_output(args,
+                                                                         kwargs,
+                                                                         function_description,
+                                                                         output.generated_response,
+                                                                         validator,
+                                                                         Monkey.function_modeler,
+                                                                         Monkey.language_modeler)
 
                 if not successful_repair:
                     raise TypeError(f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{output.generated_response}'")
