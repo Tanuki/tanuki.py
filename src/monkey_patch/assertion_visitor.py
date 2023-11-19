@@ -62,6 +62,13 @@ class AssertionVisitor(ast.NodeVisitor):
             keys = [self.get_value(k) for k in node.keys]
             values = [self.get_value(v) for v in node.values]
             return dict(zip(keys, values))
+        elif isinstance(node, ast.Name):
+            value = self.load_variable_values(node.id)
+            # check if value has a __dict__ attribute
+            if hasattr(value, "__dict__"):
+                return value.__dict__
+            else:
+                return value
         elif isinstance(node, ast.Call):
             return self.extract_output(node)
         else:

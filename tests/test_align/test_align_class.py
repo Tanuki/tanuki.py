@@ -1,7 +1,6 @@
 import os
 import unittest
 from typing import Literal, Optional
-
 import openai
 from dotenv import load_dotenv
 
