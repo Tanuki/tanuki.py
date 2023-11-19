@@ -66,7 +66,7 @@ class Openai_API(LLM_Api):
                 response = response.json()
                 choice = response["choices"][0]["message"]["content"].strip("'")
                 break
-            except Exception:
+            except Exception as e:
                 if ("error" in response and 
                     "code" in response["error"] and 
                     response["error"]["code"] == 'invalid_api_key'):
@@ -74,6 +74,8 @@ class Openai_API(LLM_Api):
                 
                 time.sleep(1 + 3 * counter)
                 counter += 1
+                if counter == 5:
+                    raise Exception(f"OpenAI API failed to generate a response: {e}")
                 continue
         
         if not choice:
