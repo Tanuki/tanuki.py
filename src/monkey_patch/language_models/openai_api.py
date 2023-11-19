@@ -54,7 +54,7 @@ class Openai_API(LLM_Api):
         choice = None
         # initiate response so exception logic doesnt error out when checking for error in response
         response = {}
-        while counter < 5:
+        while counter <= 5:
             try:
                 openai_headers = {
                     "Authorization": f"Bearer {self.api_key}",
@@ -71,11 +71,10 @@ class Openai_API(LLM_Api):
                     "code" in response["error"] and 
                     response["error"]["code"] == 'invalid_api_key'):
                     raise Exception(f"The supplied OpenAI API key {self.api_key} is invalid")
-                
-                time.sleep(1 + 3 * counter)
-                counter += 1
                 if counter == 5:
                     raise Exception(f"OpenAI API failed to generate a response: {e}")
+                counter += 1
+                time.sleep(2 ** counter)
                 continue
         
         if not choice:
