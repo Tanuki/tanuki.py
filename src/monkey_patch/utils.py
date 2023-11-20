@@ -4,7 +4,7 @@ import json
 import typing
 from typing import get_args, Literal
 import string
-
+import types
 
 def json_default(thing):
     try:
@@ -29,7 +29,7 @@ def json_default(thing):
         return "None"
     if isinstance(thing, typing._SpecialForm):
         return thing._name
-    if isinstance(thing, typing._GenericAlias):
+    if isinstance(thing, typing._GenericAlias) or isinstance(thing, types.GenericAlias):
         return {
             "GenericAlias": [json_default(arg) for arg in get_args(thing)]
         }
@@ -110,6 +110,9 @@ def _deep_tuple(obj):
     :param obj:
     :return:
     """
+    # transform pydantic objects into dicts
+    if hasattr(obj, "__dict__"):
+        obj = obj.__dict__
     if isinstance(obj, list) or isinstance(obj, tuple):
         return tuple(_deep_tuple(e) for e in obj)
     elif isinstance(obj, dict):
@@ -128,6 +131,16 @@ def prepare_object_for_saving(input_object):
     """
     Get a dictionary representation of the object
     """
+    # check if list
+    if isinstance(input_object, list):
+        return [prepare_object_for_saving(item) for item in input_object]
+    # check if tuple
+    elif isinstance(input_object, tuple):
+        return tuple([prepare_object_for_saving(item) for item in input_object])
+    # check if dict
+    elif isinstance(input_object, dict):
+        return {key: prepare_object_for_saving(value) for key, value in input_object.items()}
+    # check if pydantic object
     if hasattr(input_object, "__dict__"):
         attributes = input_object.__dict__
         for key, value in attributes.items():

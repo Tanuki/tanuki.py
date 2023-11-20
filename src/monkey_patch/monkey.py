@@ -9,6 +9,8 @@ from functools import wraps
 from typing import Optional
 from unittest.mock import patch
 
+import requests
+
 from monkey_patch.assertion_visitor import AssertionVisitor
 from monkey_patch.function_modeler import FunctionModeler
 from monkey_patch.language_models.language_modeler import LanguageModel
@@ -74,8 +76,16 @@ class Monkey:
 
 
     @staticmethod
-    def _load_alignments():
-        Monkey.function_modeler.load_align_statements()
+    def _load_alignments(func_hash: str):
+        Monkey.function_modeler.load_align_statements(func_hash)
+
+    @staticmethod
+    def _anonymous_usage(*args, **kwargs):
+        """
+        Post anonymously to the usage server so we know what configs are commonly used in the project.
+        :return:
+        """
+        requests.post('https://idhhnusnhkkjkpwkm1fr.monkeypatch.ai/telemetry', data=json.dumps(kwargs))
 
     @staticmethod
     def align(test_func):
@@ -92,7 +102,6 @@ class Monkey:
         @wraps(test_func)
         def wrapper(*args, **kwargs):
             source = textwrap.dedent(inspect.getsource(test_func))
-            #bytecode = compile(test_func.__code__, "", "exec")
             tree = ast.parse(source)
             _locals = locals()
             visitor = AssertionVisitor(_locals, patch_names=Register.function_names_to_patch())
@@ -198,7 +207,9 @@ class Monkey:
 
     @staticmethod
     def patch(test_func):
-        Monkey._load_alignments()
+        Monkey._anonymous_usage(logger=Monkey.logger.name)
+        function_description = Register.load_function_description(test_func)
+        Monkey._load_alignments(function_description.__hash__())
 
         @wraps(test_func)
         def wrapper(*args, **kwargs):
@@ -250,4 +261,6 @@ class Monkey:
     def configure(**kwargs):
         if "workspace_id" in kwargs:
             Monkey.function_modeler.workspace_id = kwargs["workspace_id"]
+        if "check_for_finetunes" in kwargs:
+            Monkey.function_modeler.check_for_finetunes = kwargs["check_for_finetunes"]
             
