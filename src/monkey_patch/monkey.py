@@ -206,56 +206,67 @@ class Monkey:
         return wrapper
 
     @staticmethod
-    def patch(test_func):
-        Monkey._anonymous_usage(logger=Monkey.logger.name)
-        function_description = Register.load_function_description(test_func)
-        Monkey._load_alignments(function_description.__hash__())
-
-        @wraps(test_func)
-        def wrapper(*args, **kwargs):
-            function_description = Register.load_function_description(test_func)
-            output = Monkey.language_modeler.generate(args, kwargs, Monkey.function_modeler, function_description)
-            # start parsing the object, very hacky way for the time being
-            try:
-                # json load
-                choice_parsed = json.loads(output.generated_response)
-            except:
-                # if it fails, it's not a json object, try eval
+    def patch(*dargs, **dkwargs):
+        def wrap(test_func):
+            @wraps(test_func)
+            def wrapper(*args, **kwargs):
+                function_description = Register.load_function_description(test_func)
+                output = Monkey.language_modeler.generate(args, kwargs, Monkey.function_modeler, function_description)
+                # start parsing the object, very hacky way for the time being
                 try:
-                    choice_parsed = eval(output.generated_response)
-                except: 
-                    choice_parsed = output.generated_response
+                    # json load
+                    choice_parsed = json.loads(output.generated_response)
+                except:
+                    # if it fails, it's not a json object, try eval
+                    try:
+                        choice_parsed = eval(output.generated_response)
+                    except: 
+                        choice_parsed = output.generated_response
 
-            validator = Validator()
+                validator = Validator()
 
-            valid = validator.check_type(choice_parsed, function_description.output_type_hint)
+                valid = validator.check_type(choice_parsed, function_description.output_type_hint)
 
-            if not valid:
-                choice, choice_parsed, successful_repair = repair_output(args,
-                                                                         kwargs,
-                                                                         function_description,
-                                                                         output.generated_response,
-                                                                         validator,
-                                                                         Monkey.function_modeler,
-                                                                         Monkey.language_modeler)
+                if not valid:
+                    choice, choice_parsed, successful_repair = repair_output(args,
+                                                                             kwargs,
+                                                                             function_description,
+                                                                             output.generated_response,
+                                                                             validator,
+                                                                             Monkey.function_modeler,
+                                                                             Monkey.language_modeler)
 
-                if not successful_repair:
-                    raise TypeError(f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{output.generated_response}'")
-                output.generated_response = choice
-                output.distilled_model = False
-                
+                    if not successful_repair:
+                        raise TypeError(f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{output.generated_response}'")
+                    output.generated_response = choice
+                    output.distilled_model = False
 
-            datapoint = FunctionExample(args, kwargs, output.generated_response)
-            if output.suitable_for_finetuning and not output.distilled_model:
-                Monkey.function_modeler.postprocess_datapoint(function_description.__hash__(), function_description, datapoint, repaired = not valid)
 
-            instantiated = validator.instantiate(choice_parsed, function_description.output_type_hint)
+                datapoint = FunctionExample(args, kwargs, output.generated_response)
+                if output.suitable_for_finetuning and not output.distilled_model:
+                    Monkey.function_modeler.postprocess_datapoint(function_description.__hash__(), function_description, datapoint, repaired = not valid)
 
-            return instantiated  # test_func(*args, **kwargs)
+                instantiated = validator.instantiate(choice_parsed, function_description.output_type_hint)
 
-        wrapper._is_alignable = True
-        Register.add_function(test_func, wrapper)
-        return wrapper
+                return instantiated  # test_func(*args, **kwargs)
+            
+            print("checkpoint")
+            Monkey._anonymous_usage(logger=Monkey.logger.name)
+            function_description = Register.load_function_description(test_func)
+            Monkey._load_alignments(function_description.__hash__())
+
+            wrapper._is_alignable = True
+            Register.add_function(test_func, wrapper)
+            return wrapper
+        
+        # If decorator is called without arguments, `arg1` will be the function to decorate
+        # The main question here is what is the best way to go about it. Do we specify args with default values or do we do *args and **kwargs?
+        # In the latter case the user would always have to name all of them for us to be able to understand what they are. In the former case, we can use defaults but the callable is not as clear and cleans.
+        if len(dargs) == 1 and callable(dargs[0]) and not dkwargs:
+            func = dargs[0]
+            return wrap(func)
+        
+        return wrap
     
     @staticmethod
     def configure(**kwargs):
