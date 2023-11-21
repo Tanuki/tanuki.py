@@ -206,7 +206,7 @@ class Monkey:
         return wrapper
 
     @staticmethod
-    def patch(*dargs, **dkwargs):
+    def patch(patchable_func = None, environment_id : int = 0, ignore_finetune_fetching : bool = False, ignore_finetuning : bool = False):
         def wrap(test_func):
             @wraps(test_func)
             def wrapper(*args, **kwargs):
@@ -250,28 +250,25 @@ class Monkey:
 
                 return instantiated  # test_func(*args, **kwargs)
             
-            print("checkpoint")
             Monkey._anonymous_usage(logger=Monkey.logger.name)
             function_description = Register.load_function_description(test_func)
-            Monkey._load_alignments(function_description.__hash__())
+            func_hash = function_description.__hash__()
+            Monkey.function_modeler.environment_id = environment_id
+            if ignore_finetuning:
+                Monkey.function_modeler.execute_finetune_blacklist.append(func_hash)
+            if ignore_finetune_fetching:
+                Monkey.function_modeler.check_finetune_blacklist.append(func_hash)
+            Monkey._load_alignments(func_hash)
 
             wrapper._is_alignable = True
             Register.add_function(test_func, wrapper)
             return wrapper
         
-        # If decorator is called without arguments, `arg1` will be the function to decorate
-        # The main question here is what is the best way to go about it. Do we specify args with default values or do we do *args and **kwargs?
-        # In the latter case the user would always have to name all of them for us to be able to understand what they are. In the former case, we can use defaults but the callable is not as clear and cleans.
-        if len(dargs) == 1 and callable(dargs[0]) and not dkwargs:
-            func = dargs[0]
+        if  callable(patchable_func):
+            func = patchable_func
             return wrap(func)
-        
+        if patchable_func is not None:
+            raise TypeError("The first argument to patch must not be specified. Please use keyword arguments or specify the first argument as None")
         return wrap
-    
-    @staticmethod
-    def configure(**kwargs):
-        if "workspace_id" in kwargs:
-            Monkey.function_modeler.workspace_id = kwargs["workspace_id"]
-        if "check_for_finetunes" in kwargs:
-            Monkey.function_modeler.check_for_finetunes = kwargs["check_for_finetunes"]
+
             

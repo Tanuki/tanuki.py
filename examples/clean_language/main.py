@@ -8,9 +8,6 @@ from monkey_patch.monkey import Monkey as monkey
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-config = {"workspace_id": 0}
-monkey.configure(**config)
-
 @monkey.patch
 def clean_language(statement: str) -> str:
     """

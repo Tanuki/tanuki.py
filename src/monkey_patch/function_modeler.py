@@ -13,14 +13,15 @@ EXAMPLE_ELEMENT_LIMIT = 1000
 
 
 class FunctionModeler(object):
-    def __init__(self, data_worker, workspace_id = 0, check_for_finetunes = True) -> None:
+    def __init__(self, data_worker, environment_id = 0) -> None:
         self.function_configs = {}
         self.data_worker = data_worker
         self.distillation_token_limit = 3000 # the token limit for finetuning
         self.align_buffer = {}
         self._get_datasets()
-        self.workspace_id = workspace_id
-        self.check_for_finetunes = check_for_finetunes
+        self.environment_id = environment_id
+        self.check_finetune_blacklist = []
+        self.execute_finetune_blacklist = []
     
 
     def _get_dataset_info(self, dataset_type, func_hash, type = "length"):
@@ -147,8 +148,8 @@ class FunctionModeler(object):
             print(e)
             print("Could not add datapoint to training data")
             return None
-
-        self.check_for_finetuning(function_description, func_hash)
+        if func_hash not in self.execute_finetune_blacklist:
+            self.check_for_finetuning(function_description, func_hash)
 
     def _load_function_config(self, func_hash, function_description):
         """
@@ -156,7 +157,7 @@ class FunctionModeler(object):
         """
         
         config, default = self.data_worker._load_function_config(func_hash)
-        if default and self.check_for_finetunes:
+        if default and func_hash not in self.check_finetune_blacklist:
             finetuned, finetune_config = self._check_for_finetunes(function_description)
             if finetuned:
                 config = finetune_config
@@ -168,7 +169,7 @@ class FunctionModeler(object):
         # This here should be discussed, what's the bestd way to do it
 
         # hash the function_hash into 16 characters
-        finetune_hash = function_description.__hash__(purpose = "finetune") + encode_int(self.workspace_id)
+        finetune_hash = function_description.__hash__(purpose = "finetune") + encode_int(self.environment_id)
         # List 10 fine-tuning jobs
         finetunes = openai.FineTuningJob.list(limit=1000)
         # Check if the function_hash is in the fine-tuning jobs
@@ -367,7 +368,7 @@ class FunctionModeler(object):
         # create the finetune hash
         finetune_hash = function_description.__hash__(purpose = "finetune")
         nr_of_training_runs = self.function_configs[func_hash]["nr_of_training_runs"]
-        finetune_hash += encode_int(self.workspace_id)
+        finetune_hash += encode_int(self.environment_id)
         finetune_hash += encode_int(nr_of_training_runs)
 
         # Use the stream as a file
