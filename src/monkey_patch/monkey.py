@@ -207,6 +207,17 @@ class Monkey:
 
     @staticmethod
     def patch(patchable_func = None, environment_id : int = 0, ignore_finetune_fetching : bool = False, ignore_finetuning : bool = False):
+        """
+        The main decorator for patching a function.
+        args:
+            patchable_func: The function to be patched, should be always set to none. This is used here to allow for keyword arguments or no arguments to be passed to the decorator
+            environment_id (int): The environment id. Used for fetching correct finetuned models
+            ignore_finetune_fetching (bool): Whether to ignore fetching finetuned models.
+                If set to False, during the first call openai will not be queried for finetuned models, which reduces initial startup latency
+            ignore_finetuning (bool): Whether to ignore finetuning the models altogether. If set to True the teacher model will always be used.
+                The data is still saved however if in future would need to use finetuning
+        
+        """
         def wrap(test_func):
             @wraps(test_func)
             def wrapper(*args, **kwargs):
