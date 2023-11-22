@@ -153,7 +153,7 @@ class FunctionModeler(object):
         """
 
         config, default = self.data_worker._load_function_config(func_hash)
-        if default and self.check_for_finetunes:
+        if default and self.check_for_finetunes and default.get('finetune_support', True):
             finetuned, finetune_config = self._check_for_finetunes(function_description)
             if finetuned:
                 config = finetune_config

@@ -1,0 +1,2 @@
+class MonkeyPatchException(Exception):
+    pass

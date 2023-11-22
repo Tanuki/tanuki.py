@@ -1,68 +1,6 @@
-from monkey_patch.language_models.bedrock_api import Bedrock_API
-from monkey_patch.language_models.openai_api import Openai_API
+from monkey_patch.language_models.api_model_factory import ApiModelFactory
 from monkey_patch.models.language_model_output import LanguageModelOutput
 from monkey_patch.utils import approximate_token_count
-
-
-class ApiModelFactory:
-    @classmethod
-    def get_model(cls, api_model_name: str):
-        if api_model_name == 'openai':
-            return {"openai": Openai_API()}
-        elif api_model_name == 'bedrock':
-            return {"bedrock": Bedrock_API()}
-
-    @classmethod
-    def get_all_model_info(cls, api_model_name: str, generation_length):
-        if api_model_name == 'bedrock':
-            return {
-                "anthropic.claude-instant-v1": {
-                    "token_limit": 100000 - generation_length,
-                    "type": "bedrock"
-                },
-                "anthropic.claude-v2": {
-                    "token_limit": 100000 - generation_length,
-                    "type": "bedrock"
-                }
-            }  # models and token counts
-        if api_model_name == 'openai':
-            return {
-                "gpt-4": {
-                    "token_limit": 8192 - self.generation_length,
-                    "type": "openai"
-                },
-                "gpt-4-32k": {
-                    "token_limit": 32768 - self.generation_length,
-                    "type": "openai"
-                }
-            }  # models and token counts
-
-    @classmethod
-    def get_teacher_model(cls, api_model_name: str):
-        if api_model_name == 'bedrock':
-            return [
-                'anthropic.claude-v2'
-            ]
-        elif api_model_name == 'openai':
-            return [
-                "gpt-4",
-                "gpt-4-32k"
-            ]
-        else:
-            return [
-                "gpt-4",
-                "gpt-4-32k"
-            ]
-
-    @classmethod
-    def get_distilled_model(cls, api_model_name: str):
-        if api_model_name == 'bedrock':
-            return 'anthropic.claude-instant-v1'
-
-        elif api_model_name == 'openai':
-            return ""
-        else:
-            return ""
 
 
 class LanguageModel(object):
@@ -74,9 +12,8 @@ class LanguageModel(object):
         self.api_models = ApiModelFactory.get_model(api_model)
         self.repair_instruction = "Below are an outputs of a function applied to inputs, which failed type validation. The input to the function is brought out in the INPUT section and function description is brought out in the FUNCTION DESCRIPTION section. Your task is to apply the function to the input and return a correct output in the right type. The FAILED EXAMPLES section will show previous outputs of this function applied to the data, which failed type validation and hence are wrong outputs. Using the input and function description output the accurate output following the output_class_definition and output_type_hint attributes of the function description, which define the output type. Make sure the output is an accurate function output and in the correct type. Return None if you can't apply the function to the input or if the output is optional and the correct output is None."
         self.generation_length = generation_token_limit
-        self.models = ApiModelFactory.get_all_model_info(
-            api_model,
-            self.generation_length)
+        self.models = ApiModelFactory.get_all_model_info(api_model,
+                                                         self.generation_length)
 
     def generate(self, args, kwargs, function_modeler, function_description, llm_parameters={}):
         """

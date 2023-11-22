@@ -4,7 +4,7 @@ import os
 from appdirs import user_data_dir
 
 from monkey_patch.bloom_filter import BloomFilter, optimal_bloom_filter_params
-from monkey_patch.language_models.language_modeler import ApiModelFactory
+from monkey_patch.language_models.api_model_factory import ApiModelFactory
 from monkey_patch.trackers.dataset_worker import DatasetWorker
 import json
 
@@ -37,15 +37,21 @@ class BufferedLogger(DatasetWorker):
 
         super().__init__(name, level)
 
-        self.default_function_config = {"distilled_model": ApiModelFactory.get_distilled_model(os.getenv('API_MODEL')),
-                                        "current_model_stats": {
-                                            "trained_on_datapoints": 0,
-                                            "running_faults": []},
-                                        "last_training_run": {"trained_on_datapoints": 0},
-                                        "current_training_run": {},
-                                        "teacher_models": ApiModelFactory.get_teacher_model(os.getenv('API_MODEL')),
-                                        # currently supported teacher models
-                                        "nr_of_training_runs": 0}
+        self.default_function_config = {
+            "distilled_model": ApiModelFactory.get_distilled_model(os.getenv('API_MODEL')),
+            "current_model_stats": {
+                "trained_on_datapoints": 0,
+                "running_faults": []
+            },
+            "last_training_run": {
+                "trained_on_datapoints": 0
+            },
+            "current_training_run": {},
+            "teacher_models": ApiModelFactory.get_teacher_model(os.getenv('API_MODEL')),
+            # currently supported teacher models
+            "nr_of_training_runs": 0,
+            "finetune_support": ApiModelFactory.is_finetune_support(os.getenv('API_MODEL')),
+        }
 
     def _get_log_directory(self):
 
