@@ -18,7 +18,7 @@ def classify_sentiment_2(input: str, input_2: str) -> Optional[Literal['Good', '
     """
 
 
-@Monkey.patch(environment_id = 12, ignore_finetune_fetching=True, ignore_finetuning=True)
+@Monkey.patch(environment_id = 12, ignore_finetune_fetching=True, ignore_finetuning=True, ignore_data_storage=True)
 def classify_sentiment(input: str) -> Optional[Literal['Good', 'Bad']]:
     """
     Determine if the input is positive or negative sentiment
@@ -63,6 +63,8 @@ def test_configurability():
     assert sent_func_2_hash not in func_modeler.check_finetune_blacklist
     assert sent_func_hash in func_modeler.execute_finetune_blacklist
     assert sent_func_2_hash not in func_modeler.execute_finetune_blacklist
+    assert sent_func_hash in func_modeler.store_data_blacklist
+    assert sent_func_2_hash not in func_modeler.store_data_blacklist
 
 
 

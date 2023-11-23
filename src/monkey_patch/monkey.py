@@ -206,7 +206,12 @@ class Monkey:
         return wrapper
 
     @staticmethod
-    def patch(patchable_func = None, environment_id : int = 0, ignore_finetune_fetching : bool = False, ignore_finetuning : bool = False):
+    def patch(patchable_func = None,
+                environment_id : int = 0, 
+                ignore_finetune_fetching : bool = False, 
+                ignore_finetuning : bool = False,
+                ignore_data_storage : bool = False
+                ):
         """
         The main decorator for patching a function.
         args:
@@ -216,6 +221,10 @@ class Monkey:
                 If set to False, during the first call openai will not be queried for finetuned models, which reduces initial startup latency
             ignore_finetuning (bool): Whether to ignore finetuning the models altogether. If set to True the teacher model will always be used.
                 The data is still saved however if in future would need to use finetuning
+            ignore_data_storage (bool): Whether to ignore storing the data.
+                If set to True, the data will not be stored in the finetune dataset and the align statements will not be saved
+                This improves latency as communications with data storage is minimised
+
         
         """
         def wrap(test_func):
@@ -269,6 +278,8 @@ class Monkey:
                 Monkey.function_modeler.execute_finetune_blacklist.append(func_hash)
             if ignore_finetune_fetching:
                 Monkey.function_modeler.check_finetune_blacklist.append(func_hash)
+            if ignore_data_storage:
+                Monkey.function_modeler.store_data_blacklist.append(func_hash)
             Monkey._load_alignments(func_hash)
 
             wrapper._is_alignable = True
