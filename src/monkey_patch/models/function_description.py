@@ -1,7 +1,6 @@
 import hashlib
 from dataclasses import dataclass
 from typing import Dict
-
 from monkey_patch.utils import json_dumps
 
 

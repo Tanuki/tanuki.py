@@ -24,7 +24,6 @@ class LanguageModel(object):
                 "token_limit": 32768 - self.generation_length, "type": "openai"}
             } # models and token counts
 
-
     def generate(self, args, kwargs, function_modeler, function_description, llm_parameters = {}):
         """
         The main generation function, given the args, kwargs, function_modeler, function description and model type, generate a response and check if the datapoint can be saved to the finetune dataset
@@ -47,7 +46,6 @@ class LanguageModel(object):
         if model_type == "openai":
             return self.api_models[model_type].generate(model, self.system_message, prompt, **llm_parameters)
 
-
     def get_distillation_model_type(self, model):
         """
         Get the distilled model type given the model
@@ -65,14 +63,12 @@ class LanguageModel(object):
         else:
             raise ValueError("This teacher model is not supported")
 
-
     def get_models(self, function_modeler, function_description):
         """
         Get the loggers models given the function hash
         """
         distilled_model, teacher_models = function_modeler.get_models(function_description)
         return distilled_model, teacher_models
-
 
     def get_generation_case(self, args, kwargs, function_modeler, function_description):
         """
