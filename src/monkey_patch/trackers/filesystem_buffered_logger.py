@@ -1,40 +1,74 @@
 import os
-from typing import Literal
+from typing import Literal, Union, Optional, Dict
 
 from appdirs import user_data_dir
 
+from monkey_patch.persistence.filter.bloom_interface import IBloomFilterPersistence
 from monkey_patch.persistence.filter.filesystem_bloom import FileSystemBloomFilterPersistence
 from monkey_patch.trackers.abc_buffered_logger import ABCBufferedLogger, ENVVAR, \
     LIB_NAME, ALIGN_FILE_EXTENSION, PATCH_FILE_EXTENSION
 
 
 class FilesystemBufferedLogger(ABCBufferedLogger):
+    """
+    A class that handles the reading and writing of patch invocations and align statements.
+    It includes the logic for a bloom filter, to ensure that we only store unique invocations.
+    """
     def __init__(self, name, level=15):
         self.log_directory = self._get_log_directory()
         super().__init__(name, level)
 
-    def get_bloom_filter_persistence(self):
+    def get_bloom_filter_persistence(self) -> IBloomFilterPersistence:
+        """
+        Get an instance of the bloom filter persistence provider. Typically this will be a file system provider.
+        :return: A persistence provider
+        """
         return FileSystemBloomFilterPersistence(log_directory=self.log_directory)
 
-    def get_patch_location_for_function(self, func_hash, extension=""):
+    def get_patch_location_for_function(self, func_hash, extension: Union[ALIGN_FILE_EXTENSION, PATCH_FILE_EXTENSION] = "") -> str:
+        """
+        Get the local location of the function patch file.
+        :param func_hash: The representation of the function
+        :param extension: Whether this is a patch or an alignment
+        :return:
+        """
         return os.path.join(self.log_directory, func_hash + extension)
 
-    def ensure_persistence_location_exists(self):
+    def ensure_persistence_location_exists(self) -> None:
+        """
+        Ensure that the location on the filesystem we will be writing to actually exists. If not, create it.
+        """
         log_directory = self.log_directory
         # Create the folder if it doesn't exist
         if not os.path.exists(log_directory):
             os.makedirs(log_directory)
 
-    def _get_log_directory(self):
+    def does_object_exist(self, path: str) -> bool:
+        """
+        Check to see if a path exists on the filesystem.
+        :param path:
+        :return:
+        """
+        return os.path.exists(path)
+
+    def _get_log_directory(self) -> str:
+        """
+        Find a location on the filesystem to write our logs to.
+        :return:
+        """
         filename = "functions"
+
+        # If explicitly defined
         env_dir = os.getenv(ENVVAR)
         if env_dir and os.path.isdir(env_dir):
             return os.path.join(env_dir, filename)
 
+        # If installed as a library
         library_dir = os.path.join(user_data_dir(LIB_NAME), filename)
         if os.path.isdir(library_dir) or not os.path.exists(library_dir):
             return library_dir
 
+        # If installed in a project that contains a git repo - place it in the same folder as the git repo
         current_dir = os.getcwd()
         while current_dir != os.path.root:
             if ".git" in os.listdir(current_dir):
@@ -43,7 +77,7 @@ class FilesystemBufferedLogger(ABCBufferedLogger):
 
         return os.path.join(os.getcwd(), filename)
 
-    def load_dataset(self, dataset_type, func_hash, return_type="both"):
+    def load_dataset(self, dataset_type, func_hash, return_type="both") -> Optional[int]:
         """
         Get the size of the dataset for a function hash
         """
@@ -77,7 +111,7 @@ class FilesystemBufferedLogger(ABCBufferedLogger):
             elif return_type == "length":
                 return 0
 
-    def load_existing_datasets(self):
+    def load_existing_datasets(self) -> Dict[str, Dict[str, str]]:
         log_directory = self.log_directory
         dataset_lengths = {"alignments": {}, "patches": {}}
         try:
@@ -102,18 +136,26 @@ class FilesystemBufferedLogger(ABCBufferedLogger):
         return dataset_lengths
 
     def write(self, path: str, data: str, mode: Literal["w", "a", "a+b"] = "w") -> None:
+        """
+        Write data to a file
+        """
         with open(path, mode) as f:
             f.write(data)
 
     def read(self, path: str) -> str:
+        """
+        Read data from a file
+        """
         with open(path, "r") as f:
             return f.read()
 
     def get_hash_from_path(self, path) -> str:
+        """
+        Given a path with a hash, return only the hash
+        :param path: The path to the file
+        :return: The hash
+        """
         return path.replace(PATCH_FILE_EXTENSION, "").\
             replace(self.log_directory, "").\
             lstrip("/").\
             lstrip("\\")
-
-    def does_object_exist(self, path) -> bool:
-        return os.path.exists(path)

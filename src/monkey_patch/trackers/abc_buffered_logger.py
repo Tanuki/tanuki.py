@@ -1,5 +1,6 @@
 import json
 from abc import abstractmethod
+from typing import Dict, Any
 
 from monkey_patch.bloom_filter import BloomFilter
 from monkey_patch.persistence.filter.bloom_interface import IBloomFilterPersistence
@@ -39,18 +40,36 @@ class ABCBufferedLogger(DatasetWorker):
 
     @abstractmethod
     def get_bloom_filter_persistence(self) -> IBloomFilterPersistence:
+        """
+        Get an instance of the bloom filter persistence provider. This exposes some persistent file storage,
+        that must support reading and writing raw byte streams.
+        :return:
+        """
         pass
 
     @abstractmethod
-    def load_existing_datasets(self):
+    def load_existing_datasets(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Get the lengths of all datasets backing the registered functions, including aligns.
+        :return:
+        """
         pass
 
     @abstractmethod
     def ensure_persistence_location_exists(self):
+        """
+        Ensure that the place we will be writing to actually exists. If not, create it.
+        """
         pass
 
     @abstractmethod
     def get_patch_location_for_function(self, func_hash, extension="") -> str:
+        """
+        Get the address of the function patch file.
+        :param func_hash: The representation of the function
+        :param extension: Whether this is a patch or an alignment
+        :return:
+        """
         pass
 
     @abstractmethod

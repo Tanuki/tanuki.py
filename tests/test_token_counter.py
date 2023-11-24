@@ -14,7 +14,7 @@ def dummy_func(input: str) -> List[str]:
 def initiate_test(func_modeler, function_description):
     func_hash = function_description.__hash__()
     # initiate the config
-    _ = func_modeler._load_function_config(func_hash, function_description)
+    _ = func_modeler.load_function_config(func_hash, function_description)
     for keys, values in func_modeler.function_configs.items():
         if func_hash in keys:
             values["distilled_model"] = "test_ft_1"
