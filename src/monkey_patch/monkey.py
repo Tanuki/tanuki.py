@@ -206,61 +206,91 @@ class Monkey:
         return wrapper
 
     @staticmethod
-    def patch(test_func):
-        Monkey._anonymous_usage(logger=Monkey.logger.name)
-        function_description = Register.load_function_description(test_func)
-        Monkey._load_alignments(function_description.__hash__())
+    def patch(patchable_func = None,
+                environment_id : int = 0, 
+                ignore_finetune_fetching : bool = False, 
+                ignore_finetuning : bool = False,
+                ignore_data_storage : bool = False
+                ):
+        """
+        The main decorator for patching a function.
+        args:
+            patchable_func: The function to be patched, should be always set to none. This is used here to allow for keyword arguments or no arguments to be passed to the decorator
+            environment_id (int): The environment id. Used for fetching correct finetuned models
+            ignore_finetune_fetching (bool): Whether to ignore fetching finetuned models.
+                If set to False, during the first call openai will not be queried for finetuned models, which reduces initial startup latency
+            ignore_finetuning (bool): Whether to ignore finetuning the models altogether. If set to True the teacher model will always be used.
+                The data is still saved however if in future would need to use finetuning
+            ignore_data_storage (bool): Whether to ignore storing the data.
+                If set to True, the data will not be stored in the finetune dataset and the align statements will not be saved
+                This improves latency as communications with data storage is minimised
 
-        @wraps(test_func)
-        def wrapper(*args, **kwargs):
-            function_description = Register.load_function_description(test_func)
-            output = Monkey.language_modeler.generate(args, kwargs, Monkey.function_modeler, function_description)
-            # start parsing the object, very hacky way for the time being
-            try:
-                # json load
-                choice_parsed = json.loads(output.generated_response)
-            except:
-                # if it fails, it's not a json object, try eval
+        
+        """
+        def wrap(test_func):
+            @wraps(test_func)
+            def wrapper(*args, **kwargs):
+                function_description = Register.load_function_description(test_func)
+                output = Monkey.language_modeler.generate(args, kwargs, Monkey.function_modeler, function_description)
+                # start parsing the object, very hacky way for the time being
                 try:
-                    choice_parsed = eval(output.generated_response)
-                except: 
-                    choice_parsed = output.generated_response
+                    # json load
+                    choice_parsed = json.loads(output.generated_response)
+                except:
+                    # if it fails, it's not a json object, try eval
+                    try:
+                        choice_parsed = eval(output.generated_response)
+                    except: 
+                        choice_parsed = output.generated_response
 
-            validator = Validator()
+                validator = Validator()
 
-            valid = validator.check_type(choice_parsed, function_description.output_type_hint)
+                valid = validator.check_type(choice_parsed, function_description.output_type_hint)
 
-            if not valid:
-                choice, choice_parsed, successful_repair = repair_output(args,
-                                                                         kwargs,
-                                                                         function_description,
-                                                                         output.generated_response,
-                                                                         validator,
-                                                                         Monkey.function_modeler,
-                                                                         Monkey.language_modeler)
+                if not valid:
+                    choice, choice_parsed, successful_repair = repair_output(args,
+                                                                             kwargs,
+                                                                             function_description,
+                                                                             output.generated_response,
+                                                                             validator,
+                                                                             Monkey.function_modeler,
+                                                                             Monkey.language_modeler)
 
-                if not successful_repair:
-                    raise TypeError(f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{output.generated_response}'")
-                output.generated_response = choice
-                output.distilled_model = False
-                
+                    if not successful_repair:
+                        raise TypeError(f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{output.generated_response}'")
+                    output.generated_response = choice
+                    output.distilled_model = False
 
-            datapoint = FunctionExample(args, kwargs, output.generated_response)
-            if output.suitable_for_finetuning and not output.distilled_model:
-                Monkey.function_modeler.postprocess_datapoint(function_description.__hash__(), function_description, datapoint, repaired = not valid)
 
-            instantiated = validator.instantiate(choice_parsed, function_description.output_type_hint)
+                datapoint = FunctionExample(args, kwargs, output.generated_response)
+                if output.suitable_for_finetuning and not output.distilled_model:
+                    Monkey.function_modeler.postprocess_datapoint(function_description.__hash__(), function_description, datapoint, repaired = not valid)
 
-            return instantiated  # test_func(*args, **kwargs)
+                instantiated = validator.instantiate(choice_parsed, function_description.output_type_hint)
 
-        wrapper._is_alignable = True
-        Register.add_function(test_func, wrapper)
-        return wrapper
-    
-    @staticmethod
-    def configure(**kwargs):
-        if "workspace_id" in kwargs:
-            Monkey.function_modeler.workspace_id = kwargs["workspace_id"]
-        if "check_for_finetunes" in kwargs:
-            Monkey.function_modeler.check_for_finetunes = kwargs["check_for_finetunes"]
+                return instantiated  # test_func(*args, **kwargs)
+            
+            Monkey._anonymous_usage(logger=Monkey.logger.name)
+            function_description = Register.load_function_description(test_func)
+            func_hash = function_description.__hash__()
+            Monkey.function_modeler.environment_id = environment_id
+            if ignore_finetuning:
+                Monkey.function_modeler.execute_finetune_blacklist.append(func_hash)
+            if ignore_finetune_fetching:
+                Monkey.function_modeler.check_finetune_blacklist.append(func_hash)
+            if ignore_data_storage:
+                Monkey.function_modeler.store_data_blacklist.append(func_hash)
+            Monkey._load_alignments(func_hash)
+
+            wrapper._is_alignable = True
+            Register.add_function(test_func, wrapper)
+            return wrapper
+        
+        if  callable(patchable_func):
+            func = patchable_func
+            return wrap(func)
+        if patchable_func is not None:
+            raise TypeError("The first argument to patch must not be specified. Please use keyword arguments or specify the first argument as None")
+        return wrap
+
             

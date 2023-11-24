@@ -37,8 +37,8 @@ def test_encode_decode_hash():
     workspace_id = 12
     function_description = function_description = Register.load_function_description(dummy_func)
     logger = BufferedLogger("test")
-    func_modeler = FunctionModeler(logger, workspace_id=workspace_id)
-    finetune_hash = function_description.__hash__(purpose = "finetune") + encode_int(func_modeler.workspace_id) + encode_int(nr_of_training_runs)
+    func_modeler = FunctionModeler(logger, environment_id=workspace_id)
+    finetune_hash = function_description.__hash__(purpose = "finetune") + encode_int(func_modeler.environment_id) + encode_int(nr_of_training_runs)
     finetune = {"fine_tuned_model": f"Test_model:__{finetune_hash}:asd[]asd",}
     config = func_modeler._construct_config_from_finetune(finetune_hash[:-1], finetune)
     assert config["distilled_model"] == f"Test_model:__{finetune_hash}:asd[]asd"
