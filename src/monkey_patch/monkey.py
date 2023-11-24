@@ -74,7 +74,6 @@ class Monkey:
     # currently only use buffered logger as default
     function_modeler = FunctionModeler(data_worker=logger)
 
-
     @staticmethod
     def _load_alignments(func_hash: str):
         Monkey.function_modeler.load_align_statements(func_hash)
@@ -190,28 +189,15 @@ class Monkey:
             else:
                 return patched_func(*args, **kwargs)
 
-        def _get_args(func_args, kwarg_names, num_args):
-            num_pos_args = num_args - len(kwarg_names)  # Calculate number of positional arguments
-            args_for_call = func_args[:num_pos_args]
-            # Pop keyword arguments off the stack
-            kwargs_for_call = {}  # New dictionary to hold keyword arguments for the call
-            for name in reversed(kwarg_names):  # Reverse to match the order on the stack
-                try:
-                    kwargs_for_call[name] = func_args.pop()  # Pop the value off the stack
-                except IndexError:
-                    print(f"Debug: func_args is empty, can't pop for {name}")
-            func_args = func_args[:-num_pos_args]  # Remove the positional arguments from func_args
-            return args_for_call, func_args, kwargs_for_call
-
         return wrapper
 
     @staticmethod
-    def patch(patchable_func = None,
-                environment_id : int = 0, 
-                ignore_finetune_fetching : bool = False, 
-                ignore_finetuning : bool = False,
-                ignore_data_storage : bool = False
-                ):
+    def patch(patchable_func=None,
+              environment_id: int = 0,
+              ignore_finetune_fetching: bool = False,
+              ignore_finetuning: bool = False,
+              ignore_data_storage: bool = False
+              ):
         """
         The main decorator for patching a function.
         args:
@@ -227,6 +213,7 @@ class Monkey:
 
         
         """
+
         def wrap(test_func):
             @wraps(test_func)
             def wrapper(*args, **kwargs):
@@ -240,7 +227,7 @@ class Monkey:
                     # if it fails, it's not a json object, try eval
                     try:
                         choice_parsed = eval(output.generated_response)
-                    except: 
+                    except:
                         choice_parsed = output.generated_response
 
                 validator = Validator()
@@ -257,19 +244,20 @@ class Monkey:
                                                                              Monkey.language_modeler)
 
                     if not successful_repair:
-                        raise TypeError(f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{output.generated_response}'")
+                        raise TypeError(
+                            f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{output.generated_response}'")
                     output.generated_response = choice
                     output.distilled_model = False
 
-
                 datapoint = FunctionExample(args, kwargs, output.generated_response)
                 if output.suitable_for_finetuning and not output.distilled_model:
-                    Monkey.function_modeler.postprocess_datapoint(function_description.__hash__(), function_description, datapoint, repaired = not valid)
+                    Monkey.function_modeler.postprocess_datapoint(function_description.__hash__(), function_description,
+                                                                  datapoint, repaired=not valid)
 
                 instantiated = validator.instantiate(choice_parsed, function_description.output_type_hint)
 
                 return instantiated  # test_func(*args, **kwargs)
-            
+
             Monkey._anonymous_usage(logger=Monkey.logger.name)
             function_description = Register.load_function_description(test_func)
             func_hash = function_description.__hash__()
@@ -285,12 +273,11 @@ class Monkey:
             wrapper._is_alignable = True
             Register.add_function(test_func, wrapper)
             return wrapper
-        
-        if  callable(patchable_func):
+
+        if callable(patchable_func):
             func = patchable_func
             return wrap(func)
         if patchable_func is not None:
-            raise TypeError("The first argument to patch must not be specified. Please use keyword arguments or specify the first argument as None")
+            raise TypeError(
+                "The first argument to patch must not be specified. Please use keyword arguments or specify the first argument as None")
         return wrap
-
-            

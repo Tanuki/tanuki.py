@@ -1,6 +1,5 @@
 import inspect
-from typing import get_type_hints, Literal, Optional
-
+from typing import get_type_hints, Literal
 from monkey_patch.models.function_description import FunctionDescription
 
 alignable_functions = {}
@@ -43,10 +42,10 @@ class Register:
 
         if not instance:
             func_object = alignable_functions[func_name]
-            return Register.load_function_description(func_object)
         else:
             func_object = getattr(instance, func_name)
-            return Register.load_function_description(func_object)
+
+        return Register.load_function_description(func_object)
 
     @staticmethod
     def load_function_description(func_object) -> FunctionDescription:

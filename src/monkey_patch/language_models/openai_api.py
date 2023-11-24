@@ -1,31 +1,50 @@
+from typing import List
+
 import openai
 import time
 # import abstract base class
-from monkey_patch.language_models.llm_api_abc import LLM_Api
+from monkey_patch.language_models.embedding_api_abc import Embedding_API
+from monkey_patch.language_models.llm_api_abc import LLM_API
 import os
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 import requests
 
 
-class Openai_API(LLM_Api):
+class OpenAI_API(LLM_API, Embedding_API):
     def __init__(self) -> None:
         # initialise the abstract base class
         super().__init__()
         self.api_key = os.getenv("OPENAI_API_KEY")
-        
-    
+
+    def embed(self, texts: List[str], model="text-similarity-babbage-001", **kwargs):
+        """
+        Generate embeddings for the provided texts using the specified OpenAI model.
+        Lightweight wrapper over the OpenAI client.
+
+        :param texts: A list of texts to embed.
+        :param model: The model to use for embeddings.
+        :return: A list of embeddings.
+        """
+        self.check_api_key()
+
+        try:
+            response = openai.Embedding.create(
+                input=texts,
+                model=model,
+                **kwargs
+            )
+            return response['data']
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return None
+
     def generate(self, model, system_message, prompt, **kwargs):
         """
         The main generation function, given the args, kwargs, function_modeler, function description and model type, generate a response and check if the datapoint can be saved to the finetune dataset
         """
 
-        # check if api key is not none
-        if self.api_key is None:
-            # try to get the api key from the environment, maybe it has been set later
-            self.api_key = os.getenv("OPENAI_API_KEY")
-            if self.api_key is None:
-                raise ValueError("OpenAI API key is not set")
-        
+        self.check_api_key()
+
         temperature = kwargs.get("temperature", 0)
         top_p = kwargs.get("top_p", 1)
         frequency_penalty = kwargs.get("frequency_penalty", 0)
@@ -81,3 +100,11 @@ class Openai_API(LLM_Api):
             raise Exception("OpenAI API failed to generate a response")
             
         return choice
+
+    def check_api_key(self):
+        # check if api key is not none
+        if self.api_key is None:
+            # try to get the api key from the environment, maybe it has been set later
+            self.api_key = os.getenv("OPENAI_API_KEY")
+            if self.api_key is None:
+                raise ValueError("OpenAI API key is not set")

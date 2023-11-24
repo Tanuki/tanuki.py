@@ -1,4 +1,4 @@
-from monkey_patch.language_models.openai_api import Openai_API
+from monkey_patch.language_models.openai_api import OpenAI_API
 from monkey_patch.models.language_model_output import LanguageModelOutput
 from monkey_patch.utils import approximate_token_count
 
@@ -10,7 +10,7 @@ class LanguageModel(object):
 
         self.instruction_token_count = approximate_token_count(self.instruction)
         self.system_message_token_count = approximate_token_count(self.system_message)
-        self.api_models = {"openai": Openai_API()}
+        self.api_models = {"openai": OpenAI_API()}
         self.repair_instruction = "Below are an outputs of a function applied to inputs, which failed type validation. The input to the function is brought out in the INPUT section and function description is brought out in the FUNCTION DESCRIPTION section. Your task is to apply the function to the input and return a correct output in the right type. The FAILED EXAMPLES section will show previous outputs of this function applied to the data, which failed type validation and hence are wrong outputs. Using the input and function description output the accurate output following the output_class_definition and output_type_hint attributes of the function description, which define the output type. Make sure the output is an accurate function output and in the correct type. Return None if you can't apply the function to the input or if the output is optional and the correct output is None."
         self.generation_length = generation_token_limit
         self.models = {
@@ -34,12 +34,12 @@ class LanguageModel(object):
             model_type = self.get_distillation_model_type(model)
         else:
             model_type = self.get_teacher_model_type(model)
-        choice = self.synthesise_answer(prompt, model, model_type, llm_parameters)
+        choice = self._synthesise_answer(prompt, model, model_type, llm_parameters)
 
         output = LanguageModelOutput(choice, save_to_finetune,is_distilled_model)
         return output
 
-    def synthesise_answer(self, prompt, model, model_type, llm_parameters):
+    def _synthesise_answer(self, prompt, model, model_type, llm_parameters):
         """
         Synthesise an answer given the prompt, model, model_type and llm_parameters
         """
@@ -108,7 +108,6 @@ class LanguageModel(object):
         suitable_for_finetune =  input_prompt_token_count + self.instruction_token_count + self.system_message_token_count < distillation_token_count
         return suitable_for_finetune, input_prompt_token_count
 
-
     def construct_prompt(self, f, args, kwargs, examples):
         """
         Cosntruct a prompt given the function description, args, kwargs and examples
@@ -126,11 +125,10 @@ class LanguageModel(object):
         model = self.choose_model_from_tokens(models, prompt_token_count)
         if model:
             model_type = self.get_teacher_model_type(model)
-            choice = self.synthesise_answer(prompt, model, model_type, {})
+            choice = self._synthesise_answer(prompt, model, model_type, {})
             return choice
         else:
             return None
-
 
     def generate_repair_prompt(self, args, kwargs, f, failed_outputs_list, examples):
         """

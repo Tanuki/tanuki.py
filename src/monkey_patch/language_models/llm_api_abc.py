@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 
 
-class LLM_Api(ABC):
+class LLM_API(ABC):
     def __init__(self) -> None:
         pass
         

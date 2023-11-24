@@ -5,9 +5,18 @@ from pydantic.generics import GenericModel
 T = TypeVar('T')
 
 
-class Embedding(GenericModel, Generic[T], T):
-    def __init__(self, data: List[float], **kwargs):
-        if issubclass(T, np.ndarray):
-            super().__init__(np.array(data), **kwargs)
+class Embedding(GenericModel, Generic[T]):
+    def __init__(self, data: List[float]):
+        if issubclass(self.__class__.__orig_bases__[0].__args__[0], np.ndarray):
+            self._data = np.array(data)
         else:
-            super().__init__(data, **kwargs)
+            self._data = data
+
+    def __getattr__(self, item):
+        return getattr(self._data, item)
+
+    def __len__(self):
+        return len(self._data)
+
+    def __getitem__(self, key):
+        return self._data[key]

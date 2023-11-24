@@ -1,5 +1,9 @@
-pytest
-fastapi~=0.104.0
 wikipedia==1.4.0
 jupyter==1.0.0
 ipykernel
+pytest~=7.4.3
+fastapi~=0.104.0
+selenium~=4.15.2
+bs4~=0.0.1
+beautifulsoup4~=4.12.2
+boto3~=1.28.80
