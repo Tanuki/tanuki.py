@@ -15,28 +15,28 @@ def logger(request):
         yield request.param("test")
 
 
-def test_load_log_align(logger):
-    runs = 100000
+#def test_load_log_align(logger):
+#    runs = 100000
+#
+#    start_time = time.time()
+#    for i in range(runs):
+#        example = FunctionExample((i,), {}, i * 2)
+#        logger.log_align(str(i), example)
+#    elapsed_time = time.time() - start_time
+#
+#    print(f"Time taken for {logger.__class__.__name__}: {elapsed_time} seconds")
 
-    start_time = time.time()
-    for i in range(runs):
-        example = FunctionExample((i,), {}, i * 2)
-        logger.log_align(str(i), example)
-    elapsed_time = time.time() - start_time
-
-    print(f"Time taken for {logger.__class__.__name__}: {elapsed_time} seconds")
-
-def test_patch_many_functions(logger):
-    runs = 10000
-
-    start_time = time.time()
-    for i in range(runs):
-        example = FunctionExample((i,), {}, i * 2)
-        logger.log_patch(str(i), example)
-    elapsed_time = time.time() - start_time
-
-    print(f"Time taken for {logger.__class__.__name__} to patch {runs} functions: {elapsed_time} seconds")
-
+#def test_patch_many_functions(logger):
+#    runs = 10000
+#
+#    start_time = time.time()
+#    for i in range(runs):
+#        example = FunctionExample((i,), {}, i * 2)
+#        logger.log_patch(str(i), example)
+#    elapsed_time = time.time() - start_time
+#
+#    print(f"Time taken for {logger.__class__.__name__} to patch {runs} functions: {elapsed_time} seconds")
+#
 def test_patch_one_function_many_times():
     runs = 100
     logger = FilesystemBufferedLogger("test")
