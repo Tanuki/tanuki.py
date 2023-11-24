@@ -18,7 +18,20 @@ class Register:
         return alignable_functions[func_name]
 
     @staticmethod
-    def function_names_to_patch():
+    def function_names_to_patch(*args):
+        """
+        Get the registered function names that should be patched, either globally (if len(args)==0) or as members of
+        an instance
+        :param args: Optional instance to check
+        :return:
+        """
+        if len(args) == 1:
+            instance = args[0]
+            function_names = []
+            for key in alignable_functions.keys():
+                if hasattr(instance, key):
+                    function_names.append(key)
+            return function_names
         return list(alignable_functions.keys())
 
     @staticmethod

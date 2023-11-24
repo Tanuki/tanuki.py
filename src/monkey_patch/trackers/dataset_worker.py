@@ -8,7 +8,7 @@ class DatasetWorker(Logger):
 
 
     @abstractmethod
-    def _load_existing_datasets(self):
+    def load_existing_datasets(self):
         """
         Get all existing datasets for functions
         Output must be a dictionary with the following structure:
@@ -102,7 +102,7 @@ class DatasetWorker(Logger):
         pass
 
     @abstractmethod
-    def _load_dataset(self, dataset_type, func_hash, return_type):
+    def load_dataset(self, dataset_type, func_hash, return_type):
         """
         Load the datasets for a function hash
         The datasets loaded must be a string, where different datapoints are on new lines
@@ -118,7 +118,7 @@ class DatasetWorker(Logger):
         pass
 
     @abstractmethod
-    def _update_function_config(self, func_hash, config_to_be_saved):
+    def update_function_config(self, func_hash, config_to_be_saved):
         """
         Save the config file using the function hash to data storage
         Args:

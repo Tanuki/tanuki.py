@@ -4,6 +4,8 @@ import io
 import json
 
 import openai
+
+from monkey_patch.models.function_description import FunctionDescription
 from monkey_patch.models.function_example import FunctionExample
 from monkey_patch.utils import approximate_token_count, prepare_object_for_saving, encode_int, decode_int
 import copy
@@ -27,13 +29,13 @@ class FunctionModeler(object):
         """
         Get the dataset size for a function hash
         """
-        return self.data_worker._load_dataset(dataset_type, func_hash, return_type = type)
+        return self.data_worker.load_dataset(dataset_type, func_hash, return_type=type)
 
     def _get_datasets(self):
         """
         Get the existing datasets from the data worker
         """
-        self.dataset_sizes = self.data_worker._load_existing_datasets()
+        self.dataset_sizes = self.data_worker.load_existing_datasets()
 
     def save_align_statements(self, function_hash, args, kwargs, output):
         """
@@ -164,7 +166,7 @@ class FunctionModeler(object):
         return config
             
     
-    def _check_for_finetunes(self, function_description):
+    def _check_for_finetunes(self, function_description: FunctionDescription):
         # This here should be discussed, what's the bestd way to do it
 
         # hash the function_hash into 16 characters
@@ -180,7 +182,7 @@ class FunctionModeler(object):
                 try:
                     config = self._construct_config_from_finetune(finetune_hash, finetune)
                     # save the config
-                    self.data_worker._update_function_config(function_description.__hash__(), config)
+                    self.data_worker.update_function_config(function_description.__hash__(), config)
                     return True, config
                 except:
                     return False, {}
@@ -264,7 +266,7 @@ class FunctionModeler(object):
             pass
     
     def _update_config_file(self, func_hash):
-        self.data_worker._update_function_config(func_hash, self.function_configs[func_hash])
+        self.data_worker.update_function_config(func_hash, self.function_configs[func_hash])
 
 
     def check_for_finetuning(self, function_description, func_hash):

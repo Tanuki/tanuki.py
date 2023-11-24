@@ -18,7 +18,7 @@ from monkey_patch.models.function_description import FunctionDescription
 from monkey_patch.models.function_example import FunctionExample
 from monkey_patch.register import Register
 from monkey_patch.repair import repair_output
-from monkey_patch.trackers.buffered_logger import BufferedLogger
+from monkey_patch.trackers.filesystem_buffered_logger import FilesystemBufferedLogger
 from monkey_patch.utils import get_key
 from monkey_patch.validator import Validator
 
@@ -53,7 +53,7 @@ def _log_align(self, func_hash, *args, **kws):
 
 # Set up logging with custom logger
 def logger_factory(name):
-    return BufferedLogger(name)
+    return FilesystemBufferedLogger(name)
 
 
 ALIGN_LEVEL_NUM = 15
@@ -65,7 +65,7 @@ alignable_functions = {}
 
 class Monkey:
     # Set up basic configuration
-    logging.setLoggerClass(BufferedLogger)
+    logging.setLoggerClass(FilesystemBufferedLogger)
     logging.addLevelName(ALIGN_LEVEL_NUM, "ALIGN")
     logging.addLevelName(PATCH_LEVEL_NUM, "PATCH")
     logging.basicConfig(level=ALIGN_LEVEL_NUM)
@@ -85,7 +85,10 @@ class Monkey:
         Post anonymously to the usage server so we know what configs are commonly used in the project.
         :return:
         """
-        requests.post('https://idhhnusnhkkjkpwkm1fr.monkeypatch.ai/telemetry', data=json.dumps(kwargs))
+        try:
+            requests.post('https://idhhnusnhkkjkpwkm1fr.monkeypatch.ai/telemetry', data=json.dumps(kwargs))
+        except:
+            pass
 
     @staticmethod
     def align(test_func):
@@ -154,14 +157,15 @@ class Monkey:
 
                 return mock_func
 
-            function_names_to_patch = Register.function_names_to_patch()
 
             # Identify all functions that need to be patched based on mock_behaviors
             if instance:
+                function_names_to_patch = Register.function_names_to_patch(instance)
                 functions_descriptions = [Register.load_function_description_from_name(instance, func_name)
                                           for func_name in function_names_to_patch]
 
             else:
+                function_names_to_patch = Register.function_names_to_patch()
                 functions_descriptions = [Register.load_function_description_from_name(func_name)
                                           for func_name in function_names_to_patch]
 
