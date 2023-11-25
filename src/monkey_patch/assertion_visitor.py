@@ -18,7 +18,15 @@ class AssertionVisitor(ast.NodeVisitor):
                  patch_symbolic_funcs: Dict[str, Callable] = {},
                  patch_embeddable_funcs: Dict[str, Callable] = {},
                  wrapper_alias='test_func'):
+
+        # This is for storing positive asserts for both embeddable and symbolic functions, i.e where the outputs should
+        # be the same.
         self.mocks = {}  # {args: output}
+
+        # This is for storing negative asserts for embeddable functions, i.e functions that should be embedded
+        # away from each other in the latent space.
+        self.negative_mocks = {}  # {args: args}
+
         self.scopes = [{}]  # Stack of scopes to mimic variable scope in code
         self.imported_modules = {}  # keys are module names, values are the actual modules
         self.patch_symbolic_names = list(patch_symbolic_funcs.keys())  # names of symbolic functions to patch
@@ -146,6 +154,10 @@ class AssertionVisitor(ast.NodeVisitor):
         if self.is_embeddable_function_call(left) and self.is_embeddable_function_call(right):
             # Both sides are patched embeddable functions
             self.process_assert_helper_both_sides_embeddable(left, right, iter_name, op)
+        elif self.is_embeddable_function_call(left) and not self.is_embeddable_function_call(right):
+            raise ValueError("Cannot compare patched embeddable function with non-patched embeddable function")
+        elif not self.is_embeddable_function_call(left) and self.is_embeddable_function_call(right):
+            raise ValueError("Cannot compare non-patched embeddable function with patched embeddable function")
         else:
             # Only equality operators make sense when dealing with symbolic functions.
             # e.g Telling an LLM that a function should not yield X is not meaningful
@@ -166,6 +178,10 @@ class AssertionVisitor(ast.NodeVisitor):
                     self.process_assert_helper_lr(right, left, iter_name, op)
 
     def process_assert_helper_both_sides_embeddable(self, left, right, iter_name=None, op=None):
+
+        if left.func.attr != right.func.attr:
+            raise ValueError(f"Cannot compare two different patched embeddable functions: {left} and {right}")
+
         left_args, left_kwargs = self.extract_args(left, iter_name)
         right_args, right_kwargs = self.extract_args(right, iter_name)
 
@@ -174,13 +190,25 @@ class AssertionVisitor(ast.NodeVisitor):
 
         if isinstance(op, ast.Eq):
             # For equality, both sides should produce the same mock value
-            mock_value = self.generate_mock_embedding()
-            self.mocks[left_key] = mock_value
-            self.mocks[right_key] = mock_value
+            if left_key in self.mocks:
+                self.mocks[right_key] = self.mocks[left_key]
+            elif right_key in self.mocks:
+                self.mocks[left_key] = self.mocks[right_key]
+            else:
+                mock_value = self.generate_mock_embedding()
+                self.mocks[left_key] = mock_value
+                self.mocks[right_key] = mock_value
         elif isinstance(op, ast.NotEq):
             # For inequality, ensure different mock values
-            self.mocks[left_key] = self.generate_mock_embedding()
-            self.mocks[right_key] = self.generate_mock_embedding()
+            if left_key in self.mocks:
+                self.mocks[right_key] = self.generate_mock_embedding()
+            elif right_key in self.mocks:
+                self.mocks[left_key] = self.generate_mock_embedding()
+            else:
+                self.mocks[left_key] = self.generate_mock_embedding()
+                self.mocks[right_key] = self.generate_mock_embedding()
+
+            self.negative_mocks[left_key] = right_key
 
     def generate_mock_embedding(self):
         # Method to generate a unique mock value

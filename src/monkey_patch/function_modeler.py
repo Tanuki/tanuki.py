@@ -23,7 +23,6 @@ class FunctionModeler(object):
         self.check_finetune_blacklist = []
         self.execute_finetune_blacklist = []
         self.store_data_blacklist = []
-    
 
     def _get_dataset_info(self, dataset_type, func_hash, type = "length"):
         """
@@ -37,7 +36,33 @@ class FunctionModeler(object):
         """
         self.dataset_sizes = self.data_worker._load_existing_datasets()
 
-    def save_align_statements(self, function_hash, args, kwargs, output):
+    def save_embeddable_align_statements(self,
+                                         function_hash: str,
+                                         args,
+                                         kwargs,
+                                         positive_pairs,
+                                         negative_pairs):
+        """
+        Save the contrastive align statements for the embeddable function.
+        Do not save if the function hash is in the store data blacklist
+
+        Args:
+            function_hash: A unique hash for the function
+            args: The arguments of the function
+            kwargs: The keyword arguments of the function
+            positive_pairs: A list of the other function invocations that are should have equivalent embeddings
+            negative_pairs: A list of the other function invocations that are should have different embeddings
+        """
+        pass
+
+    def _save_contrastive_pair(self, function_hash, args, kwargs, pair, positive = True):
+        """
+        Save a contrastive pair
+        """
+        pass
+
+
+    def save_symbolic_align_statements(self, function_hash, args, kwargs, output):
         """
         Save the align statements and add to the align buffer
         Do not save if the function hash is in the store data blacklist

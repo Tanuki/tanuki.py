@@ -115,7 +115,12 @@ class Monkey:
                                        patch_symbolic_funcs=patch_symbolic_funcs,
                                        patch_embeddable_funcs=patch_embeddable_funcs)
             visitor.visit(tree)
+
+            # Get the mocked behaviours from analyzing the AST of the aligned function
             mock_behaviors = visitor.mocks
+
+            # Negative examples (i.e. embeddable function examples that should have maximum distance in the embedding space)
+            mock_negatives = visitor.negative_mocks
 
             if args:
                 instance = args[0]
@@ -150,8 +155,22 @@ class Monkey:
                     # as it is nonsensical to declare that an embedding should 'be' an object or a string, etc.
                     if function_type == FunctionType.EMBEDDABLE:
                         key = get_key(args, kwargs)
-                        mocked_behaviour = mock_behaviors.get(key, None)
-                        return mocked_behaviour
+                        mocked_embedding = mock_behaviors.get(key, None)
+
+                        # Find positive examples by matching the mocked embedding with identical embeddings in the values
+                        # of the mock_behaviors dictionary
+                        mock_positives_list = []
+                        for k, v in mock_behaviors.items():
+                            if v == mocked_embedding and k != key:
+                                mock_positives_list.append(k)
+                        equivalent_mocks = mock_positives_list
+                        negative_mocks = list(mock_negatives.values())
+                        Monkey.function_modeler.save_embeddable_align_statements(hashed_description,
+                                                                                 args,
+                                                                                 kwargs,
+                                                                                 equivalent_mocks,
+                                                                                 negative_mocks)
+                        return mocked_embedding
                     else:
                         # If we are aligning a function that returns an object
                         if not instance:
@@ -168,7 +187,8 @@ class Monkey:
 
                         key = get_key(args, kwargs)
                         mocked_behaviour = mock_behaviors.get(key, None)
-                        Monkey.function_modeler.save_align_statements(hashed_description, args, kwargs, mocked_behaviour)
+                        Monkey.function_modeler.save_symbolic_align_statements(hashed_description, args, kwargs,
+                                                                               mocked_behaviour)
                         return mocked_behaviour
 
                 return mock_func
