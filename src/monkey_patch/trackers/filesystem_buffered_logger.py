@@ -27,6 +27,7 @@ class FilesystemBufferedLogger(ABCBufferedLogger):
         return FileSystemBloomFilterPersistence(log_directory=self.log_directory)
 
     def get_patch_location_for_function(self, func_hash, extension: Union[ALIGN_FILE_EXTENSION_TYPE, PATCH_FILE_EXTENSION_TYPE] = "") -> str:
+
         """
         Get the local location of the function patch file.
         :param func_hash: The representation of the function

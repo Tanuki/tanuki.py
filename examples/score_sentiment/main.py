@@ -1,5 +1,7 @@
 from pydantic import Field
 from typing import Annotated
+from dotenv import load_dotenv
+load_dotenv()
 from monkey_patch.monkey import Monkey as monkey
 
 @monkey.patch

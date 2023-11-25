@@ -229,7 +229,7 @@ class ABCBufferedLogger(DatasetWorker):
                     pass
         return written_datapoints
 
-    def _load_function_config(self, func_hash):
+    def load_function_config(self, func_hash):
 
         """
         Get the config file for the function. Uses the message and log directory
