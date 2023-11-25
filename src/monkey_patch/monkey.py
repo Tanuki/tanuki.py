@@ -18,6 +18,7 @@ from monkey_patch.language_models.language_model_manager import LanguageModelMan
 from monkey_patch.models.embedding import Embedding
 from monkey_patch.models.function_description import FunctionDescription
 from monkey_patch.models.function_example import FunctionExample
+from monkey_patch.models.function_type import FunctionType
 from monkey_patch.register import Register
 from monkey_patch.trackers.buffered_logger import BufferedLogger
 from monkey_patch.utils import get_key
@@ -105,7 +106,14 @@ class Monkey:
             source = textwrap.dedent(inspect.getsource(test_func))
             tree = ast.parse(source)
             _locals = locals()
-            visitor = AssertionVisitor(_locals, patch_names=Register.function_names_to_patch())
+
+            # We are handling symbolic and embeddable functions differently, as they have different semantics during
+            # the alignment process.
+            patch_symbolic_funcs = Register.functions_to_patch(type=FunctionType.SYMBOLIC)
+            patch_embeddable_funcs = Register.functions_to_patch(type=FunctionType.EMBEDDABLE)
+            visitor = AssertionVisitor(_locals,
+                                       patch_symbolic_funcs=patch_symbolic_funcs,
+                                       patch_embeddable_funcs=patch_embeddable_funcs)
             visitor.visit(tree)
             mock_behaviors = visitor.mocks
 
@@ -135,23 +143,33 @@ class Monkey:
                 def mock_func(*args, **kwargs):
                     hashed_description = description.__hash__()
 
-                    func = Register.get(func_name)
-                    if not instance:
-                        result = func(*args, **kwargs)
+                    function_type, func = Register.get(func_name)
+
+                    # If we are aligning a function that returns an embedding,
+                    # we need to ensure both sides of the equality are future embeddings,
+                    # as it is nonsensical to declare that an embedding should 'be' an object or a string, etc.
+                    if function_type == FunctionType.EMBEDDABLE:
+                        key = get_key(args, kwargs)
+                        mocked_behaviour = mock_behaviors.get(key, None)
+                        return mocked_behaviour
                     else:
-                        result = func(instance, *args, **kwargs)
+                        # If we are aligning a function that returns an object
+                        if not instance:
+                            result = func(*args, **kwargs)
+                        else:
+                            result = func(instance, *args, **kwargs)
 
-                    # Extract attributes from the result
-                    attributes = extract_attributes(result)
-                    for attr_name, attr_value in attributes.items():
-                        # If the attribute is a list, get its length
-                        if isinstance(attr_value, list):
-                            attributes[attr_name] = len(attr_value)
+                        # Extract attributes from the result
+                        attributes = extract_attributes(result)
+                        for attr_name, attr_value in attributes.items():
+                            # If the attribute is a list, get its length
+                            if isinstance(attr_value, list):
+                                attributes[attr_name] = len(attr_value)
 
-                    key = get_key(args, kwargs)
-                    mocked_behaviour = mock_behaviors.get(key, None)
-                    Monkey.function_modeler.save_align_statements(hashed_description, args, kwargs, mocked_behaviour)
-                    return mocked_behaviour
+                        key = get_key(args, kwargs)
+                        mocked_behaviour = mock_behaviors.get(key, None)
+                        Monkey.function_modeler.save_align_statements(hashed_description, args, kwargs, mocked_behaviour)
+                        return mocked_behaviour
 
                 return mock_func
 
@@ -161,7 +179,6 @@ class Monkey:
             if instance:
                 functions_descriptions = [Register.load_function_description_from_name(instance, func_name)
                                           for func_name in function_names_to_patch]
-
             else:
                 functions_descriptions = [Register.load_function_description_from_name(func_name)
                                           for func_name in function_names_to_patch]
@@ -249,7 +266,7 @@ class Monkey:
             Monkey._load_alignments(func_hash)
 
             wrapper._is_alignable = True
-            Register.add_function(test_func, wrapper)
+            Register.add_function(test_func, function_description)
             return wrapper
 
         if callable(patchable_func):

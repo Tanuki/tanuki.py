@@ -21,6 +21,23 @@ class TestEmbedding(TestCase):
         Determine if the inputs are positive or negative sentiment, or None
         """
 
+    @monkey.align
+    def align_embed_sentiment(self) -> None:
+        """
+        Align some embed_sentiment functions
+        """
+        # We try to push these embeddings apart
+        assert self.embed_sentiment("I love this movie") != self.embed_sentiment("I hate this movie")
+
+        # And push these embeddings together
+        assert self.embed_sentiment("I love this movie") == self.embed_sentiment("I love this film")
+
+    @monkey.align
+    def broken_align_embed_sentiment(self) -> None:
+        # This should break, because the embedding function 'embed_sentiment' must be compared to another embedding
+        # function.
+        assert self.embed_sentiment("I love this movie") == "I hate this movie"
+
     def test_data_type(self):
         # Test with np.ndarray
         embedding_array = Embedding[np.ndarray]([0, 2, 4])
@@ -41,6 +58,9 @@ class TestEmbedding(TestCase):
         transposed = embedding.T
         assert isinstance(embedding, Embedding)
         assert isinstance(transposed, np.ndarray)
+
+    def test_align(self):
+        self.align_embed_sentiment()
 
 if __name__ == '__main__':
     unittest.main()

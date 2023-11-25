@@ -1,8 +1,9 @@
 import ast
 import builtins
 import sys
+import uuid
 from _ast import NotEq, NotIn, IsNot, In
-from typing import Optional, List
+from typing import Optional, List, Dict, Callable
 
 from monkey_patch.utils import get_key
 
@@ -12,11 +13,19 @@ class Or(list):
 
 
 class AssertionVisitor(ast.NodeVisitor):
-    def __init__(self, scope: Optional[dict] = None, patch_names: List[str] = [], wrapper_alias='test_func'):
+    def __init__(self,
+                 scope: Optional[dict] = None,
+                 patch_symbolic_funcs: Dict[str, Callable] = {},
+                 patch_embeddable_funcs: Dict[str, Callable] = {},
+                 wrapper_alias='test_func'):
         self.mocks = {}  # {args: output}
         self.scopes = [{}]  # Stack of scopes to mimic variable scope in code
         self.imported_modules = {}  # keys are module names, values are the actual modules
-        self.patch_names = patch_names  # names of functions to patch
+        self.patch_symbolic_names = list(patch_symbolic_funcs.keys())  # names of symbolic functions to patch
+        self.patch_symbolic_funcs = patch_symbolic_funcs  # symbolic functions to patch
+        self.patch_embeddable_names = list(patch_embeddable_funcs.keys())  # names of embeddable functions to patch
+        self.patch_embeddable_funcs = patch_embeddable_funcs  # embeddable functions to patch
+
         if scope:
             self.local_scope = scope
 
@@ -86,9 +95,6 @@ class AssertionVisitor(ast.NodeVisitor):
         left = node.test.left
         right = node.test.comparators[0]
 
-        if isinstance(node.test.ops[0], (NotEq, NotIn, IsNot)):
-            return
-
         if iter_name:
             for input_val in evaluated_expr:
                 self.scopes.append({iter_name: input_val})
@@ -122,17 +128,72 @@ class AssertionVisitor(ast.NodeVisitor):
                 self.scopes.pop()
 
     def process_assert_helper(self, left, right, iter_name=None, op=None):
-        if isinstance(left, ast.Call):
-            if isinstance(left.func, ast.Name) and left.func.id in self.patch_names:
-                self.process_assert_helper_lr(left, right, iter_name, op)
-            elif isinstance(left.func, ast.Attribute) and left.func.attr in self.patch_names:
-                self.process_assert_helper_lr(left, right, iter_name, op)
+        """
+        This is a helper function for processing asserts. It is low-level and is called by higher-level functions
+        that analyze the AST of the aligned function.
 
-        elif isinstance(right, ast.Call):
-            if isinstance(right.func, ast.Name) and right.func.id in self.patch_names:
-                self.process_assert_helper_lr(right, left, iter_name, op)
-            elif isinstance(right.func, ast.Attribute) and right.func.attr in self.patch_names:
-                self.process_assert_helper_lr(right, left, iter_name, op)
+        It handles the case where both sides of the assert statement are patched embedding functions: where we need to
+        do special mocking.
+
+        It also handles the case where the left side of the assert statement is a patched symbolic function.
+
+        Args:
+            left: The expression on the left of an assert statement
+            right: The expression on the right of an assert statement
+            iter_name: The name of the iterator variable (if any)
+            op: The operator used in the assert statement (e.g. ast.Eq() for '==')
+        """
+        if self.is_embeddable_function_call(left) and self.is_embeddable_function_call(right):
+            # Both sides are patched embeddable functions
+            self.process_assert_helper_both_sides_embeddable(left, right, iter_name, op)
+        else:
+            # Only equality operators make sense when dealing with symbolic functions.
+            # e.g Telling an LLM that a function should not yield X is not meaningful
+            # (as the set of possible outputs is infinite)
+            if isinstance(op, (NotEq, NotIn, IsNot)):
+                return
+
+            if isinstance(left, ast.Call):
+                if isinstance(left.func, ast.Name) and left.func.id in self.patch_symbolic_names:
+                    self.process_assert_helper_lr(left, right, iter_name, op)
+                elif isinstance(left.func, ast.Attribute) and left.func.attr in self.patch_symbolic_names:
+                    self.process_assert_helper_lr(left, right, iter_name, op)
+
+            elif isinstance(right, ast.Call):
+                if isinstance(right.func, ast.Name) and right.func.id in self.patch_symbolic_names:
+                    self.process_assert_helper_lr(right, left, iter_name, op)
+                elif isinstance(right.func, ast.Attribute) and right.func.attr in self.patch_symbolic_names:
+                    self.process_assert_helper_lr(right, left, iter_name, op)
+
+    def process_assert_helper_both_sides_embeddable(self, left, right, iter_name=None, op=None):
+        left_args, left_kwargs = self.extract_args(left, iter_name)
+        right_args, right_kwargs = self.extract_args(right, iter_name)
+
+        left_key = get_key(left_args, left_kwargs)
+        right_key = get_key(right_args, right_kwargs)
+
+        if isinstance(op, ast.Eq):
+            # For equality, both sides should produce the same mock value
+            mock_value = self.generate_mock_embedding()
+            self.mocks[left_key] = mock_value
+            self.mocks[right_key] = mock_value
+        elif isinstance(op, ast.NotEq):
+            # For inequality, ensure different mock values
+            self.mocks[left_key] = self.generate_mock_embedding()
+            self.mocks[right_key] = self.generate_mock_embedding()
+
+    def generate_mock_embedding(self):
+        # Method to generate a unique mock value
+        return f"MockEmbedding_{uuid.uuid4()}"
+
+    def is_embeddable_function_call(self, node):
+        # Helper method to determine if a node is a call to a patched function
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name) and node.func.id in self.patch_embeddable_funcs:
+                return True
+            elif isinstance(node.func, ast.Attribute) and node.func.attr in self.patch_embeddable_funcs:
+                return True
+        return False
 
     def process_assert_helper_lr(self, left, right, iter_name=None, op=None):
         input_args, input_kwargs = self.extract_args(left, iter_name)
@@ -278,6 +339,18 @@ class AssertionVisitor(ast.NodeVisitor):
                 _function_globals = self.local_scope[self.wrapper_alias].__globals__ if self.wrapper_alias in self.local_scope else {}
                 if isinstance(node.func.value, ast.Name):
                     module_or_class_name = node.func.value.id
+
+                    if module_or_class_name == 'self':
+                        # Handling methods called on 'self'
+                        args = eval_args(node.args, scope)
+                        kwargs = eval_kwargs(node.keywords, scope)
+                        patched_func_scope = self.patch_symbolic_funcs[func_name]
+                        #method = getattr(scope['self'], func_name, None)
+                        if patched_func_scope:
+                            return self.instantiate(patched_func_scope, *args, **kwargs)
+                        else:
+                            raise NotImplementedError(f"Method {func_name} not found in class")
+
                     # Check if module_or_class_name is an imported module
                     if module_or_class_name in self.imported_modules:
                         obj = self.imported_modules[module_or_class_name]

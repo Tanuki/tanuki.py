@@ -1,10 +1,12 @@
 import inspect
-from typing import get_type_hints, Literal, get_origin
+from typing import get_type_hints, Literal, get_origin, Tuple, Callable, Optional
 
 from monkey_patch.models.embedding import Embedding
 from monkey_patch.models.function_description import FunctionDescription
+from monkey_patch.models.function_type import FunctionType
 
-alignable_functions = {}
+alignable_symbolic_functions = {}
+alignable_embedding_functions = {}
 
 
 class Register:
@@ -13,18 +15,38 @@ class Register:
         pass
 
     @staticmethod
-    def get(func_name):
-        if func_name not in alignable_functions:
+    def get(func_name) -> Tuple[FunctionType, Callable]:
+        if func_name not in alignable_symbolic_functions and func_name not in alignable_embedding_functions:
             pass
-        return alignable_functions[func_name]
+
+        if func_name in alignable_symbolic_functions:
+            return FunctionType.SYMBOLIC, alignable_symbolic_functions[func_name]
+        elif func_name in alignable_embedding_functions:
+            return FunctionType.EMBEDDABLE, alignable_embedding_functions[func_name]
+
 
     @staticmethod
-    def function_names_to_patch():
-        return list(alignable_functions.keys())
+    def function_names_to_patch(type: Optional[FunctionType] = None):
+        if type == FunctionType.SYMBOLIC:
+            return list(alignable_symbolic_functions.keys())
+        elif type == FunctionType.EMBEDDABLE:
+            return list(alignable_embedding_functions.keys())
+        else:
+            return list(alignable_symbolic_functions.keys()) + list(alignable_embedding_functions.keys())
 
     @staticmethod
-    def add_function(func, wrapper):
-        alignable_functions[func.__name__] = func  # wrapper
+    def functions_to_patch(type: FunctionType = FunctionType.SYMBOLIC):
+        if type == FunctionType.SYMBOLIC:
+            return alignable_symbolic_functions
+        elif type == FunctionType.EMBEDDABLE:
+            return alignable_embedding_functions
+
+    @staticmethod
+    def add_function(func, function_description: FunctionDescription):
+        if function_description.type == FunctionType.SYMBOLIC:
+            alignable_symbolic_functions[func.__name__] = func
+        elif function_description.type == FunctionType.EMBEDDABLE:
+            alignable_embedding_functions[func.__name__] = func
 
     @staticmethod
     def load_function_description_from_name(*args) -> FunctionDescription:
@@ -43,7 +65,10 @@ class Register:
             raise ValueError("Invalid number of arguments")
 
         if not instance:
-            func_object = alignable_functions[func_name]
+            if func_name in alignable_symbolic_functions:
+                func_object = alignable_symbolic_functions[func_name]
+            elif func_name in alignable_embedding_functions:
+                func_object = alignable_embedding_functions[func_name]
         else:
             func_object = getattr(instance, func_name)
 
@@ -88,11 +113,13 @@ class Register:
         # else:
         #     output_class_definition = get_class_definition(output_type_hint)
         output_class_definition = None
+        function_type = FunctionType.SYMBOLIC
         if inspect.isclass(output_type_hint):
             # Check if the base class of the output type hint is Embedding
             base_class = get_origin(output_type_hint) or output_type_hint
             if issubclass(base_class, Embedding):
                 output_class_definition = None
+                function_type = FunctionType.EMBEDDABLE
             else:
                 output_class_definition = get_class_definition(output_type_hint)
 
@@ -102,5 +129,6 @@ class Register:
             input_type_hints=input_type_hints,
             output_type_hint=output_type_hint,
             input_class_definitions=input_class_definitions,
-            output_class_definition=output_class_definition
+            output_class_definition=output_class_definition,
+            type=function_type
         )
