@@ -3,23 +3,25 @@ from abc import abstractmethod
 from typing import Dict, Any, Literal
 
 from monkey_patch.bloom_filter import BloomFilter
+from monkey_patch.constants import EXPECTED_ITEMS, FALSE_POSITIVE_RATE, ALIGN_FILE_EXTENSION, \
+    POSITIVE_FILE_EXTENSION, NEGATIVE_FILE_EXTENSION, PATCH_FILE_EXTENSION
 from monkey_patch.persistence.filter.bloom_interface import IBloomFilterPersistence
 from monkey_patch.trackers.dataset_worker import DatasetWorker
 
-PATCH_FILE_EXTENSION_TYPE = Literal[".patches"]
-ALIGN_FILE_EXTENSION_TYPE = Literal[".alignments"]
-POSITIVE_EMBEDDING_FILE_EXTENSION_TYPE = Literal[".positive_embedding"]
-NEGATIVE_EMBEDDING_FILE_EXTENSION_TYPE = Literal[".negative_embedding"]
-
-PATCH_FILE_EXTENSION: PATCH_FILE_EXTENSION_TYPE = ".patches"
-ALIGN_FILE_EXTENSION: ALIGN_FILE_EXTENSION_TYPE = ".alignments"
-POSITIVE_EMBEDDING_FILE_EXTENSION: POSITIVE_EMBEDDING_FILE_EXTENSION_TYPE = ".contrastive_positives"
-NEGATIVE_EMBEDDING_FILE_EXTENSION: NEGATIVE_EMBEDDING_FILE_EXTENSION_TYPE = ".contrastive_negatives"
-
-EXPECTED_ITEMS = 10000
-FALSE_POSITIVE_RATE = 0.01
-LIB_NAME = "monkey-patch"
-ENVVAR = "MONKEY_PATCH_LOG_DIR"
+# PATCH_FILE_EXTENSION_TYPE = Literal[".patches"]
+# ALIGN_FILE_EXTENSION_TYPE = Literal[".alignments"]
+# POSITIVE_EMBEDDING_FILE_EXTENSION_TYPE = Literal[".positive_embedding"]
+# NEGATIVE_EMBEDDING_FILE_EXTENSION_TYPE = Literal[".negative_embedding"]
+#
+# PATCH_FILE_EXTENSION: PATCH_FILE_EXTENSION_TYPE = ".patches"
+# ALIGN_FILE_EXTENSION: ALIGN_FILE_EXTENSION_TYPE = ".alignments"
+# POSITIVE_EMBEDDING_FILE_EXTENSION: POSITIVE_EMBEDDING_FILE_EXTENSION_TYPE = ".contrastive_positives"
+# NEGATIVE_EMBEDDING_FILE_EXTENSION: NEGATIVE_EMBEDDING_FILE_EXTENSION_TYPE = ".contrastive_negatives"
+#
+# EXPECTED_ITEMS = 10000
+# FALSE_POSITIVE_RATE = 0.01
+# LIB_NAME = "monkey-patch"
+# ENVVAR = "MONKEY_PATCH_LOG_DIR"
 
 
 class ABCBufferedLogger(DatasetWorker):
@@ -44,7 +46,6 @@ class ABCBufferedLogger(DatasetWorker):
                                         "current_training_run": {},
                                         "teacher_models": ["gpt-4", "gpt-4-32k"],  # currently supported teacher models
                                         "nr_of_training_runs": 0}
-
 
     @abstractmethod
     def get_bloom_filter_persistence(self) -> IBloomFilterPersistence:
@@ -120,11 +121,11 @@ class ABCBufferedLogger(DatasetWorker):
         except Exception as e:
             return False
 
-    def write_embeddable_align_call(self, func_hash, example, positive = True) -> bool:
+    def write_embeddable_align_call(self, func_hash, example, positive=True) -> bool:
         if positive:
-            log_file_path = self.get_patch_location_for_function(func_hash, extension=POSITIVE_EMBEDDING_FILE_EXTENSION)
+            log_file_path = self.get_patch_location_for_function(func_hash, extension=POSITIVE_FILE_EXTENSION)
         else:
-            log_file_path = self.get_patch_location_for_function(func_hash, extension=NEGATIVE_EMBEDDING_FILE_EXTENSION)
+            log_file_path = self.get_patch_location_for_function(func_hash, extension=NEGATIVE_FILE_EXTENSION)
 
         try:
             # Now, write to the file
@@ -134,7 +135,7 @@ class ABCBufferedLogger(DatasetWorker):
         except Exception as e:
             return False
 
-    def log_embeddable_align(self, func_hash, example, positive = True, **kws):
+    def log_embeddable_align(self, func_hash, example, positive=True, **kws):
         """
         Log a contrastive function invocation
         Args:
@@ -191,7 +192,7 @@ class ABCBufferedLogger(DatasetWorker):
         successfully_saved = self.write_symbolic_align_call(func_hash, example)
         return successfully_saved, new_datapoint
 
-    def log_patch(self, func_hash, example):
+    def log_symbolic_patch(self, func_hash, example):
         """
         Log a patched function invocation to the file system
         :param func_hash: A string representation of the function signature and input parameters

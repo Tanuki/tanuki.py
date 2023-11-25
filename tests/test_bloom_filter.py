@@ -25,7 +25,7 @@ def test_add():
         random_string = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(30))
         before_bit_array = logger.bloom_filter.bit_array.copy()
 
-        logger.log_patch(f"test_{random_string}", example)
+        logger.log_symbolic_patch(f"test_{random_string}", example)
 
         after_bit_array = logger.bloom_filter.bit_array
         is_same = before_bit_array == after_bit_array
@@ -203,7 +203,7 @@ def test_multiple_loggers():
         logger_1 = FilesystemBufferedLogger("test")
         # generate a random string of length 10
         random_string = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(30))
-        logger_1.log_patch(f"test_{random_string}", example)
+        logger_1.log_symbolic_patch(f"test_{random_string}", example)
         logger_2 = FilesystemBufferedLogger("test")
         looked_up = logger_2.bloom_filter.lookup(f"test_{random_string}_" + example_data.decode('utf-8'))
         if not looked_up:

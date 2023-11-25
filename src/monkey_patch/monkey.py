@@ -112,6 +112,7 @@ class Monkey:
 
             # We are handling symbolic and embeddable functions differently, as they have different semantics during
             # the alignment process.
+
             patch_symbolic_funcs = Register.functions_to_patch(type=FunctionType.SYMBOLIC)
             patch_embeddable_funcs = Register.functions_to_patch(type=FunctionType.EMBEDDABLE)
             visitor = AssertionVisitor(_locals,
@@ -199,11 +200,11 @@ class Monkey:
 
             # Identify all functions that need to be patched based on mock_behaviors
             if instance:
-                function_names_to_patch = Register.function_names_to_patch(instance, type=FunctionType.SYMBOLIC)
+                function_names_to_patch = Register.function_names_to_patch(instance)#, type=FunctionType.SYMBOLIC)
                 functions_descriptions = [Register.load_function_description_from_name(instance, func_name)
                                           for func_name in function_names_to_patch]
             else:
-                function_names_to_patch = Register.function_names_to_patch(type=FunctionType.SYMBOLIC)
+                function_names_to_patch = Register.function_names_to_patch()#type=FunctionType.SYMBOLIC)
                 functions_descriptions = [Register.load_function_description_from_name(func_name)
                                           for func_name in function_names_to_patch]
 

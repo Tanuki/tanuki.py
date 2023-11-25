@@ -45,7 +45,7 @@ def test_patch_one_function_many_times():
         example = FunctionExample((i,), {}, i * 2)
         before_bit_array = logger.bloom_filter.bit_array.copy()
 
-        logger.log_patch("test", example)
+        logger.log_symbolic_patch("test", example)
 
         after_bit_array = logger.bloom_filter.bit_array
         is_same = before_bit_array == after_bit_array
@@ -62,7 +62,7 @@ def test_patch_one_function_many_times():
     for i in range(runs):
         example = FunctionExample((i,), {}, i * 2)
 
-        logger.log_patch("test", example)
+        logger.log_symbolic_patch("test", example)
 
         after_bit_array = logger.bloom_filter.bit_array
         #is_same = before_bit_array == after_bit_array

@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import math
 
 import numpy as np
@@ -30,10 +31,14 @@ class BloomFilter:
 
         self.size = size
         self.hash_count = hash_count
-        self.bit_array = bitarray(size)
-        self.bit_array.setall(0)
-        self.indices = np.zeros(size, dtype=np.int32)
+        self.bit_array, self.indices = self.init_bit_array(size)
         self.persistence = persistence
+
+    def init_bit_array(self, size):
+        _bit_array = bitarray(size)
+        _bit_array.setall(0)
+        _indices = np.zeros(size, dtype=np.int32)
+        return _bit_array, _indices
 
     def hash_functions(self, string):
         # h1(x)
@@ -64,6 +69,13 @@ class BloomFilter:
 
     def load(self):
         self.persistence.load(self)
+
+        if len(self.bit_array) != self.size:
+            logging.warning("Bit array length does not match expected size, and so might be corrupted. Reinitializing.")
+            self.bit_array, self.indices = self.init_bit_array(self.size)
+            self.save()
+
+
 
     @staticmethod
     def optimal_bloom_filter_params(n, p):

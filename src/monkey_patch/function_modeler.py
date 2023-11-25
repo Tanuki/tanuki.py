@@ -6,20 +6,21 @@ from typing import List, Tuple, Dict
 
 import openai
 
+from monkey_patch.constants import EXAMPLE_ELEMENT_LIMIT, PATCHES, SYMBOLIC_ALIGNMENTS, POSITIVE_EMBEDDABLE_ALIGNMENTS, \
+    NEGATIVE_EMBEDDABLE_ALIGNMENTS
 from monkey_patch.models.function_description import FunctionDescription
 from monkey_patch.models.function_example import FunctionExample
 from monkey_patch.trackers.dataset_worker import DatasetWorker
 from monkey_patch.utils import approximate_token_count, prepare_object_for_saving, encode_int, decode_int
 import copy
 
-EXAMPLE_ELEMENT_LIMIT = 1000
-PATCHES = "patches"
-ALIGNMENTS = "alignments"
-CONTRASTIVE_POSITIVE = "contrastive_positive"
-CONTRASTIVE_NEGATIVE = "contrastive_negative"
-
 
 class FunctionModeler(object):
+    """
+    This class manages the registered function models and their datasets
+    comprised of symbolic and embeddable alignments, and symbolic and embeddable patches
+    """
+
     def __init__(self, data_worker: DatasetWorker, environment_id=0) -> None:
         self.function_configs = {}
         self.data_worker = data_worker
@@ -83,11 +84,11 @@ class FunctionModeler(object):
 
         # save the contrastive pairs
         for pair in parsed_positive_pairs:
-            self._save_contrastive_pair(function_hash, parsed_args, parsed_kwargs, pair, positive=True)
+            self._save_contrastive_alignment_pair(function_hash, parsed_args, parsed_kwargs, pair, positive=True)
         for pair in parsed_negative_pairs:
-            self._save_contrastive_pair(function_hash, parsed_args, parsed_kwargs, pair, positive=False)
+            self._save_contrastive_alignment_pair(function_hash, parsed_args, parsed_kwargs, pair, positive=False)
 
-    def _save_contrastive_pair(self, function_hash, args, kwargs, pair, positive=True):
+    def _save_contrastive_alignment_pair(self, function_hash: str, args, kwargs, pair, positive=True):
         """
         Save a contrastive pair
         """
@@ -99,22 +100,21 @@ class FunctionModeler(object):
             new_datapoint = True
         if successfully_saved:
             if positive:
-                if function_hash in self.dataset_sizes[CONTRASTIVE_POSITIVE]:
-                    self.dataset_sizes[CONTRASTIVE_POSITIVE][function_hash] += 1
+                if function_hash in self.dataset_sizes[POSITIVE_EMBEDDABLE_ALIGNMENTS]:
+                    self.dataset_sizes[POSITIVE_EMBEDDABLE_ALIGNMENTS][function_hash] += 1
                 else:
-                    self.dataset_sizes[CONTRASTIVE_POSITIVE][function_hash] = 1
+                    self.dataset_sizes[POSITIVE_EMBEDDABLE_ALIGNMENTS][function_hash] = 1
             if not positive:
-                if function_hash in self.dataset_sizes[CONTRASTIVE_NEGATIVE]:
-                    self.dataset_sizes[CONTRASTIVE_NEGATIVE][function_hash] += 1
+                if function_hash in self.dataset_sizes[NEGATIVE_EMBEDDABLE_ALIGNMENTS]:
+                    self.dataset_sizes[NEGATIVE_EMBEDDABLE_ALIGNMENTS][function_hash] += 1
                 else:
-                    self.dataset_sizes[CONTRASTIVE_NEGATIVE][function_hash] = 1
+                    self.dataset_sizes[NEGATIVE_EMBEDDABLE_ALIGNMENTS][function_hash] = 1
 
         if new_datapoint:
             # update align buffer
             if function_hash not in self.embeddable_align_buffer:
                 self.embeddable_align_buffer[function_hash] = bytearray()
             self.embeddable_align_buffer[function_hash].extend(str(example.__dict__).encode('utf-8') + b'\r\n')
-
 
     def save_symbolic_align_statements(self, function_hash, args, kwargs, output):
         """
@@ -140,10 +140,10 @@ class FunctionModeler(object):
             successfully_saved = False
             new_datapoint = True
         if successfully_saved:
-            if function_hash in self.dataset_sizes[ALIGNMENTS]:
-                self.dataset_sizes[ALIGNMENTS][function_hash] += 1
+            if function_hash in self.dataset_sizes[SYMBOLIC_ALIGNMENTS]:
+                self.dataset_sizes[SYMBOLIC_ALIGNMENTS][function_hash] += 1
             else:
-                self.dataset_sizes[ALIGNMENTS][function_hash] = 1
+                self.dataset_sizes[SYMBOLIC_ALIGNMENTS][function_hash] = 1
 
         if new_datapoint:
             # update align buffer
@@ -151,16 +151,16 @@ class FunctionModeler(object):
                 self.symbolic_align_buffer[function_hash] = bytearray()
             self.symbolic_align_buffer[function_hash].extend(str(example.__dict__).encode('utf-8') + b'\r\n')
 
-    def save_datapoint(self, func_hash, example):
+    def save_symbolic_datapoint(self, func_hash, example):
         """
         Save datapoint to the training data
         """
-        written_datapoints = self.data_worker.log_patch(func_hash, example)
+        written_datapoints = self.data_worker.log_symbolic_patch(func_hash, example)
         for func_hash, datapoints in written_datapoints.items():
             if func_hash in self.dataset_sizes[PATCHES]:
                 # if the dataset size is -1, it means we havent read in the dataset size yet
                 if self.dataset_sizes[PATCHES][func_hash] == -1:
-                    self.dataset_sizes[PATCHES][func_hash] = self._get_dataset_info("patches", func_hash, type="length")
+                    self.dataset_sizes[PATCHES][func_hash] = self._get_dataset_info(PATCHES, func_hash, type="length")
                 else:
                     self.dataset_sizes[PATCHES][func_hash] += datapoints
             else:
@@ -169,13 +169,30 @@ class FunctionModeler(object):
 
     def get_symbolic_alignments(self, func_hash, max=20):
         """
-        Get all aligns for a function hash
+        Get all symbolic aligns for a function hash
         """
 
         if func_hash not in self.symbolic_align_buffer:
             return []
 
         buffer = self.symbolic_align_buffer[func_hash]
+        return self._get_examples_from_alignment_buffer(buffer, max)
+
+    def get_embeddable_alignments(self, func_hash, max=20):
+        """
+        Get all embeddable aligns for a function hash
+        """
+
+        if func_hash not in self.embeddable_align_buffer:
+            return []
+
+        buffer = self.embeddable_align_buffer[func_hash]
+        return self._get_examples_from_alignment_buffer(buffer, max)
+
+    def _get_examples_from_alignment_buffer(self, buffer, max=20):
+        """
+        Get examples from a buffer
+        """
 
         split_buffer = bytes(buffer).split(b"\n")
 
@@ -215,16 +232,16 @@ class FunctionModeler(object):
         if the func hash is in the blacklist, then set the dataset size to 0 and the align buffer to empty bytearray
         """
         if function_hash in self.store_data_blacklist:
-            self.dataset_sizes[ALIGNMENTS][function_hash] = 0
+            self.dataset_sizes[SYMBOLIC_ALIGNMENTS][function_hash] = 0
             self.symbolic_align_buffer[function_hash] = bytearray()
 
         elif function_hash not in self.symbolic_align_buffer:
-            dataset_size, align_dataset = self._get_dataset_info(ALIGNMENTS, function_hash, type="both")
+            dataset_size, align_dataset = self._get_dataset_info(SYMBOLIC_ALIGNMENTS, function_hash, type="both")
             if align_dataset:
                 self.symbolic_align_buffer[function_hash] = bytearray(align_dataset)
-            self.dataset_sizes[ALIGNMENTS][function_hash] = dataset_size
+            self.dataset_sizes[SYMBOLIC_ALIGNMENTS][function_hash] = dataset_size
 
-    def postprocess_datapoint(self, func_hash, function_description, example, repaired=True):
+    def postprocess_symbolic_datapoint(self, func_hash, function_description, example, repaired=True):
         """
         Postprocess the datapoint
         First check if the datapoint should be added to the training data
@@ -233,7 +250,7 @@ class FunctionModeler(object):
         """
         try:
             if func_hash not in self.store_data_blacklist:
-                added = self.save_datapoint(func_hash, example)
+                added = self.save_symbolic_datapoint(func_hash, example)
                 if added:
                     self._update_datapoint_config(repaired, func_hash)
         except Exception as e:
@@ -253,7 +270,6 @@ class FunctionModeler(object):
                 config = finetune_config
         self.function_configs[func_hash] = config
         return config
-
 
     def _check_for_finetunes(self, function_description: FunctionDescription) -> Tuple[bool, Dict]:
         # This here should be discussed, what's the bestd way to do it
@@ -376,15 +392,15 @@ class FunctionModeler(object):
     def _check_finetuning_condition(self, func_hash):
         """
         Check if the finetuning condition is met
-        Currently finetuning condition is dependent on the number of datapoints since last finetuning
+        Currently finetuning condition is dependent on the number of symbolic datapoints since last finetuning
         """
         if func_hash not in self.function_configs:
             return False
 
         training_threshold = (2 ** self.function_configs[func_hash]["nr_of_training_runs"]) * 200
 
-        align_dataset_size = self.dataset_sizes[ALIGNMENTS][func_hash] if func_hash in self.dataset_sizes[
-            ALIGNMENTS] else 0
+        align_dataset_size = self.dataset_sizes[SYMBOLIC_ALIGNMENTS][func_hash] if func_hash in self.dataset_sizes[
+            SYMBOLIC_ALIGNMENTS] else 0
         patch_dataset_size = self.dataset_sizes[PATCHES][func_hash] if func_hash in self.dataset_sizes[PATCHES] else 0
 
         if patch_dataset_size == -1:
@@ -405,7 +421,7 @@ class FunctionModeler(object):
         function_string = str(function_description.__dict__.__repr__() + "\n")
 
         # get the align dataset
-        align_dataset = self._get_dataset_info(ALIGNMENTS, func_hash, type="dataset")
+        align_dataset = self._get_dataset_info(SYMBOLIC_ALIGNMENTS, func_hash, type="dataset")
         if not align_dataset:
             align_dataset = ""
         else:
@@ -465,8 +481,8 @@ class FunctionModeler(object):
             return
 
         # here can be sure that datasets were read in as that is checked in the finetune_check
-        align_dataset_size = self.dataset_sizes[ALIGNMENTS][func_hash] if func_hash in self.dataset_sizes[
-            ALIGNMENTS] else 0
+        align_dataset_size = self.dataset_sizes[SYMBOLIC_ALIGNMENTS][func_hash] if func_hash in self.dataset_sizes[
+            SYMBOLIC_ALIGNMENTS] else 0
         patch_dataset_size = self.dataset_sizes[PATCHES][func_hash] if func_hash in self.dataset_sizes[PATCHES] else 0
         total_dataset_size = align_dataset_size + patch_dataset_size
         training_file_id = response["id"]

@@ -4,10 +4,10 @@ from typing import Literal, Union, Optional, Dict
 
 from appdirs import user_data_dir
 
+from monkey_patch.constants import *
 from monkey_patch.persistence.filter.bloom_interface import IBloomFilterPersistence
 from monkey_patch.persistence.filter.filesystem_bloom import FileSystemBloomFilterPersistence
-from monkey_patch.trackers.abc_buffered_logger import ABCBufferedLogger, ENVVAR, \
-    LIB_NAME, ALIGN_FILE_EXTENSION, PATCH_FILE_EXTENSION, ALIGN_FILE_EXTENSION_TYPE, PATCH_FILE_EXTENSION_TYPE
+from monkey_patch.trackers.abc_buffered_logger import ABCBufferedLogger
 
 
 class FilesystemBufferedLogger(ABCBufferedLogger):
@@ -15,6 +15,7 @@ class FilesystemBufferedLogger(ABCBufferedLogger):
     A class that handles the reading and writing of patch invocations and align statements.
     It includes the logic for a bloom filter, to ensure that we only store unique invocations.
     """
+
     def __init__(self, name, level=15):
         self.log_directory = self._get_log_directory()
         super().__init__(name, level)
@@ -26,7 +27,8 @@ class FilesystemBufferedLogger(ABCBufferedLogger):
         """
         return FileSystemBloomFilterPersistence(log_directory=self.log_directory)
 
-    def get_patch_location_for_function(self, func_hash, extension: Union[ALIGN_FILE_EXTENSION_TYPE, PATCH_FILE_EXTENSION_TYPE] = "") -> str:
+    def get_patch_location_for_function(self, func_hash, extension: Union[
+        ALIGN_FILE_EXTENSION_TYPE, PATCH_FILE_EXTENSION_TYPE] = "") -> str:
 
         """
         Get the local location of the function patch file.
@@ -84,7 +86,10 @@ class FilesystemBufferedLogger(ABCBufferedLogger):
         Get the size of the dataset for a function hash
         """
         log_directory = self._get_log_directory()
-        dataset_type_map = {"alignments": ALIGN_FILE_EXTENSION, "patches": PATCH_FILE_EXTENSION}
+        dataset_type_map = {"alignments": ALIGN_FILE_EXTENSION,
+                            "positive": POSITIVE_FILE_EXTENSION,
+                            "negative": NEGATIVE_FILE_EXTENSION,
+                            "patches": PATCH_FILE_EXTENSION}
 
         log_file_path = os.path.join(log_directory, func_hash + dataset_type_map[dataset_type])
         if not os.path.exists(log_file_path):
@@ -115,7 +120,13 @@ class FilesystemBufferedLogger(ABCBufferedLogger):
 
     def load_existing_datasets(self) -> Dict[str, Dict[str, str]]:
         log_directory = self.log_directory
-        dataset_lengths = {"alignments": {}, "patches": {}}
+        dataset_lengths = {
+            SYMBOLIC_ALIGNMENTS: {},
+            POSITIVE_EMBEDDABLE_ALIGNMENTS: {},
+            NEGATIVE_EMBEDDABLE_ALIGNMENTS: {},
+            PATCHES: {},
+        }
+
         try:
             if not os.path.exists(log_directory):
                 os.makedirs(log_directory)
@@ -127,12 +138,19 @@ class FilesystemBufferedLogger(ABCBufferedLogger):
             return dataset_lengths
 
         for file in files:
-            if ALIGN_FILE_EXTENSION not in file and PATCH_FILE_EXTENSION not in file:
+            if ALIGN_FILE_EXTENSION not in file \
+                    and PATCH_FILE_EXTENSION not in file \
+                    and POSITIVE_FILE_EXTENSION not in file \
+                    and NEGATIVE_FILE_EXTENSION not in file:
                 continue
             elif ALIGN_FILE_EXTENSION in file:
-                dataset_type = "alignments"
+                dataset_type = SYMBOLIC_ALIGNMENTS
+            elif POSITIVE_FILE_EXTENSION in file:
+                dataset_type = POSITIVE_EMBEDDABLE_ALIGNMENTS
+            elif NEGATIVE_FILE_EXTENSION in file:
+                dataset_type = NEGATIVE_EMBEDDABLE_ALIGNMENTS
             else:
-                dataset_type = "patches"
+                dataset_type = PATCHES
             func_hash = file.replace(ALIGN_FILE_EXTENSION, "").replace(PATCH_FILE_EXTENSION, "")
             dataset_lengths[dataset_type][func_hash] = -1
         return dataset_lengths
@@ -157,7 +175,7 @@ class FilesystemBufferedLogger(ABCBufferedLogger):
         :param path: The path to the file
         :return: The hash
         """
-        return path.replace(PATCH_FILE_EXTENSION, "").\
-            replace(self.log_directory, "").\
-            lstrip("/").\
+        return path.replace(PATCH_FILE_EXTENSION, ""). \
+            replace(self.log_directory, ""). \
+            lstrip("/"). \
             lstrip("\\")

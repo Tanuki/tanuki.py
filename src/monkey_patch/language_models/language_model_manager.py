@@ -65,8 +65,8 @@ class LanguageModelManager(object):
             output.distilled_model = False
         datapoint = FunctionExample(args, kwargs, output.generated_response)
         if output.suitable_for_finetuning and not output.distilled_model:
-            self.function_modeler.postprocess_datapoint(function_description.__hash__(), function_description,
-                                                        datapoint, repaired=not valid)
+            self.function_modeler.postprocess_symbolic_datapoint(function_description.__hash__(), function_description,
+                                                                 datapoint, repaired=not valid)
         instantiated = validator.instantiate(choice_parsed, function_description.output_type_hint)
         return instantiated
 

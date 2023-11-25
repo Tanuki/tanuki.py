@@ -1,5 +1,5 @@
 import inspect
-from typing import get_type_hints, Literal, get_origin, Tuple, Callable, Optional
+from typing import get_type_hints, Literal, get_origin, Tuple, Callable, Optional, Dict
 
 from monkey_patch.models.embedding import Embedding
 from monkey_patch.models.function_description import FunctionDescription
@@ -32,9 +32,9 @@ class Register:
         :param args: Optional instance to check
         :return:
         """
+        function_names = []
         if len(args) == 1:
             instance = args[0]
-            function_names = []
 
             if type == FunctionType.SYMBOLIC:
                 for key in alignable_symbolic_functions.keys():
@@ -54,6 +54,24 @@ class Register:
                     if hasattr(instance, key):
                         function_names.append(key)
                 return function_names
+        else:
+            if type == FunctionType.SYMBOLIC:
+                return list(alignable_symbolic_functions.keys())
+            elif type == FunctionType.EMBEDDABLE:
+                return list(alignable_embedding_functions.keys())
+            else:
+                return list(alignable_symbolic_functions.keys()) + list(alignable_embedding_functions.keys())
+
+    @staticmethod
+    def functions_to_patch(*args, type: Optional[FunctionType] = None) -> Dict[str, Callable]:
+        function_names = Register.function_names_to_patch(*args, type=type)
+        if type == FunctionType.SYMBOLIC:
+            return {key: alignable_symbolic_functions[key] for key in function_names}
+        elif type == FunctionType.EMBEDDABLE:
+            return {key: alignable_embedding_functions[key] for key in function_names}
+        else:
+            return {key: alignable_symbolic_functions[key] for key in function_names} + \
+                   {key: alignable_embedding_functions[key] for key in function_names}
 
     @staticmethod
     def add_function(func, function_description: FunctionDescription):

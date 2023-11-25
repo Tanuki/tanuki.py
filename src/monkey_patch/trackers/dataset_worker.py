@@ -52,7 +52,7 @@ class DatasetWorker(Logger):
         pass
 
     @abstractmethod
-    def log_patch(self, func_hash, example):
+    def log_symbolic_patch(self, func_hash, example):
         """
         Save the example to the patch dataset for the function hash
         Output must be a dictionary with the following structure:
@@ -71,7 +71,7 @@ class DatasetWorker(Logger):
         """
 
     @abstractmethod
-    def _load_function_config(self, func_hash):
+    def load_function_config(self, func_hash):
 
         """
         Get the config file for the function.
