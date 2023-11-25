@@ -1,4 +1,5 @@
 import os
+from enum import Enum
 from typing import Literal, Union, Optional, Dict
 
 from appdirs import user_data_dir
@@ -6,7 +7,7 @@ from appdirs import user_data_dir
 from monkey_patch.persistence.filter.bloom_interface import IBloomFilterPersistence
 from monkey_patch.persistence.filter.filesystem_bloom import FileSystemBloomFilterPersistence
 from monkey_patch.trackers.abc_buffered_logger import ABCBufferedLogger, ENVVAR, \
-    LIB_NAME, ALIGN_FILE_EXTENSION, PATCH_FILE_EXTENSION
+    LIB_NAME, ALIGN_FILE_EXTENSION, PATCH_FILE_EXTENSION, ALIGN_FILE_EXTENSION_TYPE, PATCH_FILE_EXTENSION_TYPE
 
 
 class FilesystemBufferedLogger(ABCBufferedLogger):
@@ -25,7 +26,7 @@ class FilesystemBufferedLogger(ABCBufferedLogger):
         """
         return FileSystemBloomFilterPersistence(log_directory=self.log_directory)
 
-    def get_patch_location_for_function(self, func_hash, extension: Union[ALIGN_FILE_EXTENSION, PATCH_FILE_EXTENSION] = "") -> str:
+    def get_patch_location_for_function(self, func_hash, extension: Union[ALIGN_FILE_EXTENSION_TYPE, PATCH_FILE_EXTENSION_TYPE] = "") -> str:
         """
         Get the local location of the function patch file.
         :param func_hash: The representation of the function

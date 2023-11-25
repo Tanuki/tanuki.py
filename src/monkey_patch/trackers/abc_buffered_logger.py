@@ -1,13 +1,17 @@
 import json
 from abc import abstractmethod
-from typing import Dict, Any
+from typing import Dict, Any, Literal
 
 from monkey_patch.bloom_filter import BloomFilter
 from monkey_patch.persistence.filter.bloom_interface import IBloomFilterPersistence
 from monkey_patch.trackers.dataset_worker import DatasetWorker
 
-PATCH_FILE_EXTENSION = ".patches"
-ALIGN_FILE_EXTENSION = ".alignments"
+PATCH_FILE_EXTENSION_TYPE = Literal[".patches"]
+ALIGN_FILE_EXTENSION_TYPE = Literal[".alignments"]
+
+PATCH_FILE_EXTENSION: PATCH_FILE_EXTENSION_TYPE = ".patches"
+ALIGN_FILE_EXTENSION: ALIGN_FILE_EXTENSION_TYPE = ".alignments"
+
 EXPECTED_ITEMS = 10000
 FALSE_POSITIVE_RATE = 0.01
 LIB_NAME = "monkey-patch"

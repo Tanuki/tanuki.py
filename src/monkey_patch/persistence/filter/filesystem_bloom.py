@@ -23,10 +23,11 @@ class FileSystemBloomFilterPersistence(IBloomFilterPersistence):
         # Append 0 bits to make the length a multiple of 8
         while len(bloom_filter.bit_array) % 8 != 0:
             bloom_filter.bit_array.append(0)
+
         with open(bloom_filter_path, 'wb') as f:
             f.write(bloom_filter.bit_array.tobytes())
 
-    def load(self) -> BloomFilter:
+    def load(self, bloom_filter: BloomFilter):
         """
         Load a bloom filter from the local filesystem.
         :return: A bloom filter object containing the state of unique function invocations
@@ -35,8 +36,8 @@ class FileSystemBloomFilterPersistence(IBloomFilterPersistence):
         with open(bloom_filter_path, 'rb') as f:
             bit_array = bitarray()
             bit_array.frombytes(f.read())
-        # Remove any trailing 0 bits that were added for padding
-        #while len(bit_array) > 0 and bit_array[-1] == 0:
-        #    bit_array.pop()
-        self.bit_array = bit_array
-        return self
+
+        while len(bit_array) % 8 != 0:
+            bit_array.append(0)
+
+        bloom_filter.bit_array = bit_array

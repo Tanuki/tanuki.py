@@ -63,7 +63,7 @@ class BloomFilter:
         self.persistence.save(self)
 
     def load(self):
-        return self.persistence.load()
+        self.persistence.load(self)
 
     @staticmethod
     def optimal_bloom_filter_params(n, p):
