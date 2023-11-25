@@ -12,17 +12,18 @@ from monkey_patch.monkey import Monkey as monkey
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+
 class TestEmbedding(TestCase):
 
     @monkey.patch
-    def embed_sentiment(self, input: str, input_2: str) -> Embedding[np.ndarray]:
+    def embed_sentiment(self, input: str) -> Embedding[np.ndarray]:
         """
         Determine if the inputs are positive or negative sentiment, or None
         """
 
     def test_data_type(self):
         # Test with np.ndarray
-        embedding_array = Embedding[np.ndarray](np.array([0, 2, 4]))
+        embedding_array = Embedding[np.ndarray]([0, 2, 4])
         self.assertIsInstance(embedding_array._data, np.ndarray)
 
         # Test with list[float]
@@ -34,6 +35,12 @@ class TestEmbedding(TestCase):
         embedding = Embedding[np.ndarray]([0, 2, 4])
         trans = embedding.T
         assert isinstance(trans, np.ndarray)
+
+    def test_get_embedding(self):
+        embedding = self.embed_sentiment("I love this movie")
+        transposed = embedding.T
+        assert isinstance(embedding, Embedding)
+        assert isinstance(transposed, np.ndarray)
 
 if __name__ == '__main__':
     unittest.main()

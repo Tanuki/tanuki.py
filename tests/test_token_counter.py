@@ -1,7 +1,7 @@
 from typing import List
 
 from monkey_patch.function_modeler import FunctionModeler
-from monkey_patch.language_models.language_modeler import LanguageModel
+from monkey_patch.language_models.language_modeler import LanguageModelManager
 from monkey_patch.register import Register
 from monkey_patch.trackers.buffered_logger import BufferedLogger
 
@@ -26,7 +26,7 @@ def test_token_counter_finetunable():
     function_description = Register.load_function_description(dummy_func)
     func_hash = function_description.__hash__()
     logger = BufferedLogger("test")
-    lang_model = LanguageModel()
+    lang_model = LanguageModelManager()
     func_modeler = FunctionModeler(logger)
 
     initiate_test(func_modeler, func_hash, function_description)
@@ -43,7 +43,7 @@ def test_token_counter_non_finetunable_1():
     function_description = Register.load_function_description(dummy_func)
     func_hash = function_description.__hash__()
     logger = BufferedLogger("test")
-    lang_model = LanguageModel()
+    lang_model = LanguageModelManager()
     func_modeler = FunctionModeler(logger)
     initiate_test(func_modeler, func_hash, function_description)
 
@@ -59,7 +59,7 @@ def test_token_counter_non_finetunable_2():
     function_description = Register.load_function_description(dummy_func)
     func_hash = function_description.__hash__()
     logger = BufferedLogger("test")
-    lang_model = LanguageModel()
+    lang_model = LanguageModelManager()
     func_modeler = FunctionModeler(logger)
     initiate_test(func_modeler, func_hash, function_description)
 
@@ -75,7 +75,7 @@ def test_error_raise():
     function_description = Register.load_function_description(dummy_func)
     func_hash = function_description.__hash__()
     logger = BufferedLogger("test")
-    lang_model = LanguageModel()
+    lang_model = LanguageModelManager()
     func_modeler = FunctionModeler(logger)
     initiate_test(func_modeler, func_hash, function_description)
     error = False

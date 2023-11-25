@@ -6,19 +6,19 @@ import os
 import sys
 import textwrap
 from functools import wraps
-from typing import Optional
+from typing import Optional, Union, Any
 from unittest.mock import patch
 
 import requests
 
 from monkey_patch.assertion_visitor import AssertionVisitor
 from monkey_patch.function_modeler import FunctionModeler
-from monkey_patch.language_models.language_modeler import LanguageModel
+from monkey_patch.language_models.embedding_model_manager import EmbeddingModelManager
+from monkey_patch.language_models.language_model_manager import LanguageModelManager
 from monkey_patch.models.embedding import Embedding
 from monkey_patch.models.function_description import FunctionDescription
 from monkey_patch.models.function_example import FunctionExample
 from monkey_patch.register import Register
-from monkey_patch.repair import repair_output
 from monkey_patch.trackers.buffered_logger import BufferedLogger
 from monkey_patch.utils import get_key
 from monkey_patch.validator import Validator
@@ -71,26 +71,14 @@ class Monkey:
     logging.addLevelName(PATCH_LEVEL_NUM, "PATCH")
     logging.basicConfig(level=ALIGN_LEVEL_NUM)
     logger = logger_factory(__name__)
-    language_modeler = LanguageModel()
     # currently only use buffered logger as default
     function_modeler = FunctionModeler(data_worker=logger)
+    language_modeler = LanguageModelManager(function_modeler)
+    embedding_modeler = EmbeddingModelManager(function_modeler)
 
     @staticmethod
     def _load_alignments(func_hash: str):
         Monkey.function_modeler.load_align_statements(func_hash)
-
-    @staticmethod
-    def _parse_choice(output):
-        try:
-            # json load
-            choice_parsed = json.loads(output.generated_response)
-        except:
-            # if it fails, it's not a json object, try eval
-            try:
-                choice_parsed = eval(output.generated_response)
-            except:
-                choice_parsed = output.generated_response
-        return choice_parsed
 
     @staticmethod
     def _anonymous_usage(*args, **kwargs):
@@ -206,6 +194,12 @@ class Monkey:
         return wrapper
 
     @staticmethod
+    def generate_from_embedding_model_manager(function_description):
+        choice_parsed = []
+        instantiated = function_description.output_type_hint(choice_parsed)
+        return instantiated
+
+    @staticmethod
     def patch(patchable_func=None,
               environment_id: int = 0,
               ignore_finetune_fetching: bool = False,
@@ -224,52 +218,23 @@ class Monkey:
             ignore_data_storage (bool): Whether to ignore storing the data.
                 If set to True, the data will not be stored in the finetune dataset and the align statements will not be saved
                 This improves latency as communications with data storage is minimised
-
-        
         """
 
         def wrap(test_func):
             @wraps(test_func)
-            def wrapper(*args, **kwargs):
+            def wrapper(*args, **kwargs) -> Union[Embedding, Any]:
                 validator = Validator()
-                function_description = Register.load_function_description(test_func)
+                function_description: FunctionDescription = Register.load_function_description(test_func)
 
                 # If the function is expected to return an embedding, we choose the embedding API, rather than an LLM.
                 if inspect.isclass(function_description.output_type_hint) and \
-                    issubclass(function_description.output_type_hint, Embedding):
-                    choice_parsed = [0.2, 0.5, 0.6, 0.3]
-                    instantiated = function_description.output_type_hint(choice_parsed)
+                        issubclass(function_description.output_type_hint, Embedding):
+                    instantiated: Embedding = Monkey.embedding_modeler(args, function_description, kwargs)
                 else:
-                    output = Monkey.language_modeler.generate(args, kwargs, Monkey.function_modeler, function_description)
-                    # start parsing the object, very hacky way for the time being
-                    choice_parsed = Monkey._parse_choice(output)
-
-                    valid = validator.check_type(choice_parsed, function_description.output_type_hint)
-
-                    if not valid:
-                        choice, choice_parsed, successful_repair = repair_output(args,
-                                                                                 kwargs,
-                                                                                 function_description,
-                                                                                 output.generated_response,
-                                                                                 validator,
-                                                                                 Monkey.function_modeler,
-                                                                                 Monkey.language_modeler)
-
-                        if not successful_repair:
-                            raise TypeError(
-                                f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{output.generated_response}'")
-                        output.generated_response = choice
-                        output.distilled_model = False
-
-                    datapoint = FunctionExample(args, kwargs, output.generated_response)
-                    if output.suitable_for_finetuning and not output.distilled_model:
-                        Monkey.function_modeler.postprocess_datapoint(function_description.__hash__(), function_description,
-                                                                      datapoint, repaired=not valid)
-
-                    instantiated = validator.instantiate(choice_parsed, function_description.output_type_hint)
+                    # If the function is expected to return a choice, we choose the LLM API.
+                    instantiated: Any = Monkey.language_modeler(args, function_description, kwargs, validator)
 
                 return instantiated  # test_func(*args, **kwargs)
-
 
             Monkey._anonymous_usage(logger=Monkey.logger.name)
             function_description = Register.load_function_description(test_func)

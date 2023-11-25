@@ -21,6 +21,8 @@ class Embedding(Generic[T]):
                 self._data = data
             else:
                 raise TypeError("Elements of data do not match the expected type")
+        elif not data_type_origin:
+            self._data = data
         else:
             raise TypeError("Unsupported data type for embedding")
 

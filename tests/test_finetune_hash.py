@@ -1,6 +1,6 @@
 from typing import List
 from monkey_patch.function_modeler import FunctionModeler
-from monkey_patch.language_models.language_modeler import LanguageModel
+from monkey_patch.language_models.language_modeler import LanguageModelManager
 from monkey_patch.register import Register
 from monkey_patch.trackers.buffered_logger import BufferedLogger
 from monkey_patch.utils import encode_int, decode_int
