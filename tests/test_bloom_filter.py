@@ -1,13 +1,21 @@
 import os
-from monkey_patch.bloom_filter import BloomFilter, optimal_bloom_filter_params
+
+from bitarray import bitarray
+
+from monkey_patch.bloom_filter import BloomFilter
 from monkey_patch.models.function_example import FunctionExample
-from monkey_patch.trackers.buffered_logger import BufferedLogger, EXPECTED_ITEMS, FALSE_POSITIVE_RATE
 import random
 import string
 
+from monkey_patch.trackers.abc_buffered_logger import EXPECTED_ITEMS, FALSE_POSITIVE_RATE
+from monkey_patch.trackers.filesystem_buffered_logger import FilesystemBufferedLogger
+
+logger = FilesystemBufferedLogger("test")
+bloom_filter_persistence = logger.get_bloom_filter_persistence()
+
 def test_add():
     #bloom_filter = BloomFilter(*optimal_bloom_filter_params(EXPECTED_ITEMS, FALSE_POSITIVE_RATE))
-    logger = BufferedLogger("test")
+    logger = FilesystemBufferedLogger("test")
     example = FunctionExample((0,), {}, 0 * 2)
     example_data = str(example.__dict__).encode('utf-8') + b'\n'
     nr_of_calls = 10
@@ -28,15 +36,18 @@ def test_add():
     assert nr_of_errors/nr_of_calls <= 0.2
 
 def test_add_lookup():
-    bloom_filter = BloomFilter(*optimal_bloom_filter_params(EXPECTED_ITEMS, FALSE_POSITIVE_RATE))
+    bf1 = BloomFilter(
+        bloom_filter_persistence,
+        expected_number_of_elements=EXPECTED_ITEMS,
+        false_positive_probability=FALSE_POSITIVE_RATE)
     example = FunctionExample((0,), {}, 0 * 2)
     nr_of_calls = 10
     nr_of_errors = 0
     for _ in range(nr_of_calls):
         random_string = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(30))
         bloom_filter_input = f"{random_string}_{str(example.__dict__)}"
-        bloom_filter.add(bloom_filter_input)
-        looked_up = bloom_filter.lookup(bloom_filter_input)
+        bf1.add(bloom_filter_input)
+        looked_up = bf1.lookup(bloom_filter_input)
         if not looked_up:
             nr_of_errors += 1
 
@@ -46,13 +57,15 @@ def test_add_lookup():
 
 def test_bloom_filter_persistence():
     # Create a Bloom filter and add some values
-    bf1 = BloomFilter(*optimal_bloom_filter_params(EXPECTED_ITEMS, FALSE_POSITIVE_RATE))
+    bf1 = BloomFilter(
+        bloom_filter_persistence,
+        expected_number_of_elements=EXPECTED_ITEMS,
+        false_positive_probability=FALSE_POSITIVE_RATE)
     for i in range(10):
         bf1.add(str(i))
 
-    current_dir = os.path.dirname(os.path.realpath(__file__))
     # Save the Bloom filter's state
-    bf1.save(current_dir)
+    bf1.save()
     saved_bytes = bf1.bit_array.tobytes()
 
     assert bf1.bit_array.count(1) != 0
@@ -70,8 +83,11 @@ def test_bloom_filter_persistence():
 
 
     # Create a new Bloom filter and load its state
-    bf2 = BloomFilter(*optimal_bloom_filter_params(EXPECTED_ITEMS, FALSE_POSITIVE_RATE))
-    bf2.load(current_dir)
+    bf2 = BloomFilter(
+        bloom_filter_persistence,
+        expected_number_of_elements=EXPECTED_ITEMS,
+        false_positive_probability=FALSE_POSITIVE_RATE)
+    bf2.load()
     loaded_bytes = bf2.bit_array.tobytes()
 
     assert saved_bytes == loaded_bytes
@@ -100,9 +116,14 @@ def test_bloom_filter_persistence():
 
 
 def test_bit_array_length():
-    bf1 = BloomFilter(*optimal_bloom_filter_params(EXPECTED_ITEMS, FALSE_POSITIVE_RATE))
+    bf1 = BloomFilter(
+        bloom_filter_persistence,
+        expected_number_of_elements=EXPECTED_ITEMS,
+        false_positive_probability=FALSE_POSITIVE_RATE)
+
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    bf1.save(current_dir)
+    bf1.bit_array[-1] = True
+    bf1.save()
 
     # Print length of bit_array before loading
     print("Length of bit_array before loading:", len(bf1.bit_array))
@@ -111,42 +132,62 @@ def test_bit_array_length():
     file_size = os.path.getsize(os.path.join(current_dir, 'bloom_filter_state.bin'))
     print("Size of saved file (in bytes):", file_size)
 
-    bf2 = BloomFilter(*optimal_bloom_filter_params(EXPECTED_ITEMS, FALSE_POSITIVE_RATE))
-    bf2.load(current_dir)
+    bf2 = BloomFilter(
+        bloom_filter_persistence,
+        expected_number_of_elements=EXPECTED_ITEMS,
+        false_positive_probability=FALSE_POSITIVE_RATE)
+    bf2.load()
 
+    ld = bf2.bit_array
     # Print length of bit_array after loading
     print("Length of bit_array after loading:", len(bf2.bit_array))
 
-    assert len(bf1.bit_array) == len(bf2.bit_array), "Mismatch in bit array lengths."
+    assert len(bf1.bit_array) == len(bf2.bit_array), "Mismatch in bit array lengths. {} != {}".format(
+        len(bf1.bit_array), len(bf2.bit_array))
 
 
 def test_file_content_consistency():
-    bf1 = BloomFilter(*optimal_bloom_filter_params(EXPECTED_ITEMS, FALSE_POSITIVE_RATE))
+    bf1 = BloomFilter(
+        bloom_filter_persistence,
+        expected_number_of_elements=EXPECTED_ITEMS,
+        false_positive_probability=FALSE_POSITIVE_RATE)
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    bf1.save(current_dir)
+    bf1.bit_array[-1] = True
+    bf1.save()
 
     # Read back immediately after saving
-    with open(os.path.join(current_dir, 'bloom_filter_state.bin'), 'rb') as f:
-        saved_data = f.read()
+    with open(os.path.join(logger.log_directory, 'bloom_filter_state.bin'), 'rb') as f:
+        bit_array = bitarray()
+        bit_array.frombytes(f.read())
+        saved_data = bit_array
 
-    bf2 = BloomFilter(*optimal_bloom_filter_params(EXPECTED_ITEMS, FALSE_POSITIVE_RATE))
-    bf2.load(current_dir)
+    bf2 = BloomFilter(
+        bloom_filter_persistence,
+        expected_number_of_elements=EXPECTED_ITEMS,
+        false_positive_probability=FALSE_POSITIVE_RATE)
+    bf2.load()
 
-    assert saved_data == bf2.bit_array.tobytes(), "Saved file content doesn't match loaded content."
+    assert saved_data == bf2.bit_array, "Saved file content doesn't match loaded content."
 
 
 def test_simple_test_case():
-    bf1 = BloomFilter(*optimal_bloom_filter_params(EXPECTED_ITEMS, FALSE_POSITIVE_RATE))
+    bf1 = BloomFilter(
+        bloom_filter_persistence,
+        expected_number_of_elements=EXPECTED_ITEMS,
+        false_positive_probability=FALSE_POSITIVE_RATE)
     items = ['test1', 'test2', 'test3']
 
     for item in items:
         bf1.add(item)
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    bf1.save(current_dir)
+    bf1.save()
 
-    bf2 = BloomFilter(*optimal_bloom_filter_params(EXPECTED_ITEMS, FALSE_POSITIVE_RATE))
-    bf2.load(current_dir)
+    bf2 = BloomFilter(
+        bloom_filter_persistence,
+        expected_number_of_elements=EXPECTED_ITEMS,
+        false_positive_probability=FALSE_POSITIVE_RATE)
+    bf2.load()
 
     for item in items:
         assert bf2.lookup(item), f"Item {item} not found after loading."
@@ -159,11 +200,11 @@ def test_multiple_loggers():
     nr_of_calls = 10
     nr_of_errors = 0
     for _ in range(nr_of_calls):
-        logger_1 = BufferedLogger("test")
+        logger_1 = FilesystemBufferedLogger("test")
         # generate a random string of length 10
         random_string = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(30))
         logger_1.log_patch(f"test_{random_string}", example)
-        logger_2 = BufferedLogger("test")
+        logger_2 = FilesystemBufferedLogger("test")
         looked_up = logger_2.bloom_filter.lookup(f"test_{random_string}_" + example_data.decode('utf-8'))
         if not looked_up:
             nr_of_errors += 1
@@ -174,7 +215,6 @@ def test_multiple_loggers():
 if __name__ == "__main__":
     test_bit_array_length()
     test_file_content_consistency()
-    test_bloom_filter_persistence()
     test_bloom_filter_persistence()
     test_add_lookup()
     test_add()

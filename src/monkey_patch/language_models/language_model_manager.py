@@ -143,7 +143,7 @@ class LanguageModelManager(object):
             return prompt, distilled_model, suitable_for_distillation, True
 
         else:
-            aligns = self.function_modeler.get_alignments(function_description.__hash__(), max=16)
+            aligns = self.function_modeler.get_symbolic_alignments(function_description.__hash__(), max=16)
             examples = "\n".join(
                 [f"Inputs:\nArgs: {align['args']}\nKwargs: {align['kwargs']}\nOutput: {align['output']}" for align in
                  aligns])
@@ -244,7 +244,7 @@ class LanguageModelManager(object):
         failed_outputs_list = [(choice, error)]
         while retry_index > 0 and not valid:
             # get the alignments
-            aligns = self.function_modeler.get_alignments(function_description.__hash__(), max=5)
+            aligns = self.function_modeler.get_symbolic_alignments(function_description.__hash__(), max=5)
             examples = "\n".join(
                 [f"Inputs:\nArgs: {align['args']}\nKwargs {align['kwargs']}\nOutput: {align['output']}" for align in
                  aligns])

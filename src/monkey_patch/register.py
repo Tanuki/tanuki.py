@@ -24,22 +24,36 @@ class Register:
         elif func_name in alignable_embedding_functions:
             return FunctionType.EMBEDDABLE, alignable_embedding_functions[func_name]
 
-
     @staticmethod
-    def function_names_to_patch(type: Optional[FunctionType] = None):
-        if type == FunctionType.SYMBOLIC:
-            return list(alignable_symbolic_functions.keys())
-        elif type == FunctionType.EMBEDDABLE:
-            return list(alignable_embedding_functions.keys())
-        else:
-            return list(alignable_symbolic_functions.keys()) + list(alignable_embedding_functions.keys())
+    def function_names_to_patch(*args, type: Optional[FunctionType] = None):
+        """
+        Get the registered function names that should be patched, either globally (if len(args)==0) or as members of
+        an instance
+        :param args: Optional instance to check
+        :return:
+        """
+        if len(args) == 1:
+            instance = args[0]
+            function_names = []
 
-    @staticmethod
-    def functions_to_patch(type: FunctionType = FunctionType.SYMBOLIC):
-        if type == FunctionType.SYMBOLIC:
-            return alignable_symbolic_functions
-        elif type == FunctionType.EMBEDDABLE:
-            return alignable_embedding_functions
+            if type == FunctionType.SYMBOLIC:
+                for key in alignable_symbolic_functions.keys():
+                    if hasattr(instance, key):
+                        function_names.append(key)
+                return function_names
+            elif type == FunctionType.EMBEDDABLE:
+                for key in alignable_embedding_functions.keys():
+                    if hasattr(instance, key):
+                        function_names.append(key)
+                return function_names
+            else:
+                for key in alignable_symbolic_functions.keys():
+                    if hasattr(instance, key):
+                        function_names.append(key)
+                for key in alignable_embedding_functions.keys():
+                    if hasattr(instance, key):
+                        function_names.append(key)
+                return function_names
 
     @staticmethod
     def add_function(func, function_description: FunctionDescription):

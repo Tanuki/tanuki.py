@@ -5,6 +5,8 @@ import json
 from typing import List, Tuple, Dict
 
 import openai
+
+from monkey_patch.models.function_description import FunctionDescription
 from monkey_patch.models.function_example import FunctionExample
 from monkey_patch.trackers.dataset_worker import DatasetWorker
 from monkey_patch.utils import approximate_token_count, prepare_object_for_saving, encode_int, decode_int
@@ -22,7 +24,8 @@ class FunctionModeler(object):
         self.function_configs = {}
         self.data_worker = data_worker
         self.distillation_token_limit = 3000  # the token limit for finetuning
-        self.align_buffer = {}
+        self.symbolic_align_buffer = {}
+        self.embeddable_align_buffer = {}
         self._get_datasets()
         self.environment_id = environment_id
         self.check_finetune_blacklist = []
@@ -90,7 +93,7 @@ class FunctionModeler(object):
         """
         example = FunctionExample(args, kwargs, pair)
         if function_hash not in self.store_data_blacklist:
-            successfully_saved, new_datapoint = self.data_worker.log_contrastive(function_hash, example, positive)
+            successfully_saved, new_datapoint = self.data_worker.log_embeddable_align(function_hash, example, positive)
         else:
             successfully_saved = False
             new_datapoint = True
@@ -105,6 +108,13 @@ class FunctionModeler(object):
                     self.dataset_sizes[CONTRASTIVE_NEGATIVE][function_hash] += 1
                 else:
                     self.dataset_sizes[CONTRASTIVE_NEGATIVE][function_hash] = 1
+
+        if new_datapoint:
+            # update align buffer
+            if function_hash not in self.embeddable_align_buffer:
+                self.embeddable_align_buffer[function_hash] = bytearray()
+            self.embeddable_align_buffer[function_hash].extend(str(example.__dict__).encode('utf-8') + b'\r\n')
+
 
     def save_symbolic_align_statements(self, function_hash, args, kwargs, output):
         """
@@ -125,7 +135,7 @@ class FunctionModeler(object):
 
         example = FunctionExample(parsed_args, parsed_kwargs, parsed_output)
         if function_hash not in self.store_data_blacklist:
-            successfully_saved, new_datapoint = self.data_worker.log_align(function_hash, example)
+            successfully_saved, new_datapoint = self.data_worker.log_symbolic_align(function_hash, example)
         else:
             successfully_saved = False
             new_datapoint = True
@@ -137,9 +147,9 @@ class FunctionModeler(object):
 
         if new_datapoint:
             # update align buffer
-            if function_hash not in self.align_buffer:
-                self.align_buffer[function_hash] = bytearray()
-            self.align_buffer[function_hash].extend(str(example.__dict__).encode('utf-8') + b'\r\n')
+            if function_hash not in self.symbolic_align_buffer:
+                self.symbolic_align_buffer[function_hash] = bytearray()
+            self.symbolic_align_buffer[function_hash].extend(str(example.__dict__).encode('utf-8') + b'\r\n')
 
     def save_datapoint(self, func_hash, example):
         """
@@ -157,15 +167,15 @@ class FunctionModeler(object):
                 self.dataset_sizes[PATCHES][func_hash] = datapoints
         return len(written_datapoints) > 0
 
-    def get_alignments(self, func_hash, max=20):
+    def get_symbolic_alignments(self, func_hash, max=20):
         """
         Get all aligns for a function hash
         """
 
-        if func_hash not in self.align_buffer:
+        if func_hash not in self.symbolic_align_buffer:
             return []
 
-        buffer = self.align_buffer[func_hash]
+        buffer = self.symbolic_align_buffer[func_hash]
 
         split_buffer = bytes(buffer).split(b"\n")
 
@@ -198,7 +208,7 @@ class FunctionModeler(object):
 
         return list(examples)[:max]
 
-    def load_align_statements(self, function_hash):
+    def load_symbolic_align_statements(self, function_hash):
         """
         Load all align statements
         First check the data storage blacklist,
@@ -206,12 +216,12 @@ class FunctionModeler(object):
         """
         if function_hash in self.store_data_blacklist:
             self.dataset_sizes[ALIGNMENTS][function_hash] = 0
-            self.align_buffer[function_hash] = bytearray()
+            self.symbolic_align_buffer[function_hash] = bytearray()
 
-        elif function_hash not in self.align_buffer:
+        elif function_hash not in self.symbolic_align_buffer:
             dataset_size, align_dataset = self._get_dataset_info(ALIGNMENTS, function_hash, type="both")
             if align_dataset:
-                self.align_buffer[function_hash] = bytearray(align_dataset)
+                self.symbolic_align_buffer[function_hash] = bytearray(align_dataset)
             self.dataset_sizes[ALIGNMENTS][function_hash] = dataset_size
 
     def postprocess_datapoint(self, func_hash, function_description, example, repaired=True):
@@ -232,12 +242,11 @@ class FunctionModeler(object):
         if func_hash not in self.execute_finetune_blacklist:
             self.check_for_finetuning(function_description, func_hash)
 
-    def _load_function_config(self, func_hash, function_description):
+    def load_function_config(self, func_hash, function_description):
         """
         Load the config file for a function hash
         """
-
-        config, default = self.data_worker._load_function_config(func_hash)
+        config, default = self.data_worker.load_function_config(func_hash)
         if default and func_hash not in self.check_finetune_blacklist:
             finetuned, finetune_config = self._check_for_finetunes(function_description)
             if finetuned:
@@ -245,10 +254,11 @@ class FunctionModeler(object):
         self.function_configs[func_hash] = config
         return config
 
-    def _check_for_finetunes(self, function_description):
-        # This here should be discussed, what's the bestd way to do it
 
-        # hash the function_hash into 16 characters
+    def _check_for_finetunes(self, function_description: FunctionDescription) -> Tuple[bool, Dict]:
+        # This here should be discussed, what's the bestd way to do it
+        # hash the function_hash into 16 characters (to embed it into the name of OpenAI finetunes, for later retrieval)
+
         finetune_hash = function_description.__hash__(purpose="finetune") + encode_int(self.environment_id)
         # List 10 fine-tuning jobs
         finetunes = openai.FineTuningJob.list(limit=1000)
@@ -257,11 +267,11 @@ class FunctionModeler(object):
         # So this gets the latest finetune
         for finetune in finetunes["data"]:
             # check if the finetune hash is in the fine-tuned model name
-            if (finetune["status"] == "succeeded" and finetune_hash in finetune["fine_tuned_model"]):
+            if finetune["status"] == "succeeded" and finetune_hash in finetune["fine_tuned_model"]:
                 try:
                     config = self._construct_config_from_finetune(finetune_hash, finetune)
                     # save the config
-                    self.data_worker._update_function_config(function_description.__hash__(), config)
+                    self.data_worker.update_function_config(function_description.__hash__(), config)
                     return True, config
                 except:
                     return False, {}
@@ -297,7 +307,7 @@ class FunctionModeler(object):
         if func_hash in self.function_configs:
             func_config = self.function_configs[func_hash]
         else:
-            func_config = self._load_function_config(func_hash, function_description)
+            func_config = self.load_function_config(func_hash, function_description)
 
         # for backwards compatibility
         if "distilled_model" not in func_config:
@@ -342,7 +352,7 @@ class FunctionModeler(object):
             pass
 
     def _update_config_file(self, func_hash):
-        self.data_worker._update_function_config(func_hash, self.function_configs[func_hash])
+        self.data_worker.update_function_config(func_hash, self.function_configs[func_hash])
 
     def check_for_finetuning(self, function_description, func_hash):
         """
@@ -381,6 +391,7 @@ class FunctionModeler(object):
             # if havent read in the patch dataset size, read it in
             patch_dataset_size = self._get_dataset_info(PATCHES, func_hash, type="length")
             self.dataset_sizes[PATCHES][func_hash] = patch_dataset_size
+
         return (patch_dataset_size + align_dataset_size) > training_threshold
 
     def _execute_finetuning(self, function_description, func_hash):

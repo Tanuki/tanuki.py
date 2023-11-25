@@ -193,7 +193,7 @@ def _parse_examples(test_func):
     # check that all the examples are correctly readable
     function_description = Register.load_function_description(test_func)
     function_modeler = monkey.function_modeler
-    align_examples = function_modeler.get_alignments(function_description.__hash__())
+    align_examples = function_modeler.get_symbolic_alignments(function_description.__hash__())
     examples = "\n".join([f"Inputs:\nArgs: {align['args']}\nKwargs: {align['kwargs']}\nOutput: {align['output']}" for align in align_examples])
 
 def test_parse_align_datasets():
@@ -210,3 +210,4 @@ def test_parse_align_datasets():
     _parse_examples(summarise_int)
     _parse_examples(summarise_Union)
     print("All examples parsed correctly!")
+
