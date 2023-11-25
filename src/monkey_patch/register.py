@@ -1,5 +1,5 @@
 import inspect
-from typing import get_type_hints, Literal
+from typing import get_type_hints, Literal, get_origin
 
 from monkey_patch.models.embedding import Embedding
 from monkey_patch.models.function_description import FunctionDescription
@@ -83,10 +83,18 @@ class Register:
             param_name: get_class_definition(param_type)
             for param_name, param_type in input_type_hints.items()
         }
-        if inspect.isclass(output_type_hint) and issubclass(output_type_hint, Embedding):
-            output_class_definition = None
-        else:
-            output_class_definition = get_class_definition(output_type_hint)
+        # if inspect.isclass(output_type_hint) and issubclass(output_type_hint, Embedding):
+        #     output_class_definition = None
+        # else:
+        #     output_class_definition = get_class_definition(output_type_hint)
+        output_class_definition = None
+        if inspect.isclass(output_type_hint):
+            # Check if the base class of the output type hint is Embedding
+            base_class = get_origin(output_type_hint) or output_type_hint
+            if issubclass(base_class, Embedding):
+                output_class_definition = None
+            else:
+                output_class_definition = get_class_definition(output_type_hint)
 
         return FunctionDescription(
             name=func_object.__name__,

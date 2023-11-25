@@ -1,24 +1,39 @@
-from typing import TypeVar, List, Generic, ClassVar, Union
+from typing import TypeVar, List, Generic, Union, get_args, get_origin
+
 import numpy as np
-from pydantic.generics import GenericModel
 
 T = TypeVar('T')
 
 
-class Embedding(GenericModel, Generic[T]):
-    def __init__(self, data: Union[List[float], np.ndarray]):
-        object.__setattr__(self, '_data', data)
+class Embedding(Generic[T]):
+    _data_type = None  # Placeholder for the data type
 
-    def __getattribute__(self, item):
-        # First, try to get attribute from the class itself
-        try:
-            return super().__getattribute__(item)
-        except AttributeError:
-            pass
+    def __init__(self, data: List[float]):
+        # Determine the origin of the data type (list, np.ndarray, etc.)
+        data_type_origin = get_origin(self._data_type) or self._data_type
 
-        # Then, delegate to _data if available
-        _data = super().__getattribute__('_data')
-        if hasattr(_data, item):
-            return getattr(_data, item)
+        if data_type_origin is np.ndarray:
+            self._data = np.array(data)
+        elif data_type_origin is list:
+            # Further check for element type if necessary
+            element_type = get_args(self._data_type)[0] if get_args(self._data_type) else None
+            if all(isinstance(item, element_type) for item in data):
+                self._data = data
+            else:
+                raise TypeError("Elements of data do not match the expected type")
+        else:
+            raise TypeError("Unsupported data type for embedding")
 
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{item}'")
+    @classmethod
+    def __class_getitem__(cls, item):
+        new_cls = type(cls.__name__, (cls,), {'_data_type': item})
+        return new_cls
+
+    def __getattr__(self, item):
+        return getattr(self._data, item)
+
+    def __repr__(self):
+        return repr(self._data)
+
+    def __str__(self):
+        return str(self._data)
