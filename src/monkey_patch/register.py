@@ -1,5 +1,7 @@
 import inspect
 from typing import get_type_hints, Literal
+
+from monkey_patch.models.embedding import Embedding
 from monkey_patch.models.function_description import FunctionDescription
 
 alignable_functions = {}
@@ -22,7 +24,7 @@ class Register:
 
     @staticmethod
     def add_function(func, wrapper):
-        alignable_functions[func.__name__] = func #wrapper
+        alignable_functions[func.__name__] = func  # wrapper
 
     @staticmethod
     def load_function_description_from_name(*args) -> FunctionDescription:
@@ -81,8 +83,10 @@ class Register:
             param_name: get_class_definition(param_type)
             for param_name, param_type in input_type_hints.items()
         }
-
-        output_class_definition = get_class_definition(output_type_hint)
+        if inspect.isclass(output_type_hint) and issubclass(output_type_hint, Embedding):
+            output_class_definition = None
+        else:
+            output_class_definition = get_class_definition(output_type_hint)
 
         return FunctionDescription(
             name=func_object.__name__,

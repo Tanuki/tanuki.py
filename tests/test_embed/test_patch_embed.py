@@ -14,8 +14,14 @@ def embed_sentiment(input: str, input_2: str) -> Embedding[np.ndarray]:
     Determine if the inputs are positive or negative sentiment, or None
     """
 
+def test_instantiate_embedding():
+    embedding = Embedding[np.ndarray]([0, 2, 4])
+    trans = embedding.T
+    assert isinstance(embedding, Embedding)
+
 
 if __name__ == '__main__':
+    test_instantiate_embedding()
     i_love_you = "I love you"
     sentiment_vector = embed_sentiment(i_love_you, "I love woo")
     print(sentiment_vector)

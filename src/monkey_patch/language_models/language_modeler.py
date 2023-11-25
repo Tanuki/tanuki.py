@@ -4,7 +4,7 @@ from monkey_patch.utils import approximate_token_count
 
 
 class LanguageModel(object):
-    def __init__(self, generation_token_limit = 512) -> None:
+    def __init__(self, generation_token_limit=512) -> None:
         self.instruction = "You are given below a function description and input data. The function description of what the function must carry out can be found in the Function section, with input and output type hints. The input data can be found in Input section. Using the function description, apply the function to the Input and return a valid output type, that is acceptable by the output_class_definition and output_class_hint. Return None if you can't apply the function to the input or if the output is optional and the correct output is None.\nINCREDIBLY IMPORTANT: Only output a JSON-compatible string in the correct response format."
         self.system_message = f"You are a skillful and accurate language model, who applies a described function on input data. Make sure the function is applied accurately and correctly and the outputs follow the output type hints and are valid outputs given the output types."
 
@@ -22,21 +22,22 @@ class LanguageModel(object):
             },
             "gpt-4-32k": {
                 "token_limit": 32768 - self.generation_length, "type": "openai"}
-            } # models and token counts
+        }  # models and token counts
 
-    def generate(self, args, kwargs, function_modeler, function_description, llm_parameters = {}):
+    def generate(self, args, kwargs, function_modeler, function_description, llm_parameters={}):
         """
         The main generation function, given the args, kwargs, function_modeler, function description and model type, generate a response and check if the datapoint can be saved to the finetune dataset
         """
 
-        prompt, model, save_to_finetune, is_distilled_model = self.get_generation_case(args, kwargs, function_modeler, function_description)
+        prompt, model, save_to_finetune, is_distilled_model = self.get_generation_case(args, kwargs, function_modeler,
+                                                                                       function_description)
         if is_distilled_model:
             model_type = self.get_distillation_model_type(model)
         else:
             model_type = self.get_teacher_model_type(model)
         choice = self._synthesise_answer(prompt, model, model_type, llm_parameters)
 
-        output = LanguageModelOutput(choice, save_to_finetune,is_distilled_model)
+        output = LanguageModelOutput(choice, save_to_finetune, is_distilled_model)
         return output
 
     def _synthesise_answer(self, prompt, model, model_type, llm_parameters):
@@ -45,6 +46,9 @@ class LanguageModel(object):
         """
         if model_type == "openai":
             return self.api_models[model_type].generate(model, self.system_message, prompt, **llm_parameters)
+        else:
+            raise NotImplementedError("Only OpenAI is supported currently. " + \
+                                      "Please feel free to raise a PR to support development")
 
     def get_distillation_model_type(self, model):
         """
@@ -52,7 +56,7 @@ class LanguageModel(object):
         """
         # currently only openai is supported
         return "openai"
-    
+
     def get_teacher_model_type(self, model):
         """
         Get the teacher model type given the model
@@ -77,18 +81,21 @@ class LanguageModel(object):
         If not distilled model, check if suitable for finetuning, create the prompt and return the correct model given the token count
         """
         f = str(function_description.__dict__.__repr__())
-        
+
         distilled_model, teacher_models = self.get_models(function_modeler, function_description)
         is_distilled_model = distilled_model != ""
-        suitable_for_distillation, input_prompt_token_count = self.suitable_for_finetuning_token_check(args, kwargs, f, function_modeler.distillation_token_limit)
+        suitable_for_distillation, input_prompt_token_count = self.suitable_for_finetuning_token_check(args, kwargs, f,
+                                                                                                       function_modeler.distillation_token_limit)
         # no examples needed, using a finetuned model. Dont save to finetune dataset
         if is_distilled_model and suitable_for_distillation:
             prompt = self.construct_prompt(f, args, kwargs, None)
             return prompt, distilled_model, suitable_for_distillation, True
-        
+
         else:
             aligns = function_modeler.get_alignments(function_description.__hash__(), max=16)
-            examples = "\n".join([f"Inputs:\nArgs: {align['args']}\nKwargs: {align['kwargs']}\nOutput: {align['output']}" for align in aligns])
+            examples = "\n".join(
+                [f"Inputs:\nArgs: {align['args']}\nKwargs: {align['kwargs']}\nOutput: {align['output']}" for align in
+                 aligns])
             prompt = self.construct_prompt(f, args, kwargs, examples)
             examples_token_count = approximate_token_count(examples)
             total_token_count = examples_token_count + input_prompt_token_count + self.instruction_token_count + self.system_message_token_count
@@ -96,8 +103,9 @@ class LanguageModel(object):
             if model:
                 return prompt, model, suitable_for_distillation, False
             else:
-                raise ValueError("The input content and align statements combined are too long, please shorten it. The maximum currently allowed token limit is 32000")
-        
+                raise ValueError(
+                    "The input content and align statements combined are too long, please shorten it. The maximum currently allowed token limit is 32000")
+
     def suitable_for_finetuning_token_check(self, args, kwargs, f, distillation_token_count):
         """
         Check if the inputs are suitable for finetuning, i.e are below the finetuning token count
@@ -105,7 +113,7 @@ class LanguageModel(object):
         # check if finetunable
         finetuning_prompt = f"Function: {f}\n---\nInputs:\nArgs: {args}\nKwargs: {kwargs}\nOutput:"
         input_prompt_token_count = approximate_token_count(finetuning_prompt)
-        suitable_for_finetune =  input_prompt_token_count + self.instruction_token_count + self.system_message_token_count < distillation_token_count
+        suitable_for_finetune = input_prompt_token_count + self.instruction_token_count + self.system_message_token_count < distillation_token_count
         return suitable_for_finetune, input_prompt_token_count
 
     def construct_prompt(self, f, args, kwargs, examples):
@@ -137,16 +145,16 @@ class LanguageModel(object):
 
         failed_examples = ""
         for failed_output in failed_outputs_list:
-                failed_examples += f"Output: {failed_output[0]}\nError: {failed_output[1]}\n\n"
+            failed_examples += f"Output: {failed_output[0]}\nError: {failed_output[1]}\n\n"
         successful_examples = f"Successful Examples:{examples}\n" if examples else ""
-        prompt =  f"{self.repair_instruction}\nFUNCTION DESCRIPTION: {f}\n{successful_examples}---Inputs:\nArgs: {args}\nKwargs: {kwargs}\nFAILED EXAMPLES: {failed_examples}Correct output:"
+        prompt = f"{self.repair_instruction}\nFUNCTION DESCRIPTION: {f}\n{successful_examples}---Inputs:\nArgs: {args}\nKwargs: {kwargs}\nFAILED EXAMPLES: {failed_examples}Correct output:"
         return prompt
-    
+
     def choose_model_from_tokens(self, models, token_count):
         """
         Choose a model from the models given the token count
         """
-        
+
         for model in models:
             # check if model is in the models
             if model in self.models.keys():

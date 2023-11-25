@@ -6,6 +6,7 @@ import time
 from monkey_patch.language_models.embedding_api_abc import Embedding_API
 from monkey_patch.language_models.llm_api_abc import LLM_API
 import os
+
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 import requests
 
@@ -57,16 +58,16 @@ class OpenAI_API(LLM_API, Embedding_API):
             "frequency_penalty": frequency_penalty,
             "presence_penalty": presence_penalty,
         }
-        messages=[
-                    {
-                        "role": "system",
-                        "content": system_message
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ]
+        messages = [
+            {
+                "role": "system",
+                "content": system_message
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
         params["messages"] = messages
 
         counter = 0
@@ -86,19 +87,19 @@ class OpenAI_API(LLM_API, Embedding_API):
                 choice = response["choices"][0]["message"]["content"].strip("'")
                 break
             except Exception as e:
-                if ("error" in response and 
-                    "code" in response["error"] and 
-                    response["error"]["code"] == 'invalid_api_key'):
+                if ("error" in response and
+                        "code" in response["error"] and
+                        response["error"]["code"] == 'invalid_api_key'):
                     raise Exception(f"The supplied OpenAI API key {self.api_key} is invalid")
                 if counter == 5:
                     raise Exception(f"OpenAI API failed to generate a response: {e}")
                 counter += 1
                 time.sleep(2 ** counter)
                 continue
-        
+
         if not choice:
             raise Exception("OpenAI API failed to generate a response")
-            
+
         return choice
 
     def check_api_key(self):

@@ -1,6 +1,6 @@
 import hashlib
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, Optional
 from monkey_patch.utils import json_dumps
 
 
@@ -11,7 +11,7 @@ class FunctionDescription:
     input_type_hints: Dict[str, type]
     input_class_definitions: Dict[str, str]
     output_type_hint: type
-    output_class_definition: str
+    output_class_definition: Optional[str]
 
     def __hash__(self, purpose: str = "general"):
         if purpose == "general": 

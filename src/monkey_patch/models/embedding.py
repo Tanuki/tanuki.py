@@ -1,4 +1,4 @@
-from typing import TypeVar, List, Generic
+from typing import TypeVar, List, Generic, ClassVar, Union
 import numpy as np
 from pydantic.generics import GenericModel
 
@@ -6,17 +6,19 @@ T = TypeVar('T')
 
 
 class Embedding(GenericModel, Generic[T]):
-    def __init__(self, data: List[float]):
-        if issubclass(self.__class__.__orig_bases__[0].__args__[0], np.ndarray):
-            self._data = np.array(data)
-        else:
-            self._data = data
+    def __init__(self, data: Union[List[float], np.ndarray]):
+        object.__setattr__(self, '_data', data)
 
-    def __getattr__(self, item):
-        return getattr(self._data, item)
+    def __getattribute__(self, item):
+        # First, try to get attribute from the class itself
+        try:
+            return super().__getattribute__(item)
+        except AttributeError:
+            pass
 
-    def __len__(self):
-        return len(self._data)
+        # Then, delegate to _data if available
+        _data = super().__getattribute__('_data')
+        if hasattr(_data, item):
+            return getattr(_data, item)
 
-    def __getitem__(self, key):
-        return self._data[key]
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{item}'")

@@ -14,6 +14,7 @@ import requests
 from monkey_patch.assertion_visitor import AssertionVisitor
 from monkey_patch.function_modeler import FunctionModeler
 from monkey_patch.language_models.language_modeler import LanguageModel
+from monkey_patch.models.embedding import Embedding
 from monkey_patch.models.function_description import FunctionDescription
 from monkey_patch.models.function_example import FunctionExample
 from monkey_patch.register import Register
@@ -77,6 +78,19 @@ class Monkey:
     @staticmethod
     def _load_alignments(func_hash: str):
         Monkey.function_modeler.load_align_statements(func_hash)
+
+    @staticmethod
+    def _parse_choice(output):
+        try:
+            # json load
+            choice_parsed = json.loads(output.generated_response)
+        except:
+            # if it fails, it's not a json object, try eval
+            try:
+                choice_parsed = eval(output.generated_response)
+            except:
+                choice_parsed = output.generated_response
+        return choice_parsed
 
     @staticmethod
     def _anonymous_usage(*args, **kwargs):
@@ -217,46 +231,45 @@ class Monkey:
         def wrap(test_func):
             @wraps(test_func)
             def wrapper(*args, **kwargs):
-                function_description = Register.load_function_description(test_func)
-                output = Monkey.language_modeler.generate(args, kwargs, Monkey.function_modeler, function_description)
-                # start parsing the object, very hacky way for the time being
-                try:
-                    # json load
-                    choice_parsed = json.loads(output.generated_response)
-                except:
-                    # if it fails, it's not a json object, try eval
-                    try:
-                        choice_parsed = eval(output.generated_response)
-                    except:
-                        choice_parsed = output.generated_response
-
                 validator = Validator()
+                function_description = Register.load_function_description(test_func)
 
-                valid = validator.check_type(choice_parsed, function_description.output_type_hint)
+                # If the function is expected to return an embedding, we choose the embedding API, rather than an LLM.
+                if inspect.isclass(function_description.output_type_hint) and \
+                    issubclass(function_description.output_type_hint, Embedding):
+                    choice_parsed = [0.2, 0.5, 0.6, 0.3]
+                    instantiated = function_description.output_type_hint(choice_parsed)
+                else:
+                    output = Monkey.language_modeler.generate(args, kwargs, Monkey.function_modeler, function_description)
+                    # start parsing the object, very hacky way for the time being
+                    choice_parsed = Monkey._parse_choice(output)
 
-                if not valid:
-                    choice, choice_parsed, successful_repair = repair_output(args,
-                                                                             kwargs,
-                                                                             function_description,
-                                                                             output.generated_response,
-                                                                             validator,
-                                                                             Monkey.function_modeler,
-                                                                             Monkey.language_modeler)
+                    valid = validator.check_type(choice_parsed, function_description.output_type_hint)
 
-                    if not successful_repair:
-                        raise TypeError(
-                            f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{output.generated_response}'")
-                    output.generated_response = choice
-                    output.distilled_model = False
+                    if not valid:
+                        choice, choice_parsed, successful_repair = repair_output(args,
+                                                                                 kwargs,
+                                                                                 function_description,
+                                                                                 output.generated_response,
+                                                                                 validator,
+                                                                                 Monkey.function_modeler,
+                                                                                 Monkey.language_modeler)
 
-                datapoint = FunctionExample(args, kwargs, output.generated_response)
-                if output.suitable_for_finetuning and not output.distilled_model:
-                    Monkey.function_modeler.postprocess_datapoint(function_description.__hash__(), function_description,
-                                                                  datapoint, repaired=not valid)
+                        if not successful_repair:
+                            raise TypeError(
+                                f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{output.generated_response}'")
+                        output.generated_response = choice
+                        output.distilled_model = False
 
-                instantiated = validator.instantiate(choice_parsed, function_description.output_type_hint)
+                    datapoint = FunctionExample(args, kwargs, output.generated_response)
+                    if output.suitable_for_finetuning and not output.distilled_model:
+                        Monkey.function_modeler.postprocess_datapoint(function_description.__hash__(), function_description,
+                                                                      datapoint, repaired=not valid)
+
+                    instantiated = validator.instantiate(choice_parsed, function_description.output_type_hint)
 
                 return instantiated  # test_func(*args, **kwargs)
+
 
             Monkey._anonymous_usage(logger=Monkey.logger.name)
             function_description = Register.load_function_description(test_func)

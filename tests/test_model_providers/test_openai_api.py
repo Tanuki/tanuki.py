@@ -47,8 +47,6 @@ class TestOpenAI_API(unittest.TestCase):
         result = api.generate("model_name", "system_message", "prompt")
         self.assertEqual(result, "Generated response")
 
-    # Additional tests can be written to test retry logic, handling different kinds of failures, etc.
-
 
 if __name__ == '__main__':
     unittest.main()
