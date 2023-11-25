@@ -1,6 +1,8 @@
 from abc import abstractmethod
 from logging import Logger
 
+from monkey_patch.models.function_example import FunctionExample
+
 
 class DatasetWorker(Logger):
     def __init__(self, name, level=15):
@@ -8,7 +10,7 @@ class DatasetWorker(Logger):
 
 
     @abstractmethod
-    def _load_existing_datasets(self):
+    def load_existing_datasets(self):
         """
         Get all existing datasets for functions
         Output must be a dictionary with the following structure:
@@ -30,6 +32,19 @@ class DatasetWorker(Logger):
         """
         Log an alignment statement to the dataset defined by func_hash
         Args:
+            func_hash (str): the function hash
+            *args: the args for the datapoint, where args[0] is a FunctionExample(args, kwargs, output) object
+            **kws: the kwargs for the datapoint
+        """
+        pass
+
+    @abstractmethod
+    def log_contrastive(self, func_hash, first_example: FunctionExample, second_example: FunctionExample, **kws):
+        """
+        Log a contrastive statement to the dataset defined by func_hash
+        Args:
+            second_example:
+            first_example:
             func_hash (str): the function hash
             *args: the args for the datapoint, where args[0] is a FunctionExample(args, kwargs, output) object
             **kws: the kwargs for the datapoint
@@ -102,7 +117,7 @@ class DatasetWorker(Logger):
         pass
 
     @abstractmethod
-    def _load_dataset(self, dataset_type, func_hash, return_type):
+    def load_dataset(self, dataset_type, func_hash, return_type):
         """
         Load the datasets for a function hash
         The datasets loaded must be a string, where different datapoints are on new lines

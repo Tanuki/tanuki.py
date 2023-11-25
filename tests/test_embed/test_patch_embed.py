@@ -65,7 +65,6 @@ class TestEmbedding(TestCase):
         # function.
         assert self.embed_sentiment("I love this movie") == self.is_positive_sentiment("I hate this movie")
 
-
     def test_data_type(self):
         # Test with np.ndarray
         embedding_array = Embedding[np.ndarray]([0, 2, 4])

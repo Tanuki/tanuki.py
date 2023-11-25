@@ -68,7 +68,7 @@ class BufferedLogger(DatasetWorker):
         # 4. Write to where the code is being executed from.
         return os.path.join(os.getcwd(), filename)
 
-    def _load_dataset(self, dataset_type, func_hash, return_type = "both"):
+    def load_dataset(self, dataset_type, func_hash, return_type ="both"):
         """
         Get the size of the dataset for a function hash
         """
@@ -104,7 +104,7 @@ class BufferedLogger(DatasetWorker):
         
 
 
-    def _load_existing_datasets(self):
+    def load_existing_datasets(self):
         log_directory = self._get_log_directory()
         dataset_lengths = {"alignments": {}, "patches": {}}
         try:
