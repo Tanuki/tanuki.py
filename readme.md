@@ -1,4 +1,4 @@
-# 🙈 MonkeyPatch
+# 🙈 Tanuki
 
 The easiest way to build scalable, LLM-powered functions and applications that get cheaper and faster the more you use them. 
 
