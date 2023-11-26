@@ -302,7 +302,7 @@ class FunctionModeler(object):
         next_char = model[finetune_hash_end]
         # get the number of training runs
         nr_of_training_runs = decode_int(next_char) + 1
-        nr_of_training_points = (2 ** nr_of_training_runs) * 200
+        nr_of_training_points = (2 ** (nr_of_training_runs - 1)) * 200
         config = {
             "distilled_model": model,
             "current_model_stats": {

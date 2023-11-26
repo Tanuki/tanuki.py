@@ -43,8 +43,8 @@ def test_encode_decode_hash():
     finetune = {"fine_tuned_model": f"Test_model:__{finetune_hash}:asd[]asd",}
     config = func_modeler._construct_config_from_finetune(finetune_hash[:-1], finetune)
     assert config["distilled_model"] == f"Test_model:__{finetune_hash}:asd[]asd"
-    assert config["current_model_stats"]["trained_on_datapoints"] == 12800
-    assert config["last_training_run"]["trained_on_datapoints"] == 12800
+    assert config["current_model_stats"]["trained_on_datapoints"] == 6400
+    assert config["last_training_run"]["trained_on_datapoints"] == 6400
     assert config["teacher_models"] == ["gpt-4","gpt-4-32k"]
     assert config["nr_of_training_runs"] == nr_of_training_runs + 1
 
