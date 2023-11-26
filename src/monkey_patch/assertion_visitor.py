@@ -184,7 +184,9 @@ class AssertionVisitor(ast.NodeVisitor):
 
     def process_assert_helper_both_sides_embeddable(self, left, right, iter_name=None, op=None):
 
-        if left.func.attr != right.func.attr:
+        if hasattr(left.func, 'attr') and hasattr(right.func, 'attr') and left.func.attr != right.func.attr:
+            raise ValueError(f"Cannot compare two different patched embeddable functions: {left} and {right}")
+        if hasattr(left.func, 'id') and hasattr(right.func, 'id') and left.func.id != right.func.id:
             raise ValueError(f"Cannot compare two different patched embeddable functions: {left} and {right}")
 
         left_args, left_kwargs = self.extract_args(left, iter_name)
