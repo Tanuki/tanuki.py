@@ -76,6 +76,8 @@ class Monkey:
     function_modeler = FunctionModeler(data_worker=logger)
     language_modeler = LanguageModelManager(function_modeler)
     embedding_modeler = EmbeddingModelManager(function_modeler)
+    telemetry_enabled: bool = True
+
 
     @staticmethod
     def _load_alignments(func_hash: str):
@@ -87,9 +89,11 @@ class Monkey:
         Post anonymously to the usage server so we know what configs are commonly used in the project.
         :return:
         """
+        if not Monkey.telemetry_enabled:
+            return
         try:
             requests.post('https://idhhnusnhkkjkpwkm1fr.monkeypatch.ai/telemetry', data=json.dumps(kwargs))
-        except:
+        except: 
             pass
 
     @staticmethod

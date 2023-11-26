@@ -1,6 +1,7 @@
 __pycache__/
 /__pycache__/
 /.venv/
+.venv/
 /venv/
 /venv3.11/
 .env
