@@ -26,12 +26,13 @@ def test_token_counter_finetunable():
     kwargs = {}
     function_description = Register.load_function_description(dummy_func)
     logger = FilesystemBufferedLogger("test")
-    lang_model = LanguageModelManager()
+
     func_modeler = FunctionModeler(logger)
+    lang_model = LanguageModelManager(func_modeler)
 
     initiate_test(func_modeler, function_description)
 
-    prompt, distilled_model, suitable_for_distillation, is_distilled_model = lang_model.get_generation_case(args, kwargs, func_modeler, function_description)
+    prompt, distilled_model, suitable_for_distillation, is_distilled_model = lang_model.get_generation_case(args, kwargs, function_description)
     assert suitable_for_distillation
     assert is_distilled_model
     assert distilled_model == "test_ft_1"
@@ -42,11 +43,11 @@ def test_token_counter_non_finetunable_1():
     kwargs = {}
     function_description = Register.load_function_description(dummy_func)
     logger = FilesystemBufferedLogger("test")
-    lang_model = LanguageModelManager()
     func_modeler = FunctionModeler(logger)
+    lang_model = LanguageModelManager(func_modeler)
     initiate_test(func_modeler, function_description)
 
-    prompt, distilled_model, suitable_for_distillation, is_distilled_model = lang_model.get_generation_case(args, kwargs, func_modeler, function_description)
+    prompt, distilled_model, suitable_for_distillation, is_distilled_model = lang_model.get_generation_case(args, kwargs, function_description)
     assert not suitable_for_distillation
     assert not is_distilled_model
     assert distilled_model == "gpt-4"
@@ -57,11 +58,11 @@ def test_token_counter_non_finetunable_2():
     kwargs = {}
     function_description = Register.load_function_description(dummy_func)
     logger = FilesystemBufferedLogger("test")
-    lang_model = LanguageModelManager()
     func_modeler = FunctionModeler(logger)
+    lang_model = LanguageModelManager(func_modeler)
     initiate_test(func_modeler, function_description)
 
-    prompt, distilled_model, suitable_for_distillation, is_distilled_model = lang_model.get_generation_case(args, kwargs, func_modeler, function_description)
+    prompt, distilled_model, suitable_for_distillation, is_distilled_model = lang_model.get_generation_case(args, kwargs, function_description)
     assert not suitable_for_distillation
     assert not is_distilled_model
     assert distilled_model == "gpt-4-32k"
@@ -73,12 +74,12 @@ def test_error_raise():
     function_description = Register.load_function_description(dummy_func)
     #func_hash = function_description.__hash__()
     logger = FilesystemBufferedLogger("test")
-    lang_model = LanguageModelManager()
     func_modeler = FunctionModeler(logger)
+    lang_model = LanguageModelManager(func_modeler)
     initiate_test(func_modeler, function_description)
     error = False
     try:
-        prompt, distilled_model, suitable_for_distillation, is_distilled_model = lang_model.get_generation_case(args, kwargs, func_modeler, function_description)
+        prompt, distilled_model, suitable_for_distillation, is_distilled_model = lang_model.get_generation_case(args, kwargs, function_description)
     except ValueError:
         error = True
     assert error

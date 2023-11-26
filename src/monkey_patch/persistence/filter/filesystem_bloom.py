@@ -6,7 +6,7 @@ from monkey_patch.bloom_filter import BloomFilter
 from monkey_patch.persistence.filter.bloom_interface import IBloomFilterPersistence
 
 
-class FileSystemBloomFilterPersistence(IBloomFilterPersistence):
+class BloomFilterFileSystemDriver(IBloomFilterPersistence):
     """
     This is a Filesystem implementation of a Bloom Filter persistence layer.
     """
@@ -14,20 +14,20 @@ class FileSystemBloomFilterPersistence(IBloomFilterPersistence):
     def __init__(self, log_directory: str):
         self.log_directory = log_directory
 
-    def save(self, bloom_filter: BloomFilter):
+    def save(self, bit_array: bitarray) -> None:
         """
         Write a bloom filter array of bits to the local filesystem.
         :param bloom_filter: A bloom filter which tracks unique function invocations
         """
         bloom_filter_path = os.path.join(self.log_directory, 'bloom_filter_state.bin')
         # Append 0 bits to make the length a multiple of 8
-        while len(bloom_filter.bit_array) % 8 != 0:
-            bloom_filter.bit_array.append(0)
+        while len(bit_array) % 8 != 0:
+            bit_array.append(0)
 
         with open(bloom_filter_path, 'wb') as f:
-            f.write(bloom_filter.bit_array.tobytes())
+            f.write(bit_array.tobytes())
 
-    def load(self, bloom_filter: BloomFilter):
+    def load(self) -> bitarray:
         """
         Load a bloom filter from the local filesystem.
         :return: A bloom filter object containing the state of unique function invocations
@@ -40,4 +40,4 @@ class FileSystemBloomFilterPersistence(IBloomFilterPersistence):
         while len(bit_array) % 8 != 0:
             bit_array.append(0)
 
-        bloom_filter.bit_array = bit_array
+        return bit_array

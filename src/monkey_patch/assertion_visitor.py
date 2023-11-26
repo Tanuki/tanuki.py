@@ -170,6 +170,11 @@ class AssertionVisitor(ast.NodeVisitor):
                     self.process_assert_helper_lr(left, right, iter_name, op)
                 elif isinstance(left.func, ast.Attribute) and left.func.attr in self.patch_symbolic_names:
                     self.process_assert_helper_lr(left, right, iter_name, op)
+                else:
+                    if isinstance(right.func, ast.Name) and right.func.id in self.patch_symbolic_names:
+                        self.process_assert_helper_lr(right, left, iter_name, op)
+                    elif isinstance(right.func, ast.Attribute) and right.func.attr in self.patch_symbolic_names:
+                        self.process_assert_helper_lr(right, left, iter_name, op)
 
             elif isinstance(right, ast.Call):
                 if isinstance(right.func, ast.Name) and right.func.id in self.patch_symbolic_names:

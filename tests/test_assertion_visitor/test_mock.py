@@ -6,6 +6,7 @@ from typing import Optional, List
 
 from pydantic import BaseModel
 
+from monkey_patch.monkey import Monkey as monkey
 from monkey_patch.assertion_visitor import AssertionVisitor, Or
 
 
@@ -15,8 +16,13 @@ def _parse(source):
         goal: str
         people: List[str]
 
+    @monkey.patch
+    def create_todolist_item(goal: str, people=[]) -> TodoItem:
+        pass
+
     tree = ast.parse(source)
-    visitor = AssertionVisitor(locals(), patch_names=["create_todolist_item"])
+    _locals = locals()
+    visitor = AssertionVisitor(locals(), patch_symbolic_funcs={"create_todolist_item": create_todolist_item})
     visitor.visit(tree)
     return visitor.mocks
 

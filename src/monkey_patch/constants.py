@@ -21,7 +21,7 @@ NEGATIVE_FILE_EXTENSION_TYPE = Literal[".negative"]
 NEGATIVE_FILE_EXTENSION: NEGATIVE_FILE_EXTENSION_TYPE = ".negative"
 
 # Bloom filter default config
-EXPECTED_ITEMS = 100000
+EXPECTED_ITEMS = 10000
 FALSE_POSITIVE_RATE = 0.01
 
 # The name of the library

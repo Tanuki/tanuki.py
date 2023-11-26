@@ -68,7 +68,8 @@ def test_bloom_filter_persistence():
     bf1.save()
     saved_bytes = bf1.bit_array.tobytes()
 
-    assert bf1.bit_array.count(1) != 0
+    count_1 = bf1.bit_array.count(1)
+    assert count_1 != 0
     num = 50
 
     # Manual saving
@@ -90,7 +91,7 @@ def test_bloom_filter_persistence():
     bf2.load()
     loaded_bytes = bf2.bit_array.tobytes()
 
-    assert saved_bytes == loaded_bytes
+    assert bf1.bit_array == bf2.bit_array
 
     for i, (b1, b2) in enumerate(zip(saved_bytes, loaded_bytes)):
         if b1 != b2:

@@ -1,6 +1,9 @@
+from bitarray import bitarray
+
+
 class IBloomFilterPersistence:
-    def save(self, bloom_filter: "BloomFilter") -> None:
+    def save(self, bit_array: bitarray) -> None:
         pass
 
-    def load(self, bloom_filter: "BloomFilter") -> None:
+    def load(self) -> bitarray:
         pass

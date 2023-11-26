@@ -40,6 +40,7 @@ def logger(request):
 def test_patch_one_function_many_times():
     runs = 100
     logger = FilesystemBufferedLogger("test")
+    logger.bloom_filter = logger.create_bloom_filter()
     start_time = time.time()
     for i in range(runs):
         example = FunctionExample((i,), {}, i * 2)

@@ -65,12 +65,14 @@ class BloomFilter:
             #print(f"Add: Seed={seed}, Digest={index}, BitValue={self.bit_array[index]}")
 
     def save(self):
-        self.persistence.save(self)
+        self.persistence.save(self.bit_array)
 
     def load(self):
-        self.persistence.load(self)
+        self.bit_array = self.persistence.load()
 
-        if len(self.bit_array) != self.size:
+        length_in_bytes = int(len(self.bit_array)/8)
+        expected_length = math.ceil(self.size / 8)
+        if length_in_bytes != expected_length:
             logging.warning("Bit array length does not match expected size, and so might be corrupted. Reinitializing.")
             self.bit_array, self.indices = self.init_bit_array(self.size)
             self.save()

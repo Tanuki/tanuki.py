@@ -6,7 +6,7 @@ from appdirs import user_data_dir
 
 from monkey_patch.constants import *
 from monkey_patch.persistence.filter.bloom_interface import IBloomFilterPersistence
-from monkey_patch.persistence.filter.filesystem_bloom import FileSystemBloomFilterPersistence
+from monkey_patch.persistence.filter.filesystem_bloom import BloomFilterFileSystemDriver
 from monkey_patch.trackers.abc_buffered_logger import ABCBufferedLogger
 
 
@@ -25,7 +25,7 @@ class FilesystemBufferedLogger(ABCBufferedLogger):
         Get an instance of the bloom filter persistence provider. Typically this will be a file system provider.
         :return: A persistence provider
         """
-        return FileSystemBloomFilterPersistence(log_directory=self.log_directory)
+        return BloomFilterFileSystemDriver(log_directory=self.log_directory)
 
     def get_patch_location_for_function(self, func_hash, extension: Union[
         ALIGN_FILE_EXTENSION_TYPE, PATCH_FILE_EXTENSION_TYPE] = "") -> str:

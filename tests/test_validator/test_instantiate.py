@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import List, Dict, Tuple, Union, Optional, Sequence, Iterable, Mapping, ChainMap, Set, get_args, FrozenSet, \
     DefaultDict, Counter, OrderedDict
 
+import pytest
 from pydantic import BaseModel
 
 from monkey_patch.validator import Validator
@@ -147,9 +148,11 @@ def test_generics():
     result = validator.instantiate({"a": 1, "b": 2}, OrderedDict[str, int])
     assert isinstance(result, OrderedDict) and dict(result) == {"a": 1, "b": 2}
 
+@pytest.fixture
+def validator():
+    return Validator()
 
-def test_extended_generics():
-    validator = Validator()
+def test_extended_generics(validator):
 
     test_extended_list(validator)
     test_extended_tuple(validator)

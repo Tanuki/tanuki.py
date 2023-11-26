@@ -37,6 +37,7 @@ class ABCBufferedLogger(DatasetWorker):
 
         super().__init__(name, level)
         self.bloom_filter = self.create_bloom_filter()
+        self.load_bloom_filter()
 
         self.default_function_config = {"distilled_model": "",
                                         "current_model_stats": {
@@ -104,12 +105,13 @@ class ABCBufferedLogger(DatasetWorker):
             bloom_filter_persistence,
             expected_number_of_elements=EXPECTED_ITEMS,
             false_positive_probability=FALSE_POSITIVE_RATE)
+        return bloom_filter
+
+    def load_bloom_filter(self):
         try:
-            bloom_filter.load()
+            self.bloom_filter.load()
         except FileNotFoundError:
             self.debug("No Bloom filter found. Creating a new one.")
-
-        return bloom_filter
 
     def write_symbolic_align_call(self, func_hash, example) -> bool:
         log_file_path = self.get_patch_location_for_function(func_hash, extension=ALIGN_FILE_EXTENSION)
