@@ -1,0 +1,5 @@
+python-dotenv
+openai
+monkey-patch.py
+pytest
+beautifulsoup4
