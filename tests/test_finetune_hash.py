@@ -1,9 +1,10 @@
 from typing import List
+
 from monkey_patch.function_modeler import FunctionModeler
-from monkey_patch.language_models.language_modeler import LanguageModel
 from monkey_patch.register import Register
-from monkey_patch.trackers.buffered_logger import BufferedLogger
+from monkey_patch.trackers.filesystem_buffered_logger import FilesystemBufferedLogger
 from monkey_patch.utils import encode_int, decode_int
+
 
 def dummy_func(input: str) -> List[str]:
     """
@@ -12,7 +13,7 @@ def dummy_func(input: str) -> List[str]:
 
 def initiate_test(func_modeler, func_hash):
     # initiate the config
-    _ = func_modeler._load_function_config(func_hash)
+    _ = func_modeler.load_function_config(func_hash, )
     for keys, values in func_modeler.function_configs.items():
         if func_hash in keys:
             values["distilled_model"] = "test_ft_1"
@@ -36,14 +37,14 @@ def test_encode_decode_hash():
     nr_of_training_runs = 5
     workspace_id = 12
     function_description = function_description = Register.load_function_description(dummy_func)
-    logger = BufferedLogger("test")
+    logger = FilesystemBufferedLogger("test")
     func_modeler = FunctionModeler(logger, environment_id=workspace_id)
     finetune_hash = function_description.__hash__(purpose = "finetune") + encode_int(func_modeler.environment_id) + encode_int(nr_of_training_runs)
     finetune = {"fine_tuned_model": f"Test_model:__{finetune_hash}:asd[]asd",}
     config = func_modeler._construct_config_from_finetune(finetune_hash[:-1], finetune)
     assert config["distilled_model"] == f"Test_model:__{finetune_hash}:asd[]asd"
-    assert config["current_model_stats"]["trained_on_datapoints"] == 12800
-    assert config["last_training_run"]["trained_on_datapoints"] == 12800
+    assert config["current_model_stats"]["trained_on_datapoints"] == 6400
+    assert config["last_training_run"]["trained_on_datapoints"] == 6400
     assert config["teacher_models"] == ["gpt-4","gpt-4-32k"]
     assert config["nr_of_training_runs"] == nr_of_training_runs + 1
 

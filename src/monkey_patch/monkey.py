@@ -6,19 +6,21 @@ import os
 import sys
 import textwrap
 from functools import wraps
-from typing import Optional
+from typing import Optional, Union, Any
 from unittest.mock import patch
 
 import requests
 
 from monkey_patch.assertion_visitor import AssertionVisitor
 from monkey_patch.function_modeler import FunctionModeler
-from monkey_patch.language_models.language_modeler import LanguageModel
+from monkey_patch.language_models.embedding_model_manager import EmbeddingModelManager
+from monkey_patch.language_models.language_model_manager import LanguageModelManager
+from monkey_patch.models.embedding import Embedding
 from monkey_patch.models.function_description import FunctionDescription
 from monkey_patch.models.function_example import FunctionExample
+from monkey_patch.models.function_type import FunctionType
 from monkey_patch.register import Register
-from monkey_patch.repair import repair_output
-from monkey_patch.trackers.buffered_logger import BufferedLogger
+from monkey_patch.trackers.filesystem_buffered_logger import FilesystemBufferedLogger
 from monkey_patch.utils import get_key
 from monkey_patch.validator import Validator
 
@@ -53,7 +55,7 @@ def _log_align(self, func_hash, *args, **kws):
 
 # Set up logging with custom logger
 def logger_factory(name):
-    return BufferedLogger(name)
+    return FilesystemBufferedLogger(name)
 
 
 ALIGN_LEVEL_NUM = 15
@@ -65,21 +67,21 @@ alignable_functions = {}
 
 class Monkey:
     # Set up basic configuration
-    logging.setLoggerClass(BufferedLogger)
+    logging.setLoggerClass(FilesystemBufferedLogger)
     logging.addLevelName(ALIGN_LEVEL_NUM, "ALIGN")
     logging.addLevelName(PATCH_LEVEL_NUM, "PATCH")
     logging.basicConfig(level=ALIGN_LEVEL_NUM)
     logger = logger_factory(__name__)
-    language_modeler = LanguageModel()
     # currently only use buffered logger as default
     function_modeler = FunctionModeler(data_worker=logger)
-
+    language_modeler = LanguageModelManager(function_modeler)
+    embedding_modeler = EmbeddingModelManager(function_modeler)
     telemetry_enabled: bool = True
 
 
     @staticmethod
     def _load_alignments(func_hash: str):
-        Monkey.function_modeler.load_align_statements(func_hash)
+        Monkey.function_modeler.load_symbolic_align_statements(func_hash)
 
     @staticmethod
     def _anonymous_usage(*args, **kwargs):
@@ -89,8 +91,10 @@ class Monkey:
         """
         if not Monkey.telemetry_enabled:
             return
-
-        requests.post('https://idhhnusnhkkjkpwkm1fr.monkeypatch.ai/telemetry', data=json.dumps(kwargs))
+        try:
+            requests.post('https://idhhnusnhkkjkpwkm1fr.monkeypatch.ai/telemetry', data=json.dumps(kwargs))
+        except: 
+            pass
 
     @staticmethod
     def align(test_func):
@@ -109,9 +113,22 @@ class Monkey:
             source = textwrap.dedent(inspect.getsource(test_func))
             tree = ast.parse(source)
             _locals = locals()
-            visitor = AssertionVisitor(_locals, patch_names=Register.function_names_to_patch())
+
+            # We are handling symbolic and embeddable functions differently, as they have different semantics during
+            # the alignment process.
+
+            patch_symbolic_funcs = Register.functions_to_patch(type=FunctionType.SYMBOLIC)
+            patch_embeddable_funcs = Register.functions_to_patch(type=FunctionType.EMBEDDABLE)
+            visitor = AssertionVisitor(_locals,
+                                       patch_symbolic_funcs=patch_symbolic_funcs,
+                                       patch_embeddable_funcs=patch_embeddable_funcs)
             visitor.visit(tree)
+
+            # Get the mocked behaviours from analyzing the AST of the aligned function
             mock_behaviors = visitor.mocks
+
+            # Negative examples (i.e. embeddable function examples that should have maximum distance in the embedding space)
+            mock_negatives = visitor.negative_mocks
 
             if args:
                 instance = args[0]
@@ -139,34 +156,59 @@ class Monkey:
                 def mock_func(*args, **kwargs):
                     hashed_description = description.__hash__()
 
-                    func = Register.get(func_name)
-                    if not instance:
-                        result = func(*args, **kwargs)
+                    function_type, func = Register.get(func_name)
+
+                    # If we are aligning a function that returns an embedding,
+                    # we need to ensure both sides of the equality are future embeddings,
+                    # as it is nonsensical to declare that an embedding should 'be' an object or a string, etc.
+                    if function_type == FunctionType.EMBEDDABLE:
+                        key = get_key(args, kwargs)
+                        mocked_embedding = mock_behaviors.get(key, None)
+
+                        # Find positive examples by matching the mocked embedding with identical embeddings in the values
+                        # of the mock_behaviors dictionary
+                        mock_positives_list = []
+                        for k, v in mock_behaviors.items():
+                            if v == mocked_embedding and k != key:
+                                mock_positives_list.append(k)
+                        equivalent_mocks = mock_positives_list
+                        negative_mocks = list(mock_negatives.values())
+                        Monkey.function_modeler.save_embeddable_align_statements(hashed_description,
+                                                                                 args,
+                                                                                 kwargs,
+                                                                                 equivalent_mocks,
+                                                                                 negative_mocks)
+                        return mocked_embedding
                     else:
-                        result = func(instance, *args, **kwargs)
+                        # If we are aligning a function that returns an object
+                        if not instance:
+                            result = func(*args, **kwargs)
+                        else:
+                            result = func(instance, *args, **kwargs)
 
-                    # Extract attributes from the result
-                    attributes = extract_attributes(result)
-                    for attr_name, attr_value in attributes.items():
-                        # If the attribute is a list, get its length
-                        if isinstance(attr_value, list):
-                            attributes[attr_name] = len(attr_value)
+                        # Extract attributes from the result
+                        attributes = extract_attributes(result)
+                        for attr_name, attr_value in attributes.items():
+                            # If the attribute is a list, get its length
+                            if isinstance(attr_value, list):
+                                attributes[attr_name] = len(attr_value)
 
-                    key = get_key(args, kwargs)
-                    mocked_behaviour = mock_behaviors.get(key, None)
-                    Monkey.function_modeler.save_align_statements(hashed_description, args, kwargs, mocked_behaviour)
-                    return mocked_behaviour
+                        key = get_key(args, kwargs)
+                        mocked_behaviour = mock_behaviors.get(key, None)
+                        Monkey.function_modeler.save_symbolic_align_statements(hashed_description, args, kwargs,
+                                                                               mocked_behaviour)
+                        return mocked_behaviour
 
                 return mock_func
 
-            function_names_to_patch = Register.function_names_to_patch()
 
             # Identify all functions that need to be patched based on mock_behaviors
             if instance:
+                function_names_to_patch = Register.function_names_to_patch(instance)#, type=FunctionType.SYMBOLIC)
                 functions_descriptions = [Register.load_function_description_from_name(instance, func_name)
                                           for func_name in function_names_to_patch]
-
             else:
+                function_names_to_patch = Register.function_names_to_patch()#type=FunctionType.SYMBOLIC)
                 functions_descriptions = [Register.load_function_description_from_name(func_name)
                                           for func_name in function_names_to_patch]
 
@@ -195,28 +237,21 @@ class Monkey:
             else:
                 return patched_func(*args, **kwargs)
 
-        def _get_args(func_args, kwarg_names, num_args):
-            num_pos_args = num_args - len(kwarg_names)  # Calculate number of positional arguments
-            args_for_call = func_args[:num_pos_args]
-            # Pop keyword arguments off the stack
-            kwargs_for_call = {}  # New dictionary to hold keyword arguments for the call
-            for name in reversed(kwarg_names):  # Reverse to match the order on the stack
-                try:
-                    kwargs_for_call[name] = func_args.pop()  # Pop the value off the stack
-                except IndexError:
-                    print(f"Debug: func_args is empty, can't pop for {name}")
-            func_args = func_args[:-num_pos_args]  # Remove the positional arguments from func_args
-            return args_for_call, func_args, kwargs_for_call
-
         return wrapper
 
     @staticmethod
-    def patch(patchable_func = None,
-                environment_id : int = 0, 
-                ignore_finetune_fetching : bool = False, 
-                ignore_finetuning : bool = False,
-                ignore_data_storage : bool = False
-                ):
+    def generate_from_embedding_model_manager(function_description):
+        choice_parsed = []
+        instantiated = function_description.output_type_hint(choice_parsed)
+        return instantiated
+
+    @staticmethod
+    def patch(patchable_func=None,
+              environment_id: int = 0,
+              ignore_finetune_fetching: bool = False,
+              ignore_finetuning: bool = False,
+              ignore_data_storage: bool = False
+              ):
         """
         The main decorator for patching a function.
         args:
@@ -229,52 +264,24 @@ class Monkey:
             ignore_data_storage (bool): Whether to ignore storing the data.
                 If set to True, the data will not be stored in the finetune dataset and the align statements will not be saved
                 This improves latency as communications with data storage is minimised
-
-        
         """
+
         def wrap(test_func):
             @wraps(test_func)
-            def wrapper(*args, **kwargs):
-                function_description = Register.load_function_description(test_func)
-                output = Monkey.language_modeler.generate(args, kwargs, Monkey.function_modeler, function_description)
-                # start parsing the object, very hacky way for the time being
-                try:
-                    # json load
-                    choice_parsed = json.loads(output.generated_response)
-                except:
-                    # if it fails, it's not a json object, try eval
-                    try:
-                        choice_parsed = eval(output.generated_response)
-                    except: 
-                        choice_parsed = output.generated_response
-
+            def wrapper(*args, **kwargs) -> Union[Embedding, Any]:
                 validator = Validator()
+                function_description: FunctionDescription = Register.load_function_description(test_func)
 
-                valid = validator.check_type(choice_parsed, function_description.output_type_hint)
-
-                if not valid:
-                    choice, choice_parsed, successful_repair = repair_output(args,
-                                                                             kwargs,
-                                                                             function_description,
-                                                                             output.generated_response,
-                                                                             validator,
-                                                                             Monkey.function_modeler,
-                                                                             Monkey.language_modeler)
-
-                    if not successful_repair:
-                        raise TypeError(f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{output.generated_response}'")
-                    output.generated_response = choice
-                    output.distilled_model = False
-
-
-                datapoint = FunctionExample(args, kwargs, output.generated_response)
-                if output.suitable_for_finetuning and not output.distilled_model:
-                    Monkey.function_modeler.postprocess_datapoint(function_description.__hash__(), function_description, datapoint, repaired = not valid)
-
-                instantiated = validator.instantiate(choice_parsed, function_description.output_type_hint)
+                # If the function is expected to return an embedding, we choose the embedding API, rather than an LLM.
+                if inspect.isclass(function_description.output_type_hint) and \
+                        issubclass(function_description.output_type_hint, Embedding):
+                    instantiated: Embedding = Monkey.embedding_modeler(args, function_description, kwargs)
+                else:
+                    # If the function is expected to return a choice, we choose the LLM API.
+                    instantiated: Any = Monkey.language_modeler(args, function_description, kwargs, validator)
 
                 return instantiated  # test_func(*args, **kwargs)
-            
+
             Monkey._anonymous_usage(logger=Monkey.logger.name)
             function_description = Register.load_function_description(test_func)
             func_hash = function_description.__hash__()
@@ -288,14 +295,13 @@ class Monkey:
             Monkey._load_alignments(func_hash)
 
             wrapper._is_alignable = True
-            Register.add_function(test_func, wrapper)
+            Register.add_function(test_func, function_description)
             return wrapper
-        
-        if  callable(patchable_func):
+
+        if callable(patchable_func):
             func = patchable_func
             return wrap(func)
         if patchable_func is not None:
-            raise TypeError("The first argument to patch must not be specified. Please use keyword arguments or specify the first argument as None")
+            raise TypeError(
+                "The first argument to patch must not be specified. Please use keyword arguments or specify the first argument as None")
         return wrap
-
-            

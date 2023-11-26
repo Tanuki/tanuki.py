@@ -4,10 +4,10 @@ from tempfile import TemporaryDirectory
 import pytest
 
 from monkey_patch.models.function_example import FunctionExample
-from monkey_patch.trackers.buffered_logger import BufferedLogger
+from monkey_patch.trackers.filesystem_buffered_logger import FilesystemBufferedLogger
 
 
-@pytest.fixture(params=[BufferedLogger])
+@pytest.fixture(params=[FilesystemBufferedLogger])
 def logger(request):
     with TemporaryDirectory() as temp_dir:
         global ALIGN_FILE_NAME
@@ -39,18 +39,19 @@ def logger(request):
 #
 def test_patch_one_function_many_times():
     runs = 100
-    logger = BufferedLogger("test")
+    logger = FilesystemBufferedLogger("test")
+    logger.bloom_filter = logger.create_bloom_filter()
     start_time = time.time()
     for i in range(runs):
         example = FunctionExample((i,), {}, i * 2)
         before_bit_array = logger.bloom_filter.bit_array.copy()
 
-        logger.log_patch("test", example)
+        logger.log_symbolic_patch("test", example)
 
         after_bit_array = logger.bloom_filter.bit_array
-        #is_same = before_bit_array == after_bit_array
+        is_same = before_bit_array == after_bit_array
 
-        #assert is_same == False
+        assert is_same == False
 
     logger.save_bloom_filter()
     elapsed_time = time.time() - start_time
@@ -62,7 +63,7 @@ def test_patch_one_function_many_times():
     for i in range(runs):
         example = FunctionExample((i,), {}, i * 2)
 
-        logger.log_patch("test", example)
+        logger.log_symbolic_patch("test", example)
 
         after_bit_array = logger.bloom_filter.bit_array
         #is_same = before_bit_array == after_bit_array

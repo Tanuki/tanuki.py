@@ -1,6 +1,8 @@
 from abc import abstractmethod
 from logging import Logger
 
+from monkey_patch.models.function_example import FunctionExample
+
 
 class DatasetWorker(Logger):
     def __init__(self, name, level=15):
@@ -8,7 +10,7 @@ class DatasetWorker(Logger):
 
 
     @abstractmethod
-    def _load_existing_datasets(self):
+    def load_existing_datasets(self):
         """
         Get all existing datasets for functions
         Output must be a dictionary with the following structure:
@@ -26,7 +28,7 @@ class DatasetWorker(Logger):
         pass
 
     @abstractmethod
-    def log_align(self, func_hash, *args, **kws):
+    def log_symbolic_align(self, func_hash, *args, **kws):
         """
         Log an alignment statement to the dataset defined by func_hash
         Args:
@@ -37,7 +39,20 @@ class DatasetWorker(Logger):
         pass
 
     @abstractmethod
-    def log_patch(self, func_hash, example):
+    def log_embeddable_align(self, func_hash, first_example: FunctionExample, second_example: FunctionExample, **kws):
+        """
+        Log a contrastive statement to the dataset defined by func_hash
+        Args:
+            second_example:
+            first_example:
+            func_hash (str): the function hash
+            *args: the args for the datapoint, where args[0] is a FunctionExample(args, kwargs, output) object
+            **kws: the kwargs for the datapoint
+        """
+        pass
+
+    @abstractmethod
+    def log_symbolic_patch(self, func_hash, example):
         """
         Save the example to the patch dataset for the function hash
         Output must be a dictionary with the following structure:
@@ -56,7 +71,7 @@ class DatasetWorker(Logger):
         """
 
     @abstractmethod
-    def _load_function_config(self, func_hash):
+    def load_function_config(self, func_hash):
 
         """
         Get the config file for the function.
@@ -102,7 +117,7 @@ class DatasetWorker(Logger):
         pass
 
     @abstractmethod
-    def _load_dataset(self, dataset_type, func_hash, return_type):
+    def load_dataset(self, dataset_type, func_hash, return_type):
         """
         Load the datasets for a function hash
         The datasets loaded must be a string, where different datapoints are on new lines
@@ -118,7 +133,7 @@ class DatasetWorker(Logger):
         pass
 
     @abstractmethod
-    def _update_function_config(self, func_hash, config_to_be_saved):
+    def update_function_config(self, func_hash, config_to_be_saved):
         """
         Save the config file using the function hash to data storage
         Args:

@@ -1,9 +1,9 @@
 import hashlib
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, Optional, Literal
 
+from monkey_patch.models.function_type import FunctionType
 from monkey_patch.utils import json_dumps
-
 
 @dataclass(frozen=True)
 class FunctionDescription:
@@ -12,7 +12,8 @@ class FunctionDescription:
     input_type_hints: Dict[str, type]
     input_class_definitions: Dict[str, str]
     output_type_hint: type
-    output_class_definition: str
+    output_class_definition: Optional[str]
+    type: FunctionType = FunctionType.SYMBOLIC
 
     def __hash__(self, purpose: str = "general"):
         if purpose == "general": 
