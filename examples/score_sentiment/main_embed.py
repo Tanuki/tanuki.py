@@ -1,7 +1,5 @@
 from dotenv import load_dotenv
 load_dotenv()
-import sys
-sys.path.append("src")
 from monkey_patch.monkey import Monkey as monkey
 from monkey_patch.models.embedding import Embedding
 import numpy as np
@@ -30,8 +28,6 @@ def test_score_sentiment():
     print(score_sentiment("I do not like you"))
     print(score_sentiment("I am neutral"))
 
-align_embed_sentiment()
-#test_score_sentiment()
 
 if __name__ == "__main__":
     test_score_sentiment()
