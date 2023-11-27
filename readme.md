@@ -1,6 +1,10 @@
 # 🙈 MonkeyPatch
 
 The easiest way to build scalable, LLM-powered functions and applications that get cheaper and faster the more you use them. 
+## Release
+[27/11] Support for [embeddings](embedding_placeholder) and [function configurability](config_placeholder) is released!
+* Use embeddings to integrate MonkeyPatch with downstream RAG implementations using OpenAI Ada-2 model.
+*  Function configurability allows to configure MP function executions to ignore certain implemented aspects (finetuning, data-storage communications) for improved latency and serverless integrations.
 
 ## Contents
 
@@ -43,6 +47,7 @@ def test_some_function(example_typed_input: TypedInput,
 
 - **Easy and seamless integration** - Add LLM augmented functions to any workflow within seconds. Decorate a function stub with `@monkey.patch` and optionally add type hints and docstrings to guide the execution. That’s it.
 - **Type aware** - Ensure that the outputs of the LLM adhere to the type constraints of the function (Python Base types, Pydantic classes, Literals, Generics etc) to guard against bugs or unexpected side-effects of using LLMs.
+- **RAG support** - Seamlessly get embedding outputs for downstream RAG (Retrieval Augmented Generation) implementations. Output embeddings can then be easily stored and used for relevant document retrieval to reduce cost & latency and improve performance on long-form content. 
 - **Aligned outputs** - LLMs are unreliable, which makes them difficult to use in place of classically programmed functions. Using simple assert statements in a function decorated with `@monkey.align`, you can align the behaviour of your patched function to what you expect.
 - **Lower cost and latency** - Achieve up to 90% lower cost and 80% lower latency with increased usage. The package will take care of model training, MLOps and DataOps efforts to improve LLM capabilities through distillation.
 - **Batteries included** - No remote dependencies other than OpenAI. 
@@ -99,7 +104,7 @@ if __name__ == "__main__":
     print(classify_sentiment("I like you")) # Good
     print(classify_sentiment("Apples might be red")) # None
 ```
-
+See [here](config_placeholder) for configuration options for patched MP functions
 <!-- TOC --><a name="how-it-works"></a>
 ## How It Works
 
@@ -175,6 +180,7 @@ if __name__ == "__main__":
 
 To see more examples using MonkeyPatch for different use cases (including how to integrate with FastAPI), have a look at [examples](https://github.com/monkey-patch-sdk/monkey-patch.py/tree/master/examples).
 
+For embedding outputs for RAG support, see [here](embedding_placeholder)
 
 <!-- TOC --><a name="test-driven-alignment"></a>
 ## Test-Driven Alignment
