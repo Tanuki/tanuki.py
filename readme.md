@@ -1,4 +1,5 @@
-# :raccoon:Tanuki
+# <img src="https://github.com/Tanuki/tanuki.py/assets/113173969/0909dfc6-9fa8-4d51-a119-8feee067a6fb" alt="drawing" width="25" height="25"/> Tanuki
+<img src="https://github.com/Tanuki/tanuki.py/assets/113173969/90a8bc92-ff9f-404b-af3f-4b49d389c87d" alt="drawing" width="300" height="300"/>
 
 The easiest way to build scalable, LLM-powered functions and applications that get cheaper and faster the more you use them. 
 
