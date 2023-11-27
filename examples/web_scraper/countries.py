@@ -6,7 +6,7 @@ from typing import Optional
 
 load_dotenv()
 
-from monkey_patch.monkey import Monkey as monkey
+import tanuki
 from utils import scrape_url
 
 
@@ -20,7 +20,7 @@ class Country(BaseModel):
     area: float
 
 
-@monkey.patch
+@tanuki.patch
 def extract_country(content: str) -> Optional[Country]:
     """
     Examine the content string and extract the country information pertaining to it's
@@ -28,7 +28,7 @@ def extract_country(content: str) -> Optional[Country]:
     """
 
 
-@monkey.align
+@tanuki.align
 def align_extract_country() -> None:
     print("Aligning...")
     country = "\n\n\n                            U.S. Virgin Islands\n                        \n\nCapital: Charlotte Amalie\nPopulation: 108708\nArea (km2): 352.0\n\n"
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     url = "https://www.scrapethissite.com/pages/simple/"
     contents = scrape_url(url=url, class_name="country")
 
-    # Process the country blocks using MonkeyPatch (only sampling a couple for demo purposes)
+    # Process the country blocks using Tanuki (only sampling a couple for demo purposes)
     countries = []
     for content in contents[10:12]:
         countries.append(extract_country(content))

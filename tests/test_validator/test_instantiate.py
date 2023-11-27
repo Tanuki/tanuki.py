@@ -6,8 +6,7 @@ from typing import List, Dict, Tuple, Union, Optional, Sequence, Iterable, Mappi
 import pytest
 from pydantic import BaseModel
 
-from monkey_patch.validator import Validator
-
+from tanuki.validator import Validator
 
 
 def test_instantiate_pydantic():

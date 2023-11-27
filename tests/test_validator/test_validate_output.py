@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel
 
-from monkey_patch.validator import Validator
+from tanuki.validator import Validator
 
 
 def test_validate_output():

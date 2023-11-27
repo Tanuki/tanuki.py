@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 load_dotenv()
-from monkey_patch.monkey import Monkey as monkey
+import tanuki
 from pydantic import BaseModel
 from typing import Literal
 
@@ -10,7 +10,7 @@ class Persona(BaseModel):
     name: str 
     company : str = None
 
-@monkey.patch
+@tanuki.patch
 def classify_email(email: str) -> Literal["Real", "Fake"]:
     """
     Classify the email addresses as Fake or Real. The usual signs of an email being fake is the following:
@@ -19,7 +19,7 @@ def classify_email(email: str) -> Literal["Real", "Fake"]:
     3) Irregular name in email addresses
     """
 
-@monkey.align
+@tanuki.align
 def align_classify():
     assert classify_email("jeffrey.sieker@gmail.com") == "Fake"
     assert classify_email("jeffrey.sieker@apple.com") == "Real"
@@ -31,7 +31,7 @@ def align_classify():
     assert classify_email("unicorn_rider123@yahoo.com") == "Fake"
 
 
-@monkey.patch
+@tanuki.patch
 def extract_persona(email: str) -> Persona:
     """
     Using the email and email handler, extract the persona from the email
@@ -40,7 +40,7 @@ def extract_persona(email: str) -> Persona:
     name of the user to the best of the ability
     """
 
-@monkey.align
+@tanuki.align
 def align_extract():
     assert extract_persona("jeffrey.sieker@apple.com") == Persona(email="jeffrey.sieker@apple.com", name="Jeffrey Sieker", company="Apple")
     assert extract_persona("jon@amazon.com") == Persona(email="jon@apple.com", name="Jon", company="Amazon")

@@ -2,16 +2,16 @@ from pydantic import Field
 from typing import Annotated
 from dotenv import load_dotenv
 load_dotenv()
-from monkey_patch.monkey import Monkey as monkey
+import tanuki
 
-@monkey.patch
+@tanuki.patch
 def score_sentiment(input: str) -> Annotated[int, Field(gt=0, lt=10)]:
     """
     Scores the input between 0-10
     """
 
 
-@monkey.align
+@tanuki.align
 def align_score_sentiment():
     """Register several examples to align your function"""
 

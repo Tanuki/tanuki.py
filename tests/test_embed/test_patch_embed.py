@@ -6,8 +6,8 @@ from unittest import TestCase
 import numpy as np
 import openai
 from dotenv import load_dotenv
-from monkey_patch.models.embedding import Embedding
-from monkey_patch.monkey import Monkey as monkey
+from tanuki.models.embedding import Embedding
+import tanuki
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -15,25 +15,25 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 class TestEmbedding(TestCase):
 
-    @monkey.patch
+    @tanuki.patch
     def embed_sentiment(self, input: str) -> Embedding[np.ndarray]:
         """
         Determine if the inputs are positive or negative sentiment, or None
         """
 
-    @monkey.patch
+    @tanuki.patch
     def embed_sentiment2(self, input: str) -> Embedding[np.ndarray]:
         """
         Determine if the inputs are positive or negative sentiment, or None
         """
 
-    @monkey.patch
+    @tanuki.patch
     def is_positive_sentiment(self, input: str) -> bool:
         """
         Determine if the inputs are positive or negative sentiment
         """
 
-    @monkey.align
+    @tanuki.align
     def align_embed_sentiment(self) -> None:
         """
         Align some embed_sentiment functions
@@ -45,7 +45,7 @@ class TestEmbedding(TestCase):
         assert self.embed_sentiment("I love this movie") == self.embed_sentiment("I love this film")
         assert self.embed_sentiment("I love this movie") == self.embed_sentiment("I loved watching the movie")
 
-    @monkey.align
+    @tanuki.align
     def broken_heterogenous_align(self) -> None:
         # This should break, because the embedding function 'embed_sentiment' must be compared to itself with
         # different inputs.
@@ -53,13 +53,13 @@ class TestEmbedding(TestCase):
         #  Will functions be trained piecewise?
         assert self.embed_sentiment("I love this movie") == self.embed_sentiment2("I hate this movie")
 
-    @monkey.align
+    @tanuki.align
     def broken_align_embed_sentiment(self) -> None:
         # This should break, because the embedding function 'embed_sentiment' must be compared to another embedding
         # function.
         assert self.embed_sentiment("I love this movie") == "I hate this movie"
 
-    @monkey.align
+    @tanuki.align
     def broken_align_symbolic_with_embeddable(self) -> None:
         # This should break, because the embedding function 'embed_sentiment' must be compared to another embedding
         # function.

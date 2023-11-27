@@ -1,17 +1,17 @@
 import dis
 from dotenv import load_dotenv
 load_dotenv()
-from monkey_patch.monkey import Monkey as monkey
+import tanuki
 
 
-@monkey.patch
+@tanuki.patch
 def semantic_sql(input: str, schema: str) -> str:
     """
     Convert the input into a valid SQL query. Assume that the database has a table named "user" with
     columns "id", "organization_id", "name", and "email_notify"
     """
 
-@monkey.patch
+@tanuki.patch
 def semantic_sql_var(input: str, table_name: str = None, columns=[]) -> str:
     """
     Convert the input into a valid SQL query. Assume that the database has a table named "user" with
@@ -19,12 +19,12 @@ def semantic_sql_var(input: str, table_name: str = None, columns=[]) -> str:
     """
 
 
-@monkey.align
+@tanuki.align
 def test_semantic_sql_var():
     output = semantic_sql_var("list the names of all users in our user database", table_name="user", columns=["id", "organization_id", "name", "email_notify"])
     assert output == "SELECT name FROM user"
 
-@monkey.align
+@tanuki.align
 def test_semantic_sql():
     output = semantic_sql(input = "list the names of all users in our user database", schema = """table_name=user, columns=["id", "organization_id", "name", "email_notify"]""")
     assert output == "SELECT name FROM user"

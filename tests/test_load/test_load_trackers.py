@@ -3,8 +3,8 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from monkey_patch.models.function_example import FunctionExample
-from monkey_patch.trackers.filesystem_buffered_logger import FilesystemBufferedLogger
+from tanuki.models.function_example import FunctionExample
+from tanuki.trackers.filesystem_buffered_logger import FilesystemBufferedLogger
 
 
 @pytest.fixture(params=[FilesystemBufferedLogger])

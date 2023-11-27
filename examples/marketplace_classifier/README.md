@@ -1,6 +1,6 @@
-# Marketplace Product Auto-Tagger using Monkey-Patch 🙈
+# Marketplace Product Auto-Tagger using Tanuki
 
-Example of how MonkeyPatch can be used to auto-tag products based on their description and name for a marketplace app.
+Example of how Tanuki can be used to auto-tag products based on their description and name for a marketplace app.
 
 ## Installation
 

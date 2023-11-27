@@ -6,7 +6,7 @@ from typing import List, Optional
 
 load_dotenv()
 
-from monkey_patch.monkey import Monkey as monkey
+import tanuki
 from utils import scrape_url
 
 
@@ -25,7 +25,7 @@ class Car(BaseModel):
     warranty_roadside: str
 
 
-@monkey.patch
+@tanuki.patch
 def extract_car(content: str) -> Optional[Car]:
     """
     Examine the content string and extract the car details for the price, miles per gallon, seating, horsepower,
@@ -41,6 +41,6 @@ if __name__ == '__main__':
     contents = scrape_url(url=url)
     print(contents)
 
-    # Process the cocktail block using MonkeyPatch
+    # Process the cocktail block using Tanuki
     car = extract_car(contents[0])
     print(car)

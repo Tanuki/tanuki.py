@@ -1,6 +1,6 @@
 # Web Scraping
 
-This example shows how MonkeyPatch can be used with web scraping to easily populate the desired values into a structured class.
+This example shows how Tanuki can be used with web scraping to easily populate the desired values into a structured class.
 
 Six examples for web scraping are provided:
 - [Quotes](https://quotes.toscrape.com/)

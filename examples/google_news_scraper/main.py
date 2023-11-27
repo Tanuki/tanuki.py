@@ -19,7 +19,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 
 from examples.google_news_scraper.utils import send_email
-from monkey_patch.monkey import Monkey as monkey
+import tanuki
 
 load_dotenv()
 
@@ -147,14 +147,14 @@ def email_if_relevant(relevant_articles: List[ArticleSummary], search_term: str,
         send_email(subject, body, recipient)
 
 
-@monkey.patch
+@tanuki.patch
 def analyze_article(html_content: str, subject: str) -> ArticleSummary:
     """
     Analyzes the article's HTML content and extracts information relevant to the subject.
     """
 
 
-@monkey.align
+@tanuki.align
 def align_analyze_article():
 
     html_content = "<head></head><body><p>Nvidia has made the terrible decision to buy ARM for $40b on 8th November. This promises to "\

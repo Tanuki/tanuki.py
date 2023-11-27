@@ -5,12 +5,12 @@ from typing import List, Optional
 
 load_dotenv()
 
-from monkey_patch.monkey import Monkey as monkey
+import tanuki
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
-@monkey.patch
+@tanuki.patch
 def match_email(email: str, names: List[str]) -> Optional[List[str]]:
     """
     Examine the list of names and return all the names that are likely to correspond to the email address.
@@ -21,7 +21,7 @@ def match_email(email: str, names: List[str]) -> Optional[List[str]]:
     """
 
 
-@monkey.align
+@tanuki.align
 def align_match_email() -> None:
 
     # 1:1 Matching

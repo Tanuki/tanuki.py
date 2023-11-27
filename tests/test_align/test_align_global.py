@@ -4,27 +4,27 @@ from typing import Literal, Optional
 import openai
 from dotenv import load_dotenv
 
-from monkey_patch.monkey import Monkey as monkey
+import tanuki
 
 load_dotenv()
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-@monkey.patch
+@tanuki.patch
 def classify_sentiment_2(input: str, input_2: str) -> Optional[Literal['Good', 'Bad']]:
     """
     Determine if the inputs are positive or negative sentiment, or None
     """
 
 
-@monkey.patch
+@tanuki.patch
 def classify_sentiment(input: str) -> Optional[Literal['Good', 'Bad']]:
     """
     Determine if the input is positive or negative sentiment
     """
 
 
-@monkey.align
+@tanuki.align
 def align_classify_sentiment():
     """We can test the function as normal using Pytest or Unittest"""
 

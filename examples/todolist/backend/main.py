@@ -9,7 +9,7 @@ from typing import List
 
 from pydantic import BaseModel
 
-from monkey_patch.monkey import Monkey as monkey
+import tanuki
 from todo_item import TodoItem
 
 load_dotenv()
@@ -20,7 +20,7 @@ class Query(BaseModel):
     input: str
 
 
-@monkey.align
+@tanuki.align
 async def define_behavior():
     """
     We define 2 input/output pairs for the LLM to learn from.
@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-@monkey.patch
+@tanuki.patch
 def create_todolist_items(input: str) -> List[TodoItem]:
     """
     Converts the input string into a list of TodoItem objects
@@ -60,7 +60,7 @@ def create_todolist_items(input: str) -> List[TodoItem]:
     """
 
 
-@monkey.patch
+@tanuki.patch
 def create_todolist_item(input: str) -> TodoItem:
     """
     Converts the input string into a TodoItem object

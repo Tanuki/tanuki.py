@@ -6,7 +6,7 @@ from typing import List, Optional
 
 load_dotenv()
 
-from monkey_patch.monkey import Monkey as monkey
+import tanuki
 from utils import scrape_url
 
 
@@ -19,14 +19,14 @@ class Quote(BaseModel):
     tags: List[str] = []
 
 
-@monkey.patch
+@tanuki.patch
 def extract_quote(content: str) -> Optional[Quote]:
     """
     Examine the content string and extract the quote details for the text, author, and tags.
     """
 
 
-@monkey.align
+@tanuki.align
 def align_extract_quote() -> None:
     print("Aligning...")
     quote = "\nIt takes courage to grow up and become who you really are.\nby E.E. Cummings\n(about)\n\n\n            Tags:\n            \ncourage\n\n"
@@ -46,7 +46,7 @@ if __name__ == '__main__':
     url = "https://quotes.toscrape.com/page/1/"
     contents = scrape_url(url=url, class_name="quote")
 
-    # Process the quote blocks using MonkeyPatch (only sampling a couple for demo purposes)
+    # Process the quote blocks using Tanuki (only sampling a couple for demo purposes)
     quotes = []
     for content in contents[0:2]:
         c = content.replace('“', '')
