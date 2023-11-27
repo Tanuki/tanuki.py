@@ -3,3 +3,4 @@ openai
 monkey-patch.py
 pytest
 beautifulsoup4
+selenium
