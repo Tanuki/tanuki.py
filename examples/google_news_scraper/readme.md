@@ -2,7 +2,7 @@
 
 This example scrapes the Google News RSS website for the latest news articles on a certain topic.
 
-Each article is parsed using Monkeypatch, and all relevant articles are emailed to the recipient at the end of the scraping run.
+Each article is parsed using Tanukie, and all relevant articles are emailed to the recipient at the end of the scraping run.
 
 ## Configuration
 

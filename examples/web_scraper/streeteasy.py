@@ -7,7 +7,7 @@ from typing import List, Optional
 
 load_dotenv()
 
-from tanuki.monkey import Monkey as monkey
+import tanuki
 from utils import scrape_url
 
 
@@ -24,14 +24,14 @@ class Property(BaseModel):
     listed_by: str
 
 
-@monkey.patch
+@tanuki.patch
 def extract_property(content: str) -> Optional[Property]:
     """
     Examine the content string and extract the rental property details for the neighborhood, address,
     price, number of beds, number of bathrooms, square footage, and company that is listing the property.
     """
 
-@monkey.align
+@tanuki.align
 def align_extract_property() -> None:
     print("Aligning...")
     unit_one = "Rental Unit in Lincoln Square\n      \n\n\n229 West 60th Street #7H\n\n\n\n$7,250\nNO FEE\n\n\n\n\n\n\n\n\n2 Beds\n\n\n\n\n2 Baths\n\n\n\n\n\n                1,386\n                square feet\nft²\n\n\n\n\n\n        Listing by Algin Management"
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     contents = scrape_url(url=url, class_name="listingCardBottom")
     print(contents)
 
-    # Process the rental property block using MonkeyPatch
+    # Process the rental property block using Tanuki
     units = []
     for content in contents[1:3]:
         units.append(extract_property(content))

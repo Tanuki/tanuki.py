@@ -1,4 +1,4 @@
-# 🙈 MonkeyPatch
+# Tanuki
 
 The easiest way to build scalable, LLM-powered functions and applications that get cheaper and faster the more you use them. 
 
@@ -19,18 +19,18 @@ The easiest way to build scalable, LLM-powered functions and applications that g
 <!-- TOC --><a name="introduction"></a>
 ## Introduction 
 
-MonkeyPatch is a way to easily call an LLM in place of the function body in Python, with the same parameters and output that you would expect from a function implemented by hand. 
+Tanuki is a way to easily call an LLM in place of the function body in Python, with the same parameters and output that you would expect from a function implemented by hand. 
 
 These LLM-powered functions are well-typed, reliable, stateless, and production-ready to be dropped into your app seamlessly. Rather than endless prompt-wrangling and nasty surprises, these LLM-powered functions and applications behave like traditional functions with proper error handling.
 
-Lastly, the more you use MonkeyPatch functions, the cheaper and faster they gets (up to 9-10x!) through automatic model distillation.
+Lastly, the more you use Tanuki functions, the cheaper and faster they gets (up to 9-10x!) through automatic model distillation.
 
 ```python
-@monkey.patch
+@tanuki.patch
 def some_function(input: TypedInput) -> TypedOutput:
     """(Optional) Include the description of how your function will be used."""
 
-@monkey.align
+@tanuki.align
 def test_some_function(example_typed_input: TypedInput, 
                        example_typed_output: TypedOutput):
 	
@@ -41,9 +41,9 @@ def test_some_function(example_typed_input: TypedInput,
 <!-- TOC --><a name="features"></a>
 ## Features
 
-- **Easy and seamless integration** - Add LLM augmented functions to any workflow within seconds. Decorate a function stub with `@monkey.patch` and optionally add type hints and docstrings to guide the execution. That’s it.
+- **Easy and seamless integration** - Add LLM augmented functions to any workflow within seconds. Decorate a function stub with `@tanuki.patch` and optionally add type hints and docstrings to guide the execution. That’s it.
 - **Type aware** - Ensure that the outputs of the LLM adhere to the type constraints of the function (Python Base types, Pydantic classes, Literals, Generics etc) to guard against bugs or unexpected side-effects of using LLMs.
-- **Aligned outputs** - LLMs are unreliable, which makes them difficult to use in place of classically programmed functions. Using simple assert statements in a function decorated with `@monkey.align`, you can align the behaviour of your patched function to what you expect.
+- **Aligned outputs** - LLMs are unreliable, which makes them difficult to use in place of classically programmed functions. Using simple assert statements in a function decorated with `@tanuki.align`, you can align the behaviour of your patched function to what you expect.
 - **Lower cost and latency** - Achieve up to 90% lower cost and 80% lower latency with increased usage. The package will take care of model training, MLOps and DataOps efforts to improve LLM capabilities through distillation.
 - **Batteries included** - No remote dependencies other than OpenAI. 
 
@@ -52,13 +52,13 @@ def test_some_function(example_typed_input: TypedInput,
 <!-- TOC --><a name="installation"></a>
 ### Installation
 ```
-pip install monkey-patch.py
+pip install tanuki.py
 ```
 
 or with Poetry
 
 ```
-poetry add monkey-patch.py
+poetry add tanuki.py
 ```
 
 Set your OpenAI key using:
@@ -72,8 +72,8 @@ export OPENAI_API_KEY=sk-...
 ### Getting Started
 
 To get started:
-1. Create a python function stub decorated with `@monkey.patch` including type hints and a docstring.
-2. (Optional) Create another function decorated with `@monkey.align` containing normal `assert` statements declaring the expected behaviour of your patched function with different inputs.
+1. Create a python function stub decorated with `@tanuki.patch` including type hints and a docstring.
+2. (Optional) Create another function decorated with `@tanuki.align` containing normal `assert` statements declaring the expected behaviour of your patched function with different inputs.
 
 The patched function can now be called as normal in the rest of your code. 
 
@@ -84,11 +84,11 @@ To add functional alignment, the functions annotated with `align` must also be c
 Here is what it could look like for a simple classification function:
 
 ```python
-@monkey.patch
+@tanuki.patch
 def classify_sentiment(msg: str) -> Optional[Literal['Good', 'Bad']]:
     """Classifies a message from the user into Good, Bad or None."""
 
-@monkey.align
+@tanuki.align
 def align_classify_sentiment():
     assert classify_sentiment("I love you") == 'Good'
     assert classify_sentiment("I hate you") == 'Bad'
@@ -103,7 +103,7 @@ if __name__ == "__main__":
 <!-- TOC --><a name="how-it-works"></a>
 ## How It Works
 
-When you call a monkey-patched function during development, an LLM in a n-shot configuration is invoked to generate the typed response. 
+When you call a tanuki-patched function during development, an LLM in a n-shot configuration is invoked to generate the typed response. 
 
 The number of examples used is dependent on the number of align statements supplied in functions annotated with the align decorator. 
 
@@ -123,7 +123,7 @@ The smaller models will capture the desired behaviour and performance at a lower
 
 LLM API outputs are typically in natural language. In many instances, it’s preferable to have constraints on the format of the output to integrate them better into workflows.
 
-A core concept of monkey-patch is the support for typed parameters and outputs. Supporting typed outputs of patched functions allows you to declare *rules about what kind of data the patched function is allowed to pass back* for use in the rest of your program. This will guard against the verbose or inconsistent outputs of the LLMs that are trained to be as “helpful as possible”.
+A core concept of Tanuki is the support for typed parameters and outputs. Supporting typed outputs of patched functions allows you to declare *rules about what kind of data the patched function is allowed to pass back* for use in the rest of your program. This will guard against the verbose or inconsistent outputs of the LLMs that are trained to be as “helpful as possible”.
 
 You can use Literals or create custom types in Pydantic to express very complex rules about what the patched function can return. These act as guard-rails for the model preventing a patched function breaking the code or downstream workflows, and means you can avoid having to write custom validation logic in your application. 
 
@@ -133,11 +133,11 @@ class ActionItem:
     goal: str = Field(description="What task must be completed")
     deadline: datetime = Field(description="The date the goal needs to be achieved")
     
-@monkey.patch
+@tanuki.patch
 def action_items(input: str) -> List[ActionItem]:
     """Generate a list of Action Items"""
 
-@monkey.align
+@tanuki.align
 def align_action_items():
     goal = "Can you please get the presentation to me by Tuesday?"
     next_tuesday = (datetime.now() + timedelta((1 - datetime.now().weekday() + 7) % 7)).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -150,11 +150,11 @@ By constraining the types of data that can pass through your patched function, y
 You can add integer constraints to the outputs for Pydantic field values, and generics if you wish.
 
 ```python
-@monkey.patch
+@tanuki.patch
 def score_sentiment(input: str) -> Optional[Annotated[int, Field(gt=0, lt=10)]]:
     """Scores the input between 0-10"""
 
-@monkey.align
+@tanuki.align
 def align_score_sentiment():
     """Register several examples to align your function"""
     assert score_sentiment("I love you") == 10
@@ -173,7 +173,7 @@ if __name__ == "__main__":
     print(score_sentiment("Apples might be red")) # None
 ```
 
-To see more examples using MonkeyPatch for different use cases (including how to integrate with FastAPI), have a look at [examples](https://github.com/monkey-patch-sdk/monkey-patch.py/tree/master/examples).
+To see more examples using Tanuki for different use cases (including how to integrate with FastAPI), have a look at [examples](https://github.com/monkeypatch/tanuki.py/tree/master/examples).
 
 
 <!-- TOC --><a name="test-driven-alignment"></a>
@@ -186,21 +186,21 @@ Test-Driven Alignment (TDA) adapts this concept to align the behavior of a patch
 To align the behaviour of your patched function to your needs, decorate a function with `@align` and assert the outputs of the function with the ‘assert’ statement as is done with standard tests.
 
 ```python
-@monkey.align 
+@tanuki.align 
 def align_classify_sentiment(): 
     assert classify_sentiment("I love this!") == 'Good' 
     assert classify_sentiment("I hate this.") == 'Bad'
    
-@monkey.align
+@tanuki.align
 def align_score_sentiment():
     assert score_sentiment("I like you") == 7
 ```
 
-By writing a test that encapsulates the expected behaviour of the monkeypatched function, you declare the contract that the function must fulfill. This enables you to:
+By writing a test that encapsulates the expected behaviour of the tanuki-patched function, you declare the contract that the function must fulfill. This enables you to:
 
 1. **Verify Expectations:** Confirm that the function adheres to the desired output. 
 2. **Capture Behavioural Nuances:** Make sure that the LLM respects the edge cases and nuances stipulated by your test.
-3. **Develop Iteratively:** Refine and update the behavior of the monkeypatched function by declaring the desired behaviour as tests.
+3. **Develop Iteratively:** Refine and update the behavior of the tanuki-patched function by declaring the desired behaviour as tests.
 
 Unlike traditional TDD, where the objective is to write code that passes the test, TDA flips the script: **tests do not fail**. Their existence and the form they take are sufficient for LLMs to align themselves with the expected behavior.
 
@@ -218,15 +218,15 @@ def test_score_sentiment():
 <!-- TOC --><a name="scaling-and-finetuning"></a>
 ## Scaling and Finetuning
 
-An advantage of using MonkeyPatch in your workflow is the cost and latency benefits that will be provided as the number of datapoints increases. 
+An advantage of using Tanuki in your workflow is the cost and latency benefits that will be provided as the number of datapoints increases. 
 
 Successful executions of your patched function suitable for finetuning will be persisted to a training dataset, which will be used to distil smaller models for each patched function. Model distillation and pseudo-labelling is a verified way how to cut down on model sizes and gain improvements in latency and memory footprints while incurring insignificant and minor cost to performance (https://arxiv.org/pdf/2305.02301.pdf, https://arxiv.org/pdf/2306.13649.pdf, https://arxiv.org/pdf/2311.00430.pdf, etc).
 
-Training smaller function-specific models and deploying them is handled by the MonkeyPatch library, so the user will get the benefits without any additional MLOps or DataOps effort. Currently only OpenAI GPT style models are supported (Teacher - GPT4, Student GPT-3.5) 
+Training smaller function-specific models and deploying them is handled by the Tanuki library, so the user will get the benefits without any additional MLOps or DataOps effort. Currently only OpenAI GPT style models are supported (Teacher - GPT4, Student GPT-3.5) 
 
-We tested out model distillation using MonkeyPatch using OpenAI models on Squad2, Spider and IMDB Movie Reviews datasets. We finetuned the gpt-3.5-turbo model (student) using few-shot responses of gpt-4 (teacher) and our preliminary tests show that using less than 600 datapoints in the training data we were able to get gpt 3.5 turbo to perform essentialy equivalent (less than 1.5% of performance difference on held-out dev sets) to gpt4 while achieving up to 12 times lower cost and over 6 times lower latency (cost and latency reduction are very dependent on task specific characteristics like input-output token sizes and align statement token sizes). These tests show the potential in model-distillation in this form for intelligently cutting costs and lowering latency without sacrificing performance.<br><br>
+We tested out model distillation using Tanuki using OpenAI models on Squad2, Spider and IMDB Movie Reviews datasets. We finetuned the gpt-3.5-turbo model (student) using few-shot responses of gpt-4 (teacher) and our preliminary tests show that using less than 600 datapoints in the training data we were able to get gpt 3.5 turbo to perform essentialy equivalent (less than 1.5% of performance difference on held-out dev sets) to gpt4 while achieving up to 12 times lower cost and over 6 times lower latency (cost and latency reduction are very dependent on task specific characteristics like input-output token sizes and align statement token sizes). These tests show the potential in model-distillation in this form for intelligently cutting costs and lowering latency without sacrificing performance.<br><br>
 
-![Example distillation results](https://github.com/monkeypatch/monkeypatch.py/assets/113173969/2ac4c2fd-7ba6-4598-891d-6aa2c85827c9)
+![Example distillation results](https://github.com/monkeypatch/tanuki.py/assets/113173969/2ac4c2fd-7ba6-4598-891d-6aa2c85827c9)
 
 
 <!-- TOC --><a name="frequently-asked-questions"></a>
@@ -235,19 +235,19 @@ We tested out model distillation using MonkeyPatch using OpenAI models on Squad2
 
 <!-- TOC --><a name="intro"></a>
 ### Intro
-<!-- TOC --><a name="what-is-monkey-patch-in-plain-words"></a>
-#### What is MonkeyPatch in plain words?
-MonkeyPatch is a simple and seamless way to create LLM augmented functions in python, which ensure the outputs of the LLMs follow a specific structure. Moreover, the more you call a patched function, the cheaper and faster the execution gets.
+<!-- TOC --><a name="what-is-tanuki-in-plain-words"></a>
+#### What is Tanuki in plain words?
+Tanuki is a simple and seamless way to create LLM augmented functions in python, which ensure the outputs of the LLMs follow a specific structure. Moreover, the more you call a patched function, the cheaper and faster the execution gets.
 
 <!-- TOC --><a name="how-does-this-compare-to-other-frameworks-like-langchain"></a>
 #### How does this compare to other frameworks like LangChain?
-- **Langchain**: MonkeyPatch has a narrower scope than Langchain. Our mission is to ensure predictable and consistent LLM execution, with automatic reductions in cost and latency through finetuning.
-- **Magentic** / **Marvin**: MonkeyPatch offers two main benefits compared to Magentic/Marvin, namely; lower cost and latency through automatic distillation, and more predictable behaviour through test-driven alignment. Currently, there are two cases where you should use Magentic, namely: where you need support for tools (functions) - a feature that is on our roadmap, and where you need support for asynchronous functions.
+- **Langchain**: Tanuki has a narrower scope than Langchain. Our mission is to ensure predictable and consistent LLM execution, with automatic reductions in cost and latency through finetuning.
+- **Magentic** / **Marvin**: Tanuki offers two main benefits compared to Magentic/Marvin, namely; lower cost and latency through automatic distillation, and more predictable behaviour through test-driven alignment. Currently, there are two cases where you should use Magentic, namely: where you need support for tools (functions) - a feature that is on our roadmap, and where you need support for asynchronous functions.
 
 
 <!-- TOC --><a name="what-are-some-sample-use-cases"></a>
 #### What are some sample use-cases?
-We've created a few examples to show how to use MonkeyPatch for different problems. You can find them [here](https://github.com/monkey-patch-sdk/monkey-patch.py/tree/master/examples).
+We've created a few examples to show how to use Tanuki for different problems. You can find them [here](https://github.com/monkeypatch/tanuki.py/tree/master/examples).
 A few ideas are as follows:
 - Adding an importance classifier to customer requests
 - Creating a offensive-language classification feature
@@ -270,7 +270,7 @@ Follow the instructions in the [Installation and getting started]() and [How it 
 
 <!-- TOC --><a name="how-do-i-align-my-functions"></a>
 #### How do I align my functions?
-See [How it works]() and [Test-Driven Alignment]() sections or the examples shown [here](https://github.com/monkey-patch-sdk/monkey-patch.py/tree/master/examples).
+See [How it works]() and [Test-Driven Alignment]() sections or the examples shown [here](https://github.com/monkeypatch/tanuki.py/tree/master/examples).
 
 
 <!-- TOC --><a name="do-i-need-my-own-openai-key"></a>
@@ -309,7 +309,7 @@ Each output of the LLM will be programmatically instantiated into the output cla
 For simpler-medium complexity classes GPT4 with align statements has been shown to be very reliable in outputting the correct type. Additionally we have implemented a repair loop with error feedback to “fix” incorrect outputs and add the correct output to the training dataset.
 <!-- TOC --><a name="how-do-you-deal-with-hallucinations"></a>
 #### How do you deal with hallucinations?
-Hallucinations can’t be 100% removed from LLMs at the moment, if ever. However, by creating test functions decorated with `@monkey.align`, you can use normal `assert` statements to align the model to behave in the way that you expect. Additionally, you can create types with Pydantic, which act as guardrails to prevent any nasty surprises and provide correct error handling.
+Hallucinations can’t be 100% removed from LLMs at the moment, if ever. However, by creating test functions decorated with `@tanuki.align`, you can use normal `assert` statements to align the model to behave in the way that you expect. Additionally, you can create types with Pydantic, which act as guardrails to prevent any nasty surprises and provide correct error handling.
 <!-- TOC --><a name="how-do-you-deal-with-bias"></a>
 #### How do you deal with bias?
 By adding more align statements that cover a wider range of inputs, you can ensure that the model is less biased.
@@ -322,9 +322,9 @@ However, distillation can be manually turned off in these cases. Additionally, i
 #### What is this not suitable for?
 - Time-series data
 - Tasks that requires a lot of context to completed correctly
-- For tasks that directly output complex natural language, you will get less value from MonkeyPatch and may want to consider the OpenAI API directly.
+- For tasks that directly output complex natural language, you will get less value from Tanuki and may want to consider the OpenAI API directly.
 
 ---
 
 <!-- TOC --><a name="simple-todo-list-app"></a>
-## [Simple ToDo List App](https://github.com/monkey-patch-sdk/monkey-patch.py/tree/master/examples/todolist)
+## [Simple ToDo List App](https://github.com/monkeypatch/tanuki.py/tree/master/examples/todolist)

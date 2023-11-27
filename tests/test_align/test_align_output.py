@@ -5,10 +5,10 @@ from pydantic import BaseModel, Field
 import openai
 from dotenv import load_dotenv
 
-from monkey_patch.monkey import Monkey as monkey
+import tanuki
 
 load_dotenv()
-from monkey_patch.register import Register
+from tanuki.register import Register
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 class Person(BaseModel):
@@ -18,40 +18,40 @@ class Person(BaseModel):
 
 
 
-@monkey.patch
+@tanuki.patch
 def summarise_list_generic(input: str) -> List[str]:
     """
     Summarise the input into multiple sentences in a list
     """
-@monkey.patch
+@tanuki.patch
 def summarise_list_typing(input: str) -> list[str]:
     """
     Summarise the input into multiple sentences in a list
     """
-@monkey.patch
+@tanuki.patch
 def summarise_list_pydantic(input: str) -> List[Person]:
     """
     Create a list of Personas
     """
-@monkey.patch
+@tanuki.patch
 def summarise_list_dict(input: str) -> List[dict]:
     """
     Create a list of dict personas
     """
 
-@monkey.patch
+@tanuki.patch
 def summarise_list_int(input: str) -> List[int]:
     """
     Extract the integers
     """
 
-@monkey.patch
+@tanuki.patch
 def summarise_list_Union(input: str) -> List[Union[int, float]]:
     """
     Extract the numbers
     """
 
-@monkey.align
+@tanuki.align
 def align_list_generic():
 
     assert summarise_list_generic("Thats awesome. Thats cool") == ["Thats awesome", "Thats cool"]
@@ -60,7 +60,7 @@ def align_list_generic():
     assert summarise_list_generic(input = "Thats awesome. Thats cool") == ["Thats awesome", "Thats cool"]
     assert summarise_list_generic(input = "Thats neat. Thats ok") == ["Thats neat", "Thats ok"]
 
-@monkey.align
+@tanuki.align
 def align_list_typing():
     assert summarise_list_typing("Thats awesome. Thats cool") == ["Thats awesome", "Thats cool"]
     assert summarise_list_typing("Thats neat. Thats ok") == ["Thats neat", "Thats ok"]
@@ -69,8 +69,7 @@ def align_list_typing():
     assert summarise_list_typing(input = "Thats neat. Thats ok") == ["Thats neat", "Thats ok"]
 
 
-
-@monkey.align
+@tanuki.align
 def align_list_pydantic():
 
     person_str = "First person - Name Jeff, age 25, favourite colours Red and Blue. Second person - Name Thomas, age 33, favourite colours Green and Gray"
@@ -79,7 +78,7 @@ def align_list_pydantic():
     assert summarise_list_pydantic(input = person_str) == output
 
 
-@monkey.align
+@tanuki.align
 def align_list_dict():
     person_str = "First person - Name Jeff, age 25, favourite colours Red and Blue. Second person - Name Thomas, age 33, favourite colours Green and Gray"
     output = [{"name": "Jeff", "age": 25, "favourite_colours": ["Red", "Blue"]}, {"name": "Thomas", "age": 33, "favourite_colours": ["Green", "Gray"]}]
@@ -87,7 +86,7 @@ def align_list_dict():
     assert summarise_list_dict(input = person_str) == output
 
 
-@monkey.align
+@tanuki.align
 def align_list_int():
 
     input_1 = "1 and 2"
@@ -99,7 +98,7 @@ def align_list_int():
     assert summarise_list_int(input = input_1) == [1, 2]
     assert summarise_list_int(input = input_2) == [1, 2, 3]
 
-@monkey.align
+@tanuki.align
 def align_list_Union():
     input_1 = "1 and 2"
     input_2 = "1.0, 2.0 and 3.0"
@@ -121,36 +120,36 @@ def test_list():
     align_list_Union()
     print("All list aligns passed!")
 
-@monkey.patch
+@tanuki.patch
 def summarise_str(input: str) -> str:
     """
     Summarise the input into 1 sentence
     """
 
-@monkey.patch
+@tanuki.patch
 def summarise_pydantic(input: str) -> Person:
     """
     Create the persona
     """
-@monkey.patch
+@tanuki.patch
 def summarise_dict(input: str) -> dict:
     """
     Create the persona
     """
 
-@monkey.patch
+@tanuki.patch
 def summarise_int(input: str) -> int:
     """
     Extract the integer
     """
 
-@monkey.patch
+@tanuki.patch
 def summarise_Union(input: str) -> Union[int, float]:
     """
     Extract the number
     """
 
-@monkey.align
+@tanuki.align
 def align_string():
     assert summarise_str("Thats awesome. Thats cool") == 'They found it awesome and cool'
     assert summarise_str("Thats neat. Thats ok") == 'They found it neat and ok'
@@ -159,7 +158,7 @@ def align_string():
     assert summarise_str(input = "Thats neat. Thats OK") == 'They found it neat and ok'
 
 
-@monkey.align
+@tanuki.align
 def align_pydantic():
     input_str = "Name Jeff, age 25, favourite colours Red and Blue"
     person = Person(name="Jeff", age=25, favourite_colours=["Red", "Blue"])
@@ -167,7 +166,7 @@ def align_pydantic():
 
     assert summarise_pydantic(input = input_str) == person
 
-@monkey.align
+@tanuki.align
 def align_dict():
     input_str = "Name Jeff, age 25, favourite colours Red and Blue"
     output = {"name": "Jeff", "age": 25, "favourite_colours": ["Red", "Blue"]}
@@ -176,13 +175,13 @@ def align_dict():
     assert summarise_dict(input = input_str) == output
 
 
-@monkey.align
+@tanuki.align
 def align_list_int():
     input_str = "This is number 1"
     assert summarise_int(input_str) == 1
     assert summarise_int(input = input_str) == 1
 
-@monkey.align
+@tanuki.align
 def align_list_Union():
     input_str_1 = "This is number 1"
     input_str_2 = "This is number 2.0"
@@ -205,7 +204,7 @@ def test_single():
 def _parse_examples(test_func):
     # check that all the examples are correctly readable
     function_description = Register.load_function_description(test_func)
-    function_modeler = monkey.function_modeler
+    function_modeler = tanuki.function_modeler
     align_examples = function_modeler.get_symbolic_alignments(function_description.__hash__())
     examples = "\n".join([f"Inputs:\nArgs: {align['args']}\nKwargs: {align['kwargs']}\nOutput: {align['output']}" for align in align_examples])
 

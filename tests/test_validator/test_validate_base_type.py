@@ -1,4 +1,4 @@
-from monkey_patch.validator import Validator
+from tanuki.validator import Validator
 
 
 def test_validate_base_type():

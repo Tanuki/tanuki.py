@@ -6,7 +6,7 @@ from typing import Optional, List
 
 from pydantic import BaseModel
 
-from tanuki.monkey import Monkey as monkey
+import tanuki
 from tanuki.assertion_visitor import AssertionVisitor, Or
 
 
@@ -16,7 +16,7 @@ def _parse(source):
         goal: str
         people: List[str]
 
-    @monkey.patch
+    @tanuki.patch
     def create_todolist_item(goal: str, people=[]) -> TodoItem:
         pass
 

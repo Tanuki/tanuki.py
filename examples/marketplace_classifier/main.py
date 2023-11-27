@@ -8,8 +8,8 @@ dotenv.load_dotenv()
 import openai
 openai.api_key = os.getenv("OPENAI_API_KEY") # Your OpenAI API key
 
-# import Monkey Patch 🙈
-from monkey_patch.monkey import Monkey as monkey
+# import Tanuki
+import tanuki
 # import Pydantic to define the response type
 from pydantic import Field, BaseModel
 
@@ -26,7 +26,7 @@ class ProductTags(BaseModel):
 
 
 # Next we define the function that will be used to generate the response with the Monkey Patch decorator
-@monkey.patch
+@tanuki.patch
 def product_tagger(product_story: str) -> ProductTags:
     """
     based on the provided product story, extract the following aspects:
@@ -38,7 +38,7 @@ def product_tagger(product_story: str) -> ProductTags:
 
 # (OPTIONAL!) We use the align decorator to both test the function, and to teach the model about our expected output.
 # This can include as many or as few assert statements as you like.
-@monkey.align
+@tanuki.align
 def test_product_tagger():
     """We can test the function as normal using Pytest or Unittest"""
     assert product_tagger("Product: Apple iPhone 12 Pro Max 5G 128GB - Pacific Blue (Verizon) Short Description: "

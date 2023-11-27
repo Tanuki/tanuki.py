@@ -3,7 +3,7 @@ import os
 import openai
 from dotenv import load_dotenv
 
-from tanuki.monkey import Monkey as tanuki
+import tanuki
 
 import unittest
 from typing import Literal, Optional

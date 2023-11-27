@@ -25,5 +25,5 @@ EXPECTED_ITEMS = 10000
 FALSE_POSITIVE_RATE = 0.01
 
 # The name of the library
-LIB_NAME = "monkey-patch"
-ENVVAR = "MONKEY_PATCH_LOG_DIR"
+LIB_NAME = "tanuki"
+ENVVAR = "TANUKI_LOG_DIR"

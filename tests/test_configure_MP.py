@@ -1,30 +1,30 @@
 from typing import List
-from monkey_patch.register import Register
+from tanuki.register import Register
 
 import os
 from typing import Optional, Literal, List
 import openai
 from dotenv import load_dotenv
-from monkey_patch.monkey import Monkey
+import tanuki
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
-@Monkey.patch
+@tanuki.patch
 def classify_sentiment_2(input: str, input_2: str) -> Optional[Literal['Good', 'Bad']]:
     """
     Determine if the inputs are positive or negative sentiment, or None
     """
 
 
-@Monkey.patch(environment_id = 12, ignore_finetune_fetching=True, ignore_finetuning=True, ignore_data_storage=True)
+@tanuki.patch(environment_id = 12, ignore_finetune_fetching=True, ignore_finetuning=True, ignore_data_storage=True)
 def classify_sentiment(input: str) -> Optional[Literal['Good', 'Bad']]:
     """
     Determine if the input is positive or negative sentiment
     """
 
-@Monkey.align
+@tanuki.align
 def align_classify_sentiment():
     """We can test the function as normal using Pytest or Unittest"""
 
@@ -57,7 +57,7 @@ def test_configurability():
     sent_func_hash = classify_sent_description.__hash__()
     sent_func_2_hash = classify_sentiment_2_description.__hash__()
 
-    func_modeler = Monkey.function_modeler
+    func_modeler = tanuki.function_modeler
     assert func_modeler.environment_id == 12
     assert sent_func_hash in func_modeler.check_finetune_blacklist
     assert sent_func_2_hash not in func_modeler.check_finetune_blacklist

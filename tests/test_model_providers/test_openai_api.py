@@ -4,7 +4,7 @@ from unittest.mock import patch, Mock
 
 from dotenv import load_dotenv
 
-from monkey_patch.language_models.openai_api import OpenAI_API
+from tanuki.language_models.openai_api import OpenAI_API
 
 load_dotenv()
 

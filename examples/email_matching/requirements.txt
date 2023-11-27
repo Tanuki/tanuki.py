@@ -1,4 +1,4 @@
 python-dotenv
 openai
-monkey-patch.py
+tanuki.py
 pytest

@@ -6,7 +6,7 @@ from typing import Optional
 
 load_dotenv()
 
-from tanuki.monkey import Monkey as monkey
+import tanuki
 from utils import scrape_url
 
 
@@ -19,14 +19,14 @@ class Job(BaseModel):
     location: str
 
 
-@monkey.patch
+@tanuki.patch
 def extract_job(content: str) -> Optional[Job]:
     """
     Examine the content string and extract the job details for the position title, company, and location.
     """
 
 
-@monkey.align
+@tanuki.align
 def align_extract_job() -> None:
     print("Aligning...")
     job = "\n\n\n\n\n\n\n\n\nShip broker\nFuentes, Walls and Castro\n\n\n\n\n        Michelleville, AP\n      \n\n2021-04-08\n\n\n\nLearn\nApply\n\n\n"
@@ -46,7 +46,7 @@ if __name__ == '__main__':
     url = "https://realpython.github.io/fake-jobs/"
     contents = scrape_url(url=url, class_name="card")
 
-    # Process the job blocks using MonkeyPatch (only sampling a couple for demo purposes)
+    # Process the job blocks using Tanuki (only sampling a couple for demo purposes)
     jobs = []
     for content in contents[1:3]:
         jobs.append(extract_job(content))

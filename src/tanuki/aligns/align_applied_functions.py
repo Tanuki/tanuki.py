@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from pydantic import Field
-from tanuki.monkey import Monkey as tanuki
+import tanuki
 import unittest
 from typing import Literal, Optional, List
 

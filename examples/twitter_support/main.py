@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 load_dotenv()
-from monkey_patch.monkey import Monkey as monkey
+import tanuki
 from pydantic import BaseModel
 from typing import Literal
 
@@ -22,14 +22,14 @@ class SupportTicket(BaseModel):
     issue: str
     urgency: Literal["low", "medium", "high"]
 
-@monkey.patch
+@tanuki.patch
 def classify_and_respond(tweet_text: str) -> Response:
     """
     Respond to the customer support tweet text empathetically and nicely. 
     Convey that you care about the issue and if the problem was a direct issue that the support team should fix or a question, the team will respond to it. 
     """
 
-@monkey.align
+@tanuki.align
 def align_respond():
     input_tweet_1 = "Laia Johnson: I really like the new shovel but the handle broke after 2 days of use. Can I get a replacement?"
     assert classify_and_respond(input_tweet_1) == Response(
@@ -52,13 +52,13 @@ def align_respond():
                                                             response="Hi, thanks for reaching out. We are happy to hear that you are enjoying the product"
                                                             )
 
-@monkey.patch
+@tanuki.patch
 def create_support_ticket(tweet_text: str) -> SupportTicket:
     """
     Using the tweet text create a support ticket for saving to the internal database
     """
 
-@monkey.align
+@tanuki.align
 def align_supportticket():
     input_tweet_1 = "Laia Johnson: I really like the new shovel but the handle broke after 2 days of use. Can I get a replacement?"
     assert create_support_ticket(input_tweet_1) == SupportTicket(

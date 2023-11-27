@@ -1,17 +1,16 @@
 from dotenv import load_dotenv
 load_dotenv()
-from tanuki.monkey import Monkey as monkey
-from tanuki.models.embedding import Embedding
+import tanuki
 import numpy as np
 
 
-@monkey.patch
+@tanuki.patch
 def score_sentiment(input: str) -> Embedding[np.ndarray]:
     """
     Scores the input between 0-10
     """
 
-@monkey.align
+@tanuki.align
 def align_embed_sentiment() -> None:
     # We push these embeddings apart by declaring them to be different with the '!=' operator
     assert score_sentiment("I love this movie") != score_sentiment("I hate this movie")

@@ -5,7 +5,7 @@ import sys
 import wikipedia
 
 sys.path.append("../../src")
-from monkey_patch.monkey import Monkey as monkey
+import tanuki
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -13,7 +13,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
 # -- Simple Summary Example --
-@monkey.patch
+@tanuki.patch
 def explain_simple(summary: str) -> str:
     """Explain the summary in simple terms."""
 
@@ -38,7 +38,7 @@ class Dinosaur(BaseModel):
     weight: int
 
 
-@monkey.patch
+@tanuki.patch
 def dinosaur_classifer(summary: str) -> Dinosaur:
     """Convert the input summary into a Dinosaur object."""
 
