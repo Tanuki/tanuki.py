@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from logging import Logger
 
-from monkey_patch.models.function_example import FunctionExample
+from tanuki.models.function_example import FunctionExample
 
 
 class DatasetWorker(Logger):

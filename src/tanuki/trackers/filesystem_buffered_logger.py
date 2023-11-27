@@ -4,10 +4,10 @@ from typing import Literal, Union, Optional, Dict
 
 from appdirs import user_data_dir
 
-from monkey_patch.constants import *
-from monkey_patch.persistence.filter.bloom_interface import IBloomFilterPersistence
-from monkey_patch.persistence.filter.filesystem_bloom import BloomFilterFileSystemDriver
-from monkey_patch.trackers.abc_buffered_logger import ABCBufferedLogger
+from tanuki.constants import *
+from tanuki.persistence.filter.bloom_interface import IBloomFilterPersistence
+from tanuki.persistence.filter.filesystem_bloom import BloomFilterFileSystemDriver
+from tanuki.trackers.abc_buffered_logger import ABCBufferedLogger
 
 
 class FilesystemBufferedLogger(ABCBufferedLogger):

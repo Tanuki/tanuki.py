@@ -11,18 +11,18 @@ from unittest.mock import patch
 
 import requests
 
-from monkey_patch.assertion_visitor import AssertionVisitor
-from monkey_patch.function_modeler import FunctionModeler
-from monkey_patch.language_models.embedding_model_manager import EmbeddingModelManager
-from monkey_patch.language_models.language_model_manager import LanguageModelManager
-from monkey_patch.models.embedding import Embedding
-from monkey_patch.models.function_description import FunctionDescription
-from monkey_patch.models.function_example import FunctionExample
-from monkey_patch.models.function_type import FunctionType
-from monkey_patch.register import Register
-from monkey_patch.trackers.filesystem_buffered_logger import FilesystemBufferedLogger
-from monkey_patch.utils import get_key
-from monkey_patch.validator import Validator
+from tanuki.assertion_visitor import AssertionVisitor
+from tanuki.function_modeler import FunctionModeler
+from tanuki.language_models.embedding_model_manager import EmbeddingModelManager
+from tanuki.language_models.language_model_manager import LanguageModelManager
+from tanuki.models.embedding import Embedding
+from tanuki.models.function_description import FunctionDescription
+from tanuki.models.function_example import FunctionExample
+from tanuki.models.function_type import FunctionType
+from tanuki.register import Register
+from tanuki.trackers.filesystem_buffered_logger import FilesystemBufferedLogger
+from tanuki.utils import get_key
+from tanuki.validator import Validator
 
 
 # Define a new level

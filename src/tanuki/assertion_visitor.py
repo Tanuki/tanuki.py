@@ -5,7 +5,7 @@ import uuid
 from _ast import NotEq, NotIn, IsNot, In
 from typing import Optional, List, Dict, Callable
 
-from monkey_patch.utils import get_key
+from tanuki.utils import get_key
 
 
 class Or(list):

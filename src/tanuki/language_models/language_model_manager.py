@@ -1,13 +1,13 @@
 import json
 from typing import Any
 
-from monkey_patch.function_modeler import FunctionModeler
-from monkey_patch.language_models.openai_api import OpenAI_API
-from monkey_patch.models.function_description import FunctionDescription
-from monkey_patch.models.function_example import FunctionExample
-from monkey_patch.models.language_model_output import LanguageModelOutput
-from monkey_patch.utils import approximate_token_count
-from monkey_patch.validator import Validator
+from tanuki.function_modeler import FunctionModeler
+from tanuki.language_models.openai_api import OpenAI_API
+from tanuki.models.function_description import FunctionDescription
+from tanuki.models.function_example import FunctionExample
+from tanuki.models.language_model_output import LanguageModelOutput
+from tanuki.utils import approximate_token_count
+from tanuki.validator import Validator
 
 
 class LanguageModelManager(object):

@@ -1,10 +1,10 @@
 from typing import Dict
 
-from monkey_patch.language_models.embedding_api_abc import Embedding_API
-from monkey_patch.language_models.openai_api import OpenAI_API
-from monkey_patch.models.embedding import Embedding
-from monkey_patch.models.embedding_model_output import EmbeddingModelOutput
-from monkey_patch.models.function_description import FunctionDescription
+from tanuki.language_models.embedding_api_abc import Embedding_API
+from tanuki.language_models.openai_api import OpenAI_API
+from tanuki.models.embedding import Embedding
+from tanuki.models.embedding_model_output import EmbeddingModelOutput
+from tanuki.models.function_description import FunctionDescription
 
 
 class EmbeddingModelManager(object):

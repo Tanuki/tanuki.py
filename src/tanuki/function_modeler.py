@@ -6,12 +6,12 @@ from typing import List, Tuple, Dict
 
 import openai
 
-from monkey_patch.constants import EXAMPLE_ELEMENT_LIMIT, PATCHES, SYMBOLIC_ALIGNMENTS, POSITIVE_EMBEDDABLE_ALIGNMENTS, \
+from tanuki.constants import EXAMPLE_ELEMENT_LIMIT, PATCHES, SYMBOLIC_ALIGNMENTS, POSITIVE_EMBEDDABLE_ALIGNMENTS, \
     NEGATIVE_EMBEDDABLE_ALIGNMENTS
-from monkey_patch.models.function_description import FunctionDescription
-from monkey_patch.models.function_example import FunctionExample
-from monkey_patch.trackers.dataset_worker import DatasetWorker
-from monkey_patch.utils import approximate_token_count, prepare_object_for_saving, encode_int, decode_int
+from tanuki.models.function_description import FunctionDescription
+from tanuki.models.function_example import FunctionExample
+from tanuki.trackers.dataset_worker import DatasetWorker
+from tanuki.utils import approximate_token_count, prepare_object_for_saving, encode_int, decode_int
 import copy
 
 

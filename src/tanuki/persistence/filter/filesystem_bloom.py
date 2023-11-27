@@ -2,8 +2,7 @@ import os
 
 from bitarray._bitarray import bitarray
 
-from monkey_patch.bloom_filter import BloomFilter
-from monkey_patch.persistence.filter.bloom_interface import IBloomFilterPersistence
+from tanuki.persistence.filter.bloom_interface import IBloomFilterPersistence
 
 
 class BloomFilterFileSystemDriver(IBloomFilterPersistence):

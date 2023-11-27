@@ -1,9 +1,9 @@
 from typing import List
 
-from monkey_patch.function_modeler import FunctionModeler
-from monkey_patch.register import Register
-from monkey_patch.trackers.filesystem_buffered_logger import FilesystemBufferedLogger
-from monkey_patch.utils import encode_int, decode_int
+from tanuki.function_modeler import FunctionModeler
+from tanuki.register import Register
+from tanuki.trackers.filesystem_buffered_logger import FilesystemBufferedLogger
+from tanuki.utils import encode_int, decode_int
 
 
 def dummy_func(input: str) -> List[str]:

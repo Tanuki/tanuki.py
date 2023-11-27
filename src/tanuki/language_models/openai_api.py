@@ -3,8 +3,8 @@ from typing import List
 import openai
 import time
 # import abstract base class
-from monkey_patch.language_models.embedding_api_abc import Embedding_API
-from monkey_patch.language_models.llm_api_abc import LLM_API
+from tanuki.language_models.embedding_api_abc import Embedding_API
+from tanuki.language_models.llm_api_abc import LLM_API
 import os
 
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"

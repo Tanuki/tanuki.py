@@ -2,11 +2,11 @@ import json
 from abc import abstractmethod
 from typing import Dict, Any, Literal
 
-from monkey_patch.bloom_filter import BloomFilter
-from monkey_patch.constants import EXPECTED_ITEMS, FALSE_POSITIVE_RATE, ALIGN_FILE_EXTENSION, \
+from tanuki.bloom_filter import BloomFilter
+from tanuki.constants import EXPECTED_ITEMS, FALSE_POSITIVE_RATE, ALIGN_FILE_EXTENSION, \
     POSITIVE_FILE_EXTENSION, NEGATIVE_FILE_EXTENSION, PATCH_FILE_EXTENSION
-from monkey_patch.persistence.filter.bloom_interface import IBloomFilterPersistence
-from monkey_patch.trackers.dataset_worker import DatasetWorker
+from tanuki.persistence.filter.bloom_interface import IBloomFilterPersistence
+from tanuki.trackers.dataset_worker import DatasetWorker
 
 # PATCH_FILE_EXTENSION_TYPE = Literal[".patches"]
 # ALIGN_FILE_EXTENSION_TYPE = Literal[".alignments"]

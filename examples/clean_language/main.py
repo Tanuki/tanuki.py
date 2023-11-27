@@ -4,7 +4,7 @@ import os
 import openai
 from dotenv import load_dotenv
 
-from monkey_patch.monkey import Monkey as monkey
+from tanuki.monkey import Monkey as monkey
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 

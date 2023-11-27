@@ -6,8 +6,8 @@ from typing import Optional, List
 
 from pydantic import BaseModel
 
-from monkey_patch.monkey import Monkey as monkey
-from monkey_patch.assertion_visitor import AssertionVisitor, Or
+from tanuki.monkey import Monkey as monkey
+from tanuki.assertion_visitor import AssertionVisitor, Or
 
 
 def _parse(source):

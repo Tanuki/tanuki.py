@@ -4,7 +4,7 @@ from typing import Literal, Optional
 import openai
 from dotenv import load_dotenv
 
-from monkey_patch.monkey import Monkey as monkey
+from tanuki.monkey import Monkey as monkey
 
 load_dotenv()
 

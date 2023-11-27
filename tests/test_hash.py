@@ -1,5 +1,5 @@
-from monkey_patch.bloom_filter import BloomFilter
-from monkey_patch.trackers.filesystem_buffered_logger import FilesystemBufferedLogger
+from tanuki.bloom_filter import BloomFilter
+from tanuki.trackers.filesystem_buffered_logger import FilesystemBufferedLogger
 
 
 def test_hash():

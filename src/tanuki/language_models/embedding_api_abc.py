@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from monkey_patch.models.embedding import Embedding
+from tanuki.models.embedding import Embedding
 
 
 class Embedding_API(ABC):

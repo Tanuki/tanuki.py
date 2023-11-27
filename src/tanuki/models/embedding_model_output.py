@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import TypeVar
 
-from monkey_patch.models.embedding import Embedding
+from tanuki.models.embedding import Embedding
 
 T = TypeVar('T')
 

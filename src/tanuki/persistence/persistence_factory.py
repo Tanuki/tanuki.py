@@ -1,9 +1,9 @@
 from typing import Literal
 
-from monkey_patch.bloom_filter import BloomFilter
-from monkey_patch.persistence.filter.bloom_filtered_persistence import BloomFilteredPersistence
-from monkey_patch.persistence.persistence_layer import FileSystemPersistence, RedisPersistence, S3Persistence
-from monkey_patch.persistence.persistence_layer_interface import IPersistenceLayer
+from tanuki.bloom_filter import BloomFilter
+from tanuki.persistence.filter.bloom_filtered_persistence import BloomFilteredPersistence
+from tanuki.persistence.persistence_layer import FileSystemPersistence, RedisPersistence, S3Persistence
+from tanuki.persistence.persistence_layer_interface import IPersistenceLayer
 
 PersistenceType = Literal["filesystem", "redis", "s3"]
 

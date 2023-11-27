@@ -1,9 +1,9 @@
 import inspect
 from typing import get_type_hints, Literal, get_origin, Tuple, Callable, Optional, Dict
 
-from monkey_patch.models.embedding import Embedding
-from monkey_patch.models.function_description import FunctionDescription
-from monkey_patch.models.function_type import FunctionType
+from tanuki.models.embedding import Embedding
+from tanuki.models.function_description import FunctionDescription
+from tanuki.models.function_type import FunctionType
 
 alignable_symbolic_functions = {}
 alignable_embedding_functions = {}

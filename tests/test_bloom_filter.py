@@ -2,13 +2,13 @@ import os
 
 from bitarray import bitarray
 
-from monkey_patch.bloom_filter import BloomFilter
-from monkey_patch.models.function_example import FunctionExample
+from tanuki.bloom_filter import BloomFilter
+from tanuki.models.function_example import FunctionExample
 import random
 import string
 
-from monkey_patch.trackers.abc_buffered_logger import EXPECTED_ITEMS, FALSE_POSITIVE_RATE
-from monkey_patch.trackers.filesystem_buffered_logger import FilesystemBufferedLogger
+from tanuki.trackers.abc_buffered_logger import EXPECTED_ITEMS, FALSE_POSITIVE_RATE
+from tanuki.trackers.filesystem_buffered_logger import FilesystemBufferedLogger
 
 logger = FilesystemBufferedLogger("test")
 bloom_filter_persistence = logger.get_bloom_filter_persistence()

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from pydantic import Field
-from monkey_patch.monkey import Monkey as monkey
+from tanuki.monkey import Monkey as tanuki
 import unittest
 from typing import Literal, Optional, List
 
@@ -18,14 +18,14 @@ class ActionItem:
 class TestActionItems(unittest.TestCase):
 
 
-    @monkey.patch
+    @tanuki.patch
     def create_action_items(self, input: str) -> List[ActionItem]:
         """
         Create action items from a bit of text.
         """
         pass
 
-    @monkey.align
+    @tanuki.align
     def test_align_create_action_items_of_fixed_length(self):
         """We can test the function as normal using Pytest or Unittest"""
 

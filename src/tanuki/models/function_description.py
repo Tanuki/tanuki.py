@@ -2,8 +2,8 @@ import hashlib
 from dataclasses import dataclass
 from typing import Dict, Optional, Literal
 
-from monkey_patch.models.function_type import FunctionType
-from monkey_patch.utils import json_dumps
+from tanuki.models.function_type import FunctionType
+from tanuki.utils import json_dumps
 
 @dataclass(frozen=True)
 class FunctionDescription:

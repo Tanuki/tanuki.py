@@ -6,7 +6,7 @@ from typing import List, Optional
 
 load_dotenv()
 
-from monkey_patch.monkey import Monkey as monkey
+from tanuki.monkey import Monkey as monkey
 from utils import scrape_url
 
 

@@ -5,7 +5,7 @@ import math
 import numpy as np
 from bitarray import bitarray
 
-from monkey_patch.persistence.filter.bloom_interface import IBloomFilterPersistence
+from tanuki.persistence.filter.bloom_interface import IBloomFilterPersistence
 
 
 class BloomFilter:

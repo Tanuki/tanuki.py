@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()
-from monkey_patch.monkey import Monkey as monkey
-from monkey_patch.models.embedding import Embedding
+from tanuki.monkey import Monkey as monkey
+from tanuki.models.embedding import Embedding
 import numpy as np
 
 
