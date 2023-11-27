@@ -1,0 +1,13 @@
+# https://help.github.com/articles/about-codeowners/
+
+# These owners will be the default owners for everything in
+# the repo. Unless a later match takes precedence, they will
+# be requested for review when someone opens a PR.
+*       @bmagz
+*       @MartBakler
+*       @JackHopkins
+
+# Order is important; the last matching pattern takes the most
+# precedence. When someone opens a PR that only modifies
+# .yml files, only the following people and NOT the global
+# owner(s) will be requested for a review.
