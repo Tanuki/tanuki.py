@@ -3,7 +3,7 @@
 The easiest way to build scalable, LLM-powered functions and applications that get cheaper and faster the more you use them. 
 
 ## Release
-[27/11] Support for [embeddings](embedding_placeholder) and [function configurability](config_placeholder) is released!
+[27/11] Support for [embeddings](https://github.com/monkeypatch/tanuki.py/blob/update_docs/docs/embeddings_support.md) and [function configurability](https://github.com/monkeypatch/tanuki.py/blob/update_docs/docs/function_configurability.md) is released!
 * Use embeddings to integrate Tanuki with downstream RAG implementations using OpenAI Ada-2 model.
 *  Function configurability allows to configure Tanuki function executions to ignore certain implemented aspects (finetuning, data-storage communications) for improved latency and serverless integrations.
 
@@ -108,7 +108,7 @@ if __name__ == "__main__":
 
 <!-- TOC --><a name="how-it-works"></a>
 
-See [here](config_placeholder) for configuration options for patched Tanuki functions
+See [here](https://github.com/monkeypatch/tanuki.py/blob/update_docs/docs/function_configurability.md) for configuration options for patched Tanuki functions
 
 ## How It Works
 
@@ -184,7 +184,7 @@ if __name__ == "__main__":
 
 To see more examples using Tanuki for different use cases (including how to integrate with FastAPI), have a look at [examples](https://github.com/monkeypatch/tanuki.py/tree/master/examples).
 
-For embedding outputs for RAG support, see [here](embedding_placeholder)
+For embedding outputs for RAG support, see [here](https://github.com/monkeypatch/tanuki.py/blob/update_docs/docs/embeddings_support.md)
 
 <!-- TOC --><a name="test-driven-alignment"></a>
 ## Test-Driven Alignment
