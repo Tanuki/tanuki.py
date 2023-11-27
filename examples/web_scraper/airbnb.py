@@ -10,7 +10,7 @@ from typing import Optional
 
 load_dotenv()
 
-from monkey_patch.monkey import Monkey as monkey
+import tanuki
 
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -24,7 +24,7 @@ class AirBnb(BaseModel):
     stars: float
 
 
-@monkey.patch
+@tanuki.patch
 def extract_airbnb(content: str) -> Optional[AirBnb]:
     """
     Examine the content string and extract the airbnb details for the city, state,
@@ -32,7 +32,7 @@ def extract_airbnb(content: str) -> Optional[AirBnb]:
     """
 
 
-@monkey.align
+@tanuki.align
 def align_extract_airbnb() -> None:
     print("Aligning...")
     airbnb1 = "Caroga Lake, New YorkRoyal Mountain Ski ResortDec 3 – 8$200\xa0night$200 per night4.99"
