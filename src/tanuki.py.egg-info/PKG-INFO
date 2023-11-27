@@ -1,0 +1,210 @@
+Metadata-Version: 2.1
+Name: tanuki.py
+Version: 0.0.1a1.dev14+gd12f5dc.d20231101
+Summary: The easiest way to build scalable LLM-powered applications, which gets cheaper and faster over time.
+Home-page: https://github.com/tanuki/tanuki.py
+Author: Jack Hopkins
+Author-email: jack.hopkins@me.com
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+License-File: LICENSE.txt
+Requires-Dist: pydantic>=1.8.2
+Requires-Dist: appdirs~=1.4.4
+Requires-Dist: openai==0.28.1
+Requires-Dist: numpy~=1.24.4
+Requires-Dist: python-dotenv==1.0.0
+Requires-Dist: bitarray==2.8.2
+Requires-Dist: pydantic==2.4.2
+
+# 🙈 Tanuki
+
+The fastest and easiest way to build LLM features in python.
+
+A *Tanuki Function* is a piece of code which replaces function stubs with LLM transformations at runtime, enabling you to drop in well-typed, production-ready capabilities into your app in seconds. No more prompt wrangling. No surprises. The more often you call the function, the faster it gets.
+
+```
+@tanuki.patch
+def some_function(input: TypedInput) -> TypedOutput:
+	"""
+	This is where you include the description of how your function will be used.
+	"""
+
+@tanuki.align
+def test_some_function(example_typed_input: TypedInput, 
+					   example_typed_output: TypedOutput):
+	
+	assert similar_to(some_function(example_typed_input), example_typed_output)
+	
+```
+
+## How it works
+
+When you initially call a Tanuki Function during development, an LLM in a zero-shot configuration is invoked to generate the typed response. This response can be passed through to the rest of your app / stored in the DB / displayed to the user.
+
+We register the input and outputs of the function during execution, ensuring that the outputs are correctly typed. 
+As your data volume increases, we distil, deploy and manage smaller models that are able to capture the desired behaviour at a lower computational cost and lower latency. 
+
+You can align the model to your use-case through *test-driven alignment*, in which you create tests which declare the desired behaviour of your function. 
+
+## Examples
+
+In this example, we define a simple classification function, and several alignment assertions which guide the desired behaviour of the function. 
+
+```sentiment
+@tanuki.patch
+def classify_sentiment(msg: str) -> Optional[Literal['Good', 'Bad']]:
+	"""
+	Classifies a message from the user into Good, Bad or None.
+	"""
+
+@tanuki.align
+def align_classify_sentiment():
+	assert classify_sentiment("I love you") == 'Good'
+	assert classify_sentiment("I hate you") == 'Bad'
+	assert not classify_sentiment("Wednesdays are in the middle of the week")
+```
+
+
+```
+@tanuki.patch
+def score_sentiment(input: str) -> Annotated[int, Field(gt=0, lt=10)]:
+	"""
+	Scores the input between 0-10
+	"""
+
+@tanuki.align
+def align_score_sentiment():
+	"""Register several examples to align your function"""
+	
+	assert score_sentiment("I love you") == 10
+	assert score_sentiment("I hate you") == 0
+	assert score_sentiment("You're okay I guess") == 5
+
+# This is a normal test that can be invoked 
+def test_score_sentiment():
+	"""We can test the function as normal using Pytest or Unittest"""
+	assert score_sentiment("I like you") == 7
+```
+
+You can define standard Pydantic classes as your output, and can optionally add descriptions using _Field_ to help inform the purpose of each field.
+
+```python
+@dataclass
+class ActionItem:
+    goal: str = Field(description="What task must be completed")
+    deadline: datetime = Field(description="The date the goal needs to be achieved")
+    
+@tanuki.patch
+def action_items(input: str) -> List[ActionItem]:
+	"""Generate a list of Action Items"""
+
+@tanuki.align
+def align_action_items():
+	goal = "Can you please get the presentation to me by Tuesday?"
+	next_tuesday = (datetime.now() + timedelta((1 - datetime.now().weekday() + 7) % 7)).replace(hour=0, minute=0, second=0, microsecond=0)
+	
+	assert action_items(goal) == ActionItem(goal="Prepare the presentation", deadline=next_tuesday)
+```
+
+## Test-Driven Alignment
+
+To align the behaviour of your patched function to your needs, decorate a function with `@align`.
+
+```python
+def test_score_sentiment():
+	"""We can test the function as normal using Pytest or Unittest"""
+	assert score_sentiment("I like you") == 7
+```
+
+You assert the behaviour of your patched function either declaring the desired output through equality or inequality checking, or the downstream behaviour of consequent functions:
+
+
+(HOW CAN WE ACHIEVE THIS?)
+```python
+def test_score_sentiment():
+	"""We can test the function as normal using Pytest or Unittest"""
+	assert multiply_by_two(score_sentiment("I like you")) == 14
+	assert 2*score_sentiment("I like you") == 14
+```
+
+
+
+
+## Simple ToDo List App
+
+```
+from datetime import datetime
+from typing import Optional, List
+from pydantic import Field
+from fastapi import FastAPI
+import munk
+
+app = FastAPI()
+
+@dataclass
+class TodoItem:
+    goal: str = Field(description="What task must be completed")
+    deadline: datetime = Field(description="The date the goal needs to be achieved")
+    priority: str = Field(description="Priority level of the task")
+    people_involved: List[str] = Field(description="Names of people involved")
+
+
+@tanuki.func
+def generate_todo(input: str) -> TodoItem:
+    """
+    Generate a TodoItem based on the natural language input.
+    """
+
+@tanuki.align
+def align_generate_todo():
+    next_tuesday = (datetime.now() + timedelta((1 - datetime.now().weekday() + 7) % 7)).replace(hour=0, minute=0, second=0, microsecond=0)
+    next_friday = (datetime.now() + timedelta((4 - datetime.now().weekday() + 7) % 7)).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # First example
+    assert generate_todo("Prepare the presentation for John by next Tuesday, high priority") == TodoItem(
+        goal="Prepare the presentation",
+        deadline=next_tuesday,
+        priority="high",
+        people_involved=["John"]
+    )
+
+    # Second example: Different priority and deadline
+    assert generate_todo("Complete the report by Friday, medium priority") == TodoItem(
+        goal="Complete the report",
+        deadline=next_friday,
+        priority="medium",
+        people_involved=[]
+    )
+
+    # Third example: Multiple people involved
+    assert generate_todo("Organize the team meeting with Emily and Sarah for next Tuesday") == TodoItem(
+        goal="Organize the team meeting",
+        deadline=next_tuesday,
+        priority="",
+        people_involved=["Emily", "Sarah"]
+    )
+
+    # Fourth example: No deadline
+    assert generate_todo("Buy groceries, low priority") == TodoItem(
+        goal="Buy groceries",
+        deadline=None,
+        priority="low",
+        people_involved=[]
+    )
+
+    # Fifth example: No priority or people involved
+    assert generate_todo("Read the new book") == TodoItem(
+        goal="Read the new book",
+        deadline=None,
+        priority="",
+        people_involved=[]
+    )
+
+@app.post("/todo/", response_model=TodoItem)
+async def create_todo(input: str):
+    return generate_todo(input)
+
+```
