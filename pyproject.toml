@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.poetry]
 name = "tanuki.py"
-version = "1.0.0"
+version = "0.1.0"
 description = "The easiest way to build scalable LLM-powered applications, which gets cheaper and faster over time."
 authors = ["Jack Hopkins <jack@paperplane.ai>", "Mart Bakler <mart@paperplane.ai>"]
 
@@ -44,5 +44,5 @@ exclude = '''
 
 [[tool.poetry.source]]
 name = "tanuki.py"
-url = "https://github.com/monkeypatch/tanuki.py"
+url = "https://github.com/Tanuki/tanuki.py"
 secondary = true

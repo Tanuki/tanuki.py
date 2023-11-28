@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: tanuki.py
-Version: 0.0.1a1.dev14+gd12f5dc.d20231101
+Version: 0.1.0
 Summary: The easiest way to build scalable LLM-powered applications, which gets cheaper and faster over time.
 Home-page: https://github.com/tanuki/tanuki.py
 Author: Jack Hopkins
