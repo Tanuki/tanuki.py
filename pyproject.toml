@@ -12,12 +12,7 @@ authors = ["Jack Hopkins <jack@paperplane.ai", "Mart Bakler <mart@paperplane.ai>
 
 [tool.poetry.dependencies]
 python = "^3.8"
-appdirs= "1.4.4"
-openai = "0.28.1"
-numpy = "1.24.4"
-python-dotenv= "1.0.0"
-bitarray = "2.8.2"
-pydantic = "2.4.2"
+tanuki = "^0.1.0"
 # Add your project dependencies here, for example:
 # requests = "^2.25.1"
 
