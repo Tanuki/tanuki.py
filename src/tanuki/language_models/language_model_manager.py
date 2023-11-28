@@ -51,8 +51,7 @@ class LanguageModelManager(object):
         choice_parsed = self._parse_choice(output)
         valid = validator.check_type(choice_parsed, function_description.output_type_hint)
         if not valid:
-            choice, choice_parsed, successful_repair = self.repair_output(self,
-                                                                          args,
+            choice, choice_parsed, successful_repair = self.repair_output(args,
                                                                           kwargs,
                                                                           function_description,
                                                                           output.generated_response,
