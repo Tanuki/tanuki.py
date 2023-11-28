@@ -31,7 +31,7 @@ class ArticleSummary(BaseModel):
 
     impact: int = Field(..., ge=0, le=10)
     sentiment: float = Field(..., ge=-1.0, le=1.0)
-    date: datetime.date
+    date: datetime
     companies_involved: List[str]
     people_involved: List[str]
     summary: str
@@ -162,7 +162,7 @@ def align_analyze_article():
     assert analyze_article(html_content, "nvidia") == ArticleSummary(
         impact=10,
         sentiment=-0.9,
-        date=datetime.date(2023, 11, 8),
+        date=datetime(2023, 11, 8),
         companies_involved=["Nvidia", "ARM"],
         people_involved=[],
         summary="Nvidia is acquiring ARM for $40 billion, which will have a huge impact on the semiconductor industry.",

@@ -34,7 +34,7 @@ def extract_property(content: str) -> Optional[Property]:
 @tanuki.align
 def align_extract_property() -> None:
     print("Aligning...")
-    unit_one = "Rental Unit in Lincoln Square\n      \n\n\n229 West 60th Street #7H\n\n\n\n$7,250\nNO FEE\n\n\n\n\n\n\n\n\n2 Beds\n\n\n\n\n2 Baths\n\n\n\n\n\n                1,386\n                square feet\nft²\n\n\n\n\n\n        Listing by Algin Management"
+    unit_one = "Rental Unit in Lincoln Square\n      \n\n\n229 West 60th Street #7H\n\n\n\n$7,250\nNO FEE\n\n\n\n\n\n\n\n\n2 Beds\n\n\n\n\n2 Baths\n\n\n\n\n\n                1,386\n                square feet\nsq_ft\n\n\n\n\n\n        Listing by Algin Management"
     assert extract_property(unit_one) == Property(
         neighborhood="Lincoln Square",
         address="229 West 60th Street #7H",
