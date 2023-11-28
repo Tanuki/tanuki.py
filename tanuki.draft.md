@@ -1,10 +1,10 @@
-# Tanuki v0.1.1 - An LLM framework for perfectionists with deadlines
+# Tanuki v0.1.1 - Easily build LLM-powered apps that get cheaper and faster over time.
 
 ![Discord](https://img.shields.io/discord/1168948553222197248)
 
-Tanuki (formerly MonkeyPatch) aims to reduce the time-to-ship for your LLM projects, so you can focus on building what your users want, instead of on MLOps. 
+Tanuki (formerly MonkeyPatch) aims to reduce the time to ship your LLM projects, so you can focus on building what your users want, instead of on MLOps. We'll quickly cover 1) what makes using Tanuki so easy for LLM apps and 2) what AI functions are and how to use them effectively in your LLM projects. 
 
-Tanuki allows you to define AI functions in your code:
+To start off, Tanuki allows you to define AI functions in your code:
 
 ```python
 @tanuki.patch
@@ -16,7 +16,7 @@ def get_sql(schema, instruction: str = "", **kwargs) -> SQLQuery:
 
 These functions can be invoked as normal, and used in the rest of your program.
 
-The behaviour of these functions can be aligned to your requirements using `align` functions, where you declare the intended behaviour using `assert` syntax:
+Instead of prompt engineering or fine-tuning models scratch, you can precisely define behaviour of these functions using `align` functions. This is how you declare the intended behaviour using `assert` syntax:
 
 ```python
 @tanuki.align
@@ -29,15 +29,17 @@ def align_sql(schema):
 				   schema, 
 				   account_number=6531) == correct_customer_sql
 ```
+This is called **test-driven alignment** and is an evolution from how LLMs have traditionally been productionized. This paradigm greatly simplifies the work of developers without conceding control. We'll expand on this below.
+
 ## Test-Driven Alignment
 
-These optional align statements make it easier to define and develop your LLM behaviour to fit your requirements. Representing behaviour declaratively in your code means that you don't require external datasets or an MLOps process to deploy LLM features. 
+These optional align statements allow you to define and develop the LLM's behaviour to fit your requirements. Getting well-typed outputs and accounting for edge cases is now trivially easy. Also, representing behaviour declaratively in your code means that you don't require external datasets or an MLOps process to deploy LLM features. 
 
 This allows you to iterate on a product faster, as incremental improvements to the behaviour of your functions are tracked by version control, and visible to all stakeholders. 
 
-As there is no additional state that you have to worry about, improving the performance of your functions is matter of writing more and better `align` assert statements. 
+As there is no additional state that you have to worry about, improving the performance of your functions is matter of writing more and better `align` assert statements. In experiments, we've seen anywhere from 8-12 tests to achieve sufficient accuracy for various enterprise use-cases.  
 
-This approach means that the tests define the contract of the function, just like in [Test-Driven Development](https://en.wikipedia.org/wiki/Test-driven_development), and LLM features have the same development lifecycle as the rest of the application. 
+As in [Test-Driven Development](https://en.wikipedia.org/wiki/Test-driven_development), this approach means that the tests define the contract of the function. LLM features can now have the same development lifecycle as the rest of the application. 
 
 # AI Functions
 
