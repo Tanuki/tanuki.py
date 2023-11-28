@@ -420,7 +420,13 @@ class AssertionVisitor(ast.NodeVisitor):
             return tuple(self.extract_output(elt, scope) for elt in node.elts)
         elif isinstance(node, ast.Constant):
             return node.value
-
+        elif isinstance(node, ast.UnaryOp):
+            if isinstance(node.op, ast.USub):
+                return -self.extract_output(node.operand, scope)
+            elif isinstance(node.op, ast.Not):
+                return not self.extract_output(node.operand, scope)
+            else:
+                raise NotImplementedError(f"Unary operator {type(node.op).__name__} not handled yet")
         raise NotImplementedError(f"Node type {type(node).__name__} not handled yet")
 
     def visit_For(self, node):
