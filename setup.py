@@ -12,6 +12,7 @@ setup(
     url='https://github.com/Tanuki/tanuki.py',  # Provide either the link to your github or to your website
     download_url='https://github.com/Tanuki/tanuki.py/archive/v0.1.0.tar.gz',  # I explain this later on
     keywords=['python', 'ai', 'tdd', 'alignment', 'tanuki', 'distillation', 'pydantic', 'gpt-4', 'llm', 'chat-gpt', 'gpt-4-api', 'ai-functions'],  # Keywords that define your package best
+    package_dir={'tanuki': 'src'},
     install_requires=[
         "appdirs~=1.4.4",
         "openai==0.28.1",

@@ -1,4 +1,4 @@
-# :raccoon:Tanuki
+# Tanuki <span style="font-family:Papyrus; font-size:2em;">🦝</span>
 
 The easiest way to build scalable, LLM-powered functions and applications that get cheaper and faster the more you use them. 
 
