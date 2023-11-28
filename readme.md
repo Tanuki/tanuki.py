@@ -2,7 +2,8 @@
 
 Easily build LLM-powered apps that get cheaper and faster over time.
 
-## [Join Discord](https://discord.gg/uUzX5DYctk)
+> [!IMPORTANT]
+> [Join Discord](https://discord.gg/uUzX5DYctk)
 
 ## Release
 [27/11] Renamed MonkeyPatch to Tanuki, support for [embeddings](https://github.com/monkeypatch/tanuki.py/blob/update_docs/docs/embeddings_support.md) and [function configurability](https://github.com/monkeypatch/tanuki.py/blob/update_docs/docs/function_configurability.md) is released!
