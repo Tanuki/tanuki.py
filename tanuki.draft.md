@@ -1,4 +1,4 @@
-# Tanuki v0.1.0 - An LLM framework for perfectionists with deadlines
+# Tanuki v0.1.1 - An LLM framework for perfectionists with deadlines
 
 ![Discord](https://img.shields.io/discord/1168948553222197248)
 
