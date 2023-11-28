@@ -45,8 +45,6 @@ tests/test_hash.py
 tests/test_token_counter.py
 tests/test_align/test_align_class.py
 tests/test_align/test_align_global.py
-tests/test_align/.align/b01fbd89d35b7eef4015fe0c6e363969
-tests/test_align/.align/c364f14f40084510581a3418aaab4037
 tests/test_assertion_visitor/test_mock.py
 tests/test_load/test_load_trackers.py
 tests/test_patch/test_classification.py

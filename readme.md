@@ -1,9 +1,9 @@
-# Tanuki
+# Tanuki <span style="font-family:Papyrus; font-size:2em;">🦝</span>
 
-The easiest way to build scalable, LLM-powered functions and applications that get cheaper and faster the more you use them. 
+Easily build LLM-powered apps that get cheaper and faster over time.
 
 ## Release
-[27/11] Support for [embeddings](https://github.com/monkeypatch/tanuki.py/blob/update_docs/docs/embeddings_support.md) and [function configurability](https://github.com/monkeypatch/tanuki.py/blob/update_docs/docs/function_configurability.md) is released!
+[27/11] Renamed MonkeyPatch to Tanuki, support for [embeddings](https://github.com/monkeypatch/tanuki.py/blob/update_docs/docs/embeddings_support.md) and [function configurability](https://github.com/monkeypatch/tanuki.py/blob/update_docs/docs/function_configurability.md) is released!
 * Use embeddings to integrate Tanuki with downstream RAG implementations using OpenAI Ada-2 model.
 *  Function configurability allows to configure Tanuki function executions to ignore certain implemented aspects (finetuning, data-storage communications) for improved latency and serverless integrations.
 
