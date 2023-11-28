@@ -1,10 +1,7 @@
 # Tanuki <span style="font-family:Papyrus; font-size:2em;">🦝</span>
-
-![Discord](https://img.shields.io/discord/1168948553222197248)
-[Join!](https://discord.gg/uUzX5DYctk)
+![Discord](https://img.shields.io/discord/1168948553222197248) [Join!](https://discord.gg/uUzX5DYctk)
 
 Easily build LLM-powered apps that get cheaper and faster over time.
----
 
 ## Release
 [27/11] Renamed MonkeyPatch to Tanuki, support for [embeddings](https://github.com/monkeypatch/tanuki.py/blob/update_docs/docs/embeddings_support.md) and [function configurability](https://github.com/monkeypatch/tanuki.py/blob/update_docs/docs/function_configurability.md) is released!
