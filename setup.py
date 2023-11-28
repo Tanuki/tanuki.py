@@ -1,9 +1,11 @@
 from distutils.core import setup
 
+from setuptools import find_packages
+
 setup(
     name='tanuki.py',  # How you named your package folder (MyLib)
-    packages=['tanuki'],  # Chose the same as "name"
-    version='0.1.1',
+    packages=find_packages(),  # Chose the same as "name"
+    version='0.1.2',
     license='MIT',  # Chose a license from here: https://help.github.com/articles/licensing-a-repository
     description='The easiest way to build scalable LLM-powered applications, which gets cheaper and faster over time.',
     # Give a short description about your library
@@ -12,7 +14,7 @@ setup(
     url='https://github.com/Tanuki/tanuki.py',  # Provide either the link to your github or to your website
     download_url='https://github.com/Tanuki/tanuki.py/archive/v0.1.0.tar.gz',  # I explain this later on
     keywords=['python', 'ai', 'tdd', 'alignment', 'tanuki', 'distillation', 'pydantic', 'gpt-4', 'llm', 'chat-gpt', 'gpt-4-api', 'ai-functions'],  # Keywords that define your package best
-    package_dir={'tanuki': 'src'},
+    package_dir={'tanuki': './src/tanuki'},
     install_requires=[
         "appdirs~=1.4.4",
         "openai==0.28.1",
