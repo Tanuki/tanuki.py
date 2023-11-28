@@ -1,4 +1,4 @@
-# Tanuki v0.1.0 - An easy way to build scalable LLM-powered applications, which get cheaper and faster over time.
+# Tanuki v0.1.0 - Easily build LLM-powered apps that get cheaper and faster over time.
 
 ![Discord](https://img.shields.io/discord/1168948553222197248)
 
@@ -29,17 +29,17 @@ def align_sql(schema):
 				   schema, 
 				   account_number=6531) == correct_customer_sql
 ```
-This is called **test-driven alignment** and is a major evolution from now traditional ML engineers and researchers have productionized LLMs. This paradigm greatly simplifies the work of developers without conceding control. We'll expand on this below.
+This is called **test-driven alignment** and is an evolution from how LLMs have traditionally been productionized. This paradigm greatly simplifies the work of developers without conceding control. We'll expand on this below.
 
 ## Test-Driven Alignment
 
-These optional align statements make it easier to define and develop your LLM behaviour to fit your requirements. Getting well-typed outputs and accounting for edge cases is now trivially easy. Also, representing behaviour declaratively in your code means that you don't require external datasets or an MLOps process to deploy LLM features. 
+These optional align statements allow you to define and develop the LLM's behaviour to fit your requirements. Getting well-typed outputs and accounting for edge cases is now trivially easy. Also, representing behaviour declaratively in your code means that you don't require external datasets or an MLOps process to deploy LLM features. 
 
 This allows you to iterate on a product faster, as incremental improvements to the behaviour of your functions are tracked by version control, and visible to all stakeholders. 
 
 As there is no additional state that you have to worry about, improving the performance of your functions is matter of writing more and better `align` assert statements. In experiments, we've seen anywhere from 8-12 tests to achieve sufficient accuracy for various enterprise use-cases.  
 
-This approach means that the tests define the contract of the function, just like in [Test-Driven Development](https://en.wikipedia.org/wiki/Test-driven_development), and LLM features have the same development lifecycle as the rest of the application. 
+As in [Test-Driven Development](https://en.wikipedia.org/wiki/Test-driven_development), this approach means that the tests define the contract of the function. LLM features can now have the same development lifecycle as the rest of the application. 
 
 # AI Functions
 
