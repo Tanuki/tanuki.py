@@ -1,5 +1,9 @@
 # 🙈 MonkeyPatch
 
+---
+NOTE: This project has been moved [HERE](https://pypi.org/project/tanuki.py/).
+---
+
 The easiest way to build scalable, LLM-powered functions and applications that get cheaper and faster the more you use them. 
 
 ## Contents
