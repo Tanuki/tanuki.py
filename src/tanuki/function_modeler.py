@@ -465,12 +465,12 @@ class FunctionModeler(object):
             for x in dataset]
 
         # Create an in-memory text stream
-        temp_file = io.StringIO()
+        temp_file = io.BytesIO()
         # Write data to the stream
         for idx, item in enumerate(finetuning_dataset):
-            temp_file.write(json.dumps(item))
+            temp_file.write(json.dumps(item).encode('utf-8'))
             if idx != len(finetuning_dataset) - 1:
-                temp_file.write("\n")
+                temp_file.write("\n".encode('utf-8'))
 
         # Reset the stream position to the beginning
         temp_file.seek(0)

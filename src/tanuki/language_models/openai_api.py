@@ -140,7 +140,7 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
         except Exception as e:
             return
 
-        training_file_id = response["id"]
+        training_file_id = response.id
         # submit the finetuning job
         try:
             finetuning_response: FineTuningJob = self.client.fine_tuning.jobs.create(training_file=training_file_id,
