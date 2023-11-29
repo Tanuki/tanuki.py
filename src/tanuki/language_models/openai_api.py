@@ -26,7 +26,7 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
 
         self.api_key = os.environ.get("OPENAI_API_KEY")
 
-        self.client = OpenAI(api_key=self.api_key)
+        self.client = None
 
     def embed(self, texts: List[str], model="text-similarity-babbage-001", **kwargs) -> List[Embedding]:
         """
@@ -121,7 +121,7 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
 
     def list_finetuned(self, limit=100, **kwargs) -> List[FinetuneJob]:
         self.check_api_key()
-        response = self.client.fine_tuning.jobs.list(limit=1000)
+        response = self.client.fine_tuning.jobs.list(limit=limit)
         jobs = []
         for job in response.data:
             jobs.append(FinetuneJob(job.id, job.status, job.fine_tuned_model))
@@ -160,3 +160,6 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
             self.api_key = os.getenv("OPENAI_API_KEY")
             if self.api_key is None:
                 raise ValueError("OpenAI API key is not set")
+
+        if not self.client:
+            self.client = OpenAI(api_key=self.api_key)
