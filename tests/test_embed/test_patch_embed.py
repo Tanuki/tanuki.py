@@ -3,14 +3,14 @@ import unittest
 from typing import List
 from unittest import TestCase
 
-import numpy as np
-import openai
 from dotenv import load_dotenv
+
+load_dotenv()
+
+import numpy as np
 from tanuki.models.embedding import Embedding
 import tanuki
 
-load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
 class TestEmbedding(TestCase):

@@ -1,8 +1,8 @@
 import json
-from typing import Any
+from typing import Any, Dict
 
 from tanuki.function_modeler import FunctionModeler
-from tanuki.language_models.openai_api import OpenAI_API
+from tanuki.language_models.llm_api_abc import LLM_API
 from tanuki.models.function_description import FunctionDescription
 from tanuki.models.function_example import FunctionExample
 from tanuki.models.language_model_output import LanguageModelOutput
@@ -20,14 +20,17 @@ class LanguageModelManager(object):
     - Finetuning the language models from the saved outputs
     """
 
-    def __init__(self, function_modeler: FunctionModeler, generation_token_limit=512) -> None:
+    def __init__(self,
+                 function_modeler: FunctionModeler,
+                 generation_token_limit=512,
+                 api_providers: Dict[str, LLM_API] = None) -> None:
+        self.api_providers = api_providers
         self.function_modeler = function_modeler
         self.instruction = "You are given below a function description and input data. The function description of what the function must carry out can be found in the Function section, with input and output type hints. The input data can be found in Input section. Using the function description, apply the function to the Input and return a valid output type, that is acceptable by the output_class_definition and output_class_hint. Return None if you can't apply the function to the input or if the output is optional and the correct output is None.\nINCREDIBLY IMPORTANT: Only output a JSON-compatible string in the correct response format."
         self.system_message = f"You are a skillful and accurate language model, who applies a described function on input data. Make sure the function is applied accurately and correctly and the outputs follow the output type hints and are valid outputs given the output types."
 
         self.instruction_token_count = approximate_token_count(self.instruction)
         self.system_message_token_count = approximate_token_count(self.system_message)
-        self.api_models = {"openai": OpenAI_API()}
         self.repair_instruction = "Below are an outputs of a function applied to inputs, which failed type validation. The input to the function is brought out in the INPUT section and function description is brought out in the FUNCTION DESCRIPTION section. Your task is to apply the function to the input and return a correct output in the right type. The FAILED EXAMPLES section will show previous outputs of this function applied to the data, which failed type validation and hence are wrong outputs. Using the input and function description output the accurate output following the output_class_definition and output_type_hint attributes of the function description, which define the output type. Make sure the output is an accurate function output and in the correct type. Return None if you can't apply the function to the input or if the output is optional and the correct output is None."
         self.generation_length = generation_token_limit
         self.models = {
@@ -103,7 +106,7 @@ class LanguageModelManager(object):
         Synthesise an answer given the prompt, model, model_type and llm_parameters
         """
         if model_type == "openai":
-            return self.api_models[model_type].generate(model, self.system_message, prompt, **llm_parameters)
+            return self.api_providers[model_type].generate(model, self.system_message, prompt, **llm_parameters)
         else:
             raise NotImplementedError("Only OpenAI is supported currently. " + \
                                       "Please feel free to raise a PR to support development")
