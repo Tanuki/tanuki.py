@@ -3,10 +3,12 @@ import unittest
 from unittest.mock import patch, Mock
 
 from dotenv import load_dotenv
+load_dotenv()
+from openai.types.fine_tuning import FineTuningJob
 
 from tanuki.language_models.openai_api import OpenAI_API
 
-load_dotenv()
+
 
 
 class TestOpenAI_API(unittest.TestCase):
@@ -46,6 +48,30 @@ class TestOpenAI_API(unittest.TestCase):
         api = OpenAI_API()
         result = api.generate("model_name", "system_message", "prompt")
         self.assertEqual(result, "Generated response")
+
+    @patch('openai.fine_tuning.jobs.list')
+    @patch('os.getenv')
+    def test_list_finetuned(self, mock_getenv, mock_list):
+        mock_getenv.return_value = os.getenv("OPENAI_API_KEY")
+        mock_list.return_value = [FineTuningJob(id="b",
+                                                created_at=1,
+                                                fine_tuned_model="bla",
+                                                finished_at=1,
+                                                error=None,
+                                                hyperparameters={"n_epochs": 1},
+                                                object="fine_tuning.job",
+                                                result_files=[],
+                                                status="succeeded",
+                                                trained_tokens=1,
+                                                training_file="bla",
+                                                validation_file="bla",
+                                                model="bla",
+                                                organization_id="b",
+                                                )]  # Mock response
+
+        api = OpenAI_API()
+        result = api.list_finetuned(limit=2)
+        self.assertEqual(len(result), 2)
 
 
 if __name__ == '__main__':

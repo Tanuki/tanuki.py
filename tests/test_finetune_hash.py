@@ -1,6 +1,7 @@
 from typing import List
 
 from tanuki.function_modeler import FunctionModeler
+from tanuki.models.finetune_job import FinetuneJob
 from tanuki.register import Register
 from tanuki.trackers.filesystem_buffered_logger import FilesystemBufferedLogger
 from tanuki.utils import encode_int, decode_int
@@ -40,7 +41,8 @@ def test_encode_decode_hash():
     logger = FilesystemBufferedLogger("test")
     func_modeler = FunctionModeler(logger, environment_id=workspace_id)
     finetune_hash = function_description.__hash__(purpose = "finetune") + encode_int(func_modeler.environment_id) + encode_int(nr_of_training_runs)
-    finetune = {"fine_tuned_model": f"Test_model:__{finetune_hash}:asd[]asd",}
+    finetune = FinetuneJob(id="", status="", fine_tuned_model=f"Test_model:__{finetune_hash}:asd[]asd")
+
     config = func_modeler._construct_config_from_finetune(finetune_hash[:-1], finetune)
     assert config["distilled_model"] == f"Test_model:__{finetune_hash}:asd[]asd"
     assert config["current_model_stats"]["trained_on_datapoints"] == 6400

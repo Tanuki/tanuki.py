@@ -1,13 +1,9 @@
-import os
 from typing import List
 
-import openai
 from dotenv import load_dotenv
 
-import tanuki
-
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+import tanuki
 
 
 @tanuki.patch

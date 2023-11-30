@@ -3,21 +3,32 @@ from typing import List
 import openai
 import time
 # import abstract base class
+from openai import OpenAI
+from openai.types import CreateEmbeddingResponse
+from openai.types.fine_tuning import FineTuningJob
+
+from tanuki.language_models.llm_finetune_api_abc import LLM_Finetune_API
+from tanuki.models.embedding import Embedding
 from tanuki.language_models.embedding_api_abc import Embedding_API
 from tanuki.language_models.llm_api_abc import LLM_API
 import os
+
+from tanuki.models.finetune_job import FinetuneJob
 
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 import requests
 
 
-class OpenAI_API(LLM_API, Embedding_API):
+class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
     def __init__(self) -> None:
         # initialise the abstract base class
         super().__init__()
-        self.api_key = os.getenv("OPENAI_API_KEY")
 
-    def embed(self, texts: List[str], model="text-similarity-babbage-001", **kwargs):
+        self.api_key = os.environ.get("OPENAI_API_KEY")
+
+        self.client = None
+
+    def embed(self, texts: List[str], model="text-similarity-babbage-001", **kwargs) -> List[Embedding]:
         """
         Generate embeddings for the provided texts using the specified OpenAI model.
         Lightweight wrapper over the OpenAI client.
@@ -29,12 +40,18 @@ class OpenAI_API(LLM_API, Embedding_API):
         self.check_api_key()
 
         try:
-            response = openai.Embedding.create(
+            response: CreateEmbeddingResponse = self.client.embeddings.create(
                 input=texts,
                 model=model,
                 **kwargs
             )
-            return response['data']
+            assert response.object == "list"
+            assert len(response.data) == len(texts)
+            embeddings = []
+            for embedding_response in response.data:
+                assert embedding_response.object == "embedding"
+                embeddings.append(Embedding(embedding_response.embedding))
+            return embeddings
         except Exception as e:
             print(f"An error occurred: {e}")
             return None
@@ -102,6 +119,40 @@ class OpenAI_API(LLM_API, Embedding_API):
 
         return choice
 
+    def list_finetuned(self, limit=100, **kwargs) -> List[FinetuneJob]:
+        self.check_api_key()
+        response = self.client.fine_tuning.jobs.list(limit=limit)
+        jobs = []
+        for job in response.data:
+            jobs.append(FinetuneJob(job.id, job.status, job.fine_tuned_model))
+
+        return jobs
+
+    def get_finetuned(self, job_id):
+        self.check_api_key()
+        return self.client.fine_tuning.jobs.retrieve(job_id)
+
+    def finetune(self, file, suffix, **kwargs) -> FinetuneJob:
+        self.check_api_key()
+        # Use the stream as a file
+        try:
+            response = self.client.files.create(file=file, purpose='fine-tune')
+        except Exception as e:
+            return
+
+        training_file_id = response.id
+        # submit the finetuning job
+        try:
+            finetuning_response: FineTuningJob = self.client.fine_tuning.jobs.create(training_file=training_file_id,
+                                                                      model="gpt-3.5-turbo",
+                                                                      suffix=suffix)
+        except Exception as e:
+            return
+
+        finetune_job = FinetuneJob(finetuning_response.id, finetuning_response.status, finetuning_response.fine_tuned_model)
+
+        return finetune_job
+
     def check_api_key(self):
         # check if api key is not none
         if self.api_key is None:
@@ -109,3 +160,6 @@ class OpenAI_API(LLM_API, Embedding_API):
             self.api_key = os.getenv("OPENAI_API_KEY")
             if self.api_key is None:
                 raise ValueError("OpenAI API key is not set")
+
+        if not self.client:
+            self.client = OpenAI(api_key=self.api_key)

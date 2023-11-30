@@ -8,6 +8,8 @@ import openai
 
 from tanuki.constants import EXAMPLE_ELEMENT_LIMIT, PATCHES, SYMBOLIC_ALIGNMENTS, POSITIVE_EMBEDDABLE_ALIGNMENTS, \
     NEGATIVE_EMBEDDABLE_ALIGNMENTS
+from tanuki.language_models.llm_finetune_api_abc import LLM_Finetune_API
+from tanuki.models.finetune_job import FinetuneJob
 from tanuki.models.function_description import FunctionDescription
 from tanuki.models.function_example import FunctionExample
 from tanuki.trackers.dataset_worker import DatasetWorker
@@ -21,7 +23,10 @@ class FunctionModeler(object):
     comprised of symbolic and embeddable alignments, and symbolic and embeddable patches
     """
 
-    def __init__(self, data_worker: DatasetWorker, environment_id=0) -> None:
+    def __init__(self, data_worker: DatasetWorker,
+                 environment_id=0,
+                 api_providers: Dict[str, LLM_Finetune_API] = None
+                 ) -> None:
         self.function_configs = {}
         self.data_worker = data_worker
         self.distillation_token_limit = 3000  # the token limit for finetuning
@@ -32,6 +37,7 @@ class FunctionModeler(object):
         self.check_finetune_blacklist = []
         self.execute_finetune_blacklist = []
         self.store_data_blacklist = []
+        self.api_providers = api_providers
 
     def _get_dataset_info(self, dataset_type, func_hash, type="length"):
         """
@@ -277,13 +283,14 @@ class FunctionModeler(object):
 
         finetune_hash = function_description.__hash__(purpose="finetune") + encode_int(self.environment_id)
         # List 10 fine-tuning jobs
-        finetunes = openai.FineTuningJob.list(limit=1000)
+        finetunes: List[FinetuneJob] = self.api_providers["openai"].list_finetuned(limit=1000)
+
         # Check if the function_hash is in the fine-tuning jobs
         # the finetunes are in chronological order starting from newest
         # So this gets the latest finetune
-        for finetune in finetunes["data"]:
+        for finetune in finetunes:
             # check if the finetune hash is in the fine-tuned model name
-            if finetune["status"] == "succeeded" and finetune_hash in finetune["fine_tuned_model"]:
+            if finetune.status == "succeeded" and finetune_hash in finetune.fine_tuned_model:
                 try:
                     config = self._construct_config_from_finetune(finetune_hash, finetune)
                     # save the config
@@ -294,8 +301,8 @@ class FunctionModeler(object):
 
         return False, {}
 
-    def _construct_config_from_finetune(self, finetune_hash, finetune):
-        model = finetune["fine_tuned_model"]
+    def _construct_config_from_finetune(self, finetune_hash, finetune: FinetuneJob):
+        model = finetune.fine_tuned_model
         # get the ending location of finetune hash in the model name
         finetune_hash_end = model.find(finetune_hash) + len(finetune_hash)
         # get the next character after the finetune hash
@@ -458,12 +465,12 @@ class FunctionModeler(object):
             for x in dataset]
 
         # Create an in-memory text stream
-        temp_file = io.StringIO()
+        temp_file = io.BytesIO()
         # Write data to the stream
         for idx, item in enumerate(finetuning_dataset):
-            temp_file.write(json.dumps(item))
+            temp_file.write(json.dumps(item).encode('utf-8'))
             if idx != len(finetuning_dataset) - 1:
-                temp_file.write("\n")
+                temp_file.write("\n".encode('utf-8'))
 
         # Reset the stream position to the beginning
         temp_file.seek(0)
@@ -474,26 +481,19 @@ class FunctionModeler(object):
         finetune_hash += encode_int(self.environment_id)
         finetune_hash += encode_int(nr_of_training_runs)
 
-        # Use the stream as a file
-        try:
-            response = openai.File.create(file=temp_file, purpose='fine-tune')
-        except Exception as e:
-            return
-
         # here can be sure that datasets were read in as that is checked in the finetune_check
         align_dataset_size = self.dataset_sizes[SYMBOLIC_ALIGNMENTS][func_hash] if func_hash in self.dataset_sizes[
             SYMBOLIC_ALIGNMENTS] else 0
         patch_dataset_size = self.dataset_sizes[PATCHES][func_hash] if func_hash in self.dataset_sizes[PATCHES] else 0
         total_dataset_size = align_dataset_size + patch_dataset_size
-        training_file_id = response["id"]
-        # submit the finetuning job
+
+        # Use the stream as a file
         try:
-            finetuning_response = openai.FineTuningJob.create(training_file=training_file_id, model="gpt-3.5-turbo",
-                                                              suffix=finetune_hash)
+            finetuning_response: FinetuneJob = self.api_providers["openai"].finetune(file=temp_file, suffix=finetune_hash)
         except Exception as e:
             return
 
-        self.function_configs[func_hash]["current_training_run"] = {"job_id": finetuning_response["id"],
+        self.function_configs[func_hash]["current_training_run"] = {"job_id": finetuning_response.id,
                                                                     "trained_on_datapoints": total_dataset_size,
                                                                     "last_checked": datetime.datetime.now().strftime(
                                                                         "%Y-%m-%d %H:%M:%S")}
@@ -515,22 +515,22 @@ class FunctionModeler(object):
         # check if last checked was more than 30 mins ago
         if (datetime.datetime.now() - datetime.datetime.strptime(last_checked,
                                                                  "%Y-%m-%d %H:%M:%S")).total_seconds() > 1800:
-            response = openai.FineTuningJob.retrieve(job_id)
+            response = self.api_providers["openai"].get_finetuned(job_id)
             self.function_configs[func_hash]["current_training_run"]["last_checked"] = datetime.datetime.now().strftime(
                 "%Y-%m-%d %H:%M:%S")
-            if response["status"] == "succeeded" or response["status"] == "failed":
-                self._update_finetune_config(response, func_hash, response["status"])
+            if response.status == "succeeded" or response.status == "failed":
+                self._update_finetune_config(response, func_hash, response.status)
             else:
                 self._update_config_file(func_hash)
 
-    def _update_finetune_config(self, response, func_hash, status):
+    def _update_finetune_config(self, response: FinetuneJob, func_hash, status):
         """
         Update the config file to reflect the new model and switch the current model to the finetuned model
         """
         if status == "failed":
             self.function_configs[func_hash]["current_training_run"] = {}
         else:
-            self.function_configs[func_hash]["distilled_model"] = response["fine_tuned_model"]
+            self.function_configs[func_hash]["distilled_model"] = response.fine_tuned_model
             self.function_configs[func_hash]["last_training_run"] = self.function_configs[func_hash][
                 "current_training_run"]
             self.function_configs[func_hash]["current_model_stats"] = {

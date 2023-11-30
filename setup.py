@@ -17,7 +17,7 @@ setup(
     package_dir={'tanuki': './src/tanuki'},
     install_requires=[
         "appdirs~=1.4.4",
-        "openai==0.28.1",
+        "openai==1.3.5",
         "numpy~=1.26.1",
         "python-dotenv==1.0.0",
         "bitarray==2.8.2",
