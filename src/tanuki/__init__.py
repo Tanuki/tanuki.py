@@ -252,7 +252,8 @@ def patch(patchable_func=None,
           environment_id: int = 0,
           ignore_finetune_fetching: bool = False,
           ignore_finetuning: bool = False,
-          ignore_data_storage: bool = False
+          ignore_data_storage: bool = False,
+          teacher_models : list = []
           ):
     """
     The main decorator for patching a function.
