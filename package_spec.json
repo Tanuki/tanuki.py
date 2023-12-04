@@ -1,0 +1,2249 @@
+{
+    "modules": [
+        {
+            "name": "tanuki.assertion_visitor",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/assertion_visitor.py",
+            "classes": [
+                {
+                    "name": "AssertionVisitor",
+                    "type": "class",
+                    "methods": [
+                        {
+                            "name": "__init__",
+                            "parameters": "(self, scope: Optional[dict] = None, patch_symbolic_funcs: Dict[str, Callable] = {}, patch_embeddable_funcs: Dict[str, Callable] = {}, wrapper_alias='test_func')",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Initialize self.  See help(type(self)) for accurate signature."
+                        },
+                        {
+                            "name": "_eval_expr",
+                            "parameters": "(self, node)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "_extract_args",
+                            "parameters": "(self, node, iter_name=None)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "_generate_mock_embedding",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "_is_embeddable_function_call",
+                            "parameters": "(self, node)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "_process_assert_helper",
+                            "parameters": "(self, left, right, iter_name=None, op=None)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "This is a helper function for processing asserts. It is low-level and is called by higher-level functions\nthat analyze the AST of the aligned function.\n\nIt handles the case where both sides of the assert statement are patched embedding functions: where we need to\ndo special mocking.\n\nIt also handles the case where the left side of the assert statement is a patched symbolic function.\n\nArgs:\n    left: The expression on the left of an assert statement\n    right: The expression on the right of an assert statement\n    iter_name: The name of the iterator variable (if any)\n    op: The operator used in the assert statement (e.g. ast.Eq() for '==')"
+                        },
+                        {
+                            "name": "_process_assert_helper_both_sides_embeddable",
+                            "parameters": "(self, left, right, iter_name=None, op=None)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "_process_assert_helper_lr",
+                            "parameters": "(self, left, right, iter_name=None, op=None)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "_process_assert_with_tuple",
+                            "parameters": "(self, node, iter_names, evaluated_expr)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "extract_output",
+                            "parameters": "(self, node, scope=None)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "get_value",
+                            "parameters": "(self, node)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "instantiate",
+                            "parameters": "(self, func, *args, **kwargs)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Instantiate a function with the given arguments and keyword arguments."
+                        },
+                        {
+                            "name": "load_variable_values",
+                            "parameters": "(self, var_name)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "process_assert",
+                            "parameters": "(self, node, iter_name=None, evaluated_expr=None)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "visit_Assert",
+                            "parameters": "(self, node)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "visit_Assign",
+                            "parameters": "(self, node)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "visit_For",
+                            "parameters": "(self, node)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "visit_FunctionDef",
+                            "parameters": "(self, node)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "visit_Import",
+                            "parameters": "(self, node)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "visit_ImportFrom",
+                            "parameters": "(self, node)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        }
+                    ],
+                    "properties": [
+                        {
+                            "name": "generic_visit",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "visit",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "visit_Constant",
+                            "type": "function",
+                            "visibility": "public"
+                        }
+                    ],
+                    "docstring": "A node visitor base class that walks the abstract syntax tree and calls a\nvisitor function for every node found.  This function may return a value\nwhich is forwarded by the `visit` method.\n\nThis class is meant to be subclassed, with the subclass adding visitor\nmethods.\n\nPer default the visitor functions for the nodes are ``'visit_'`` +\nclass name of the node.  So a `TryFinally` node visit function would\nbe `visit_TryFinally`.  This behavior can be changed by overriding\nthe `visit` method.  If no visitor function exists for a node\n(return value `None`) the `generic_visit` visitor is used instead.\n\nDon't use the `NodeVisitor` if you want to apply changes to nodes during\ntraversing.  For this a special visitor exists (`NodeTransformer`) that\nallows modifications."
+                },
+                {
+                    "name": "Or",
+                    "type": "class",
+                    "methods": [],
+                    "properties": [
+                        {
+                            "name": "append",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "clear",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "copy",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "count",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "extend",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "index",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "insert",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "pop",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "remove",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "reverse",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "sort",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        }
+                    ],
+                    "docstring": "Built-in mutable sequence.\n\nIf no argument is given, the constructor creates a new empty list.\nThe argument must be an iterable if specified."
+                }
+            ]
+        },
+        {
+            "name": "tanuki.bloom_filter",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/bloom_filter.py",
+            "classes": [
+                {
+                    "name": "BloomFilter",
+                    "type": "class",
+                    "methods": [
+                        {
+                            "name": "__init__",
+                            "parameters": "(self, persistence: tanuki.persistence.bloom_interface.IBloomFilterPersistence, size=None, hash_count=None, expected_number_of_elements=None, false_positive_probability=None)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Initialize self.  See help(type(self)) for accurate signature."
+                        },
+                        {
+                            "name": "add",
+                            "parameters": "(self, string)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "hash_functions",
+                            "parameters": "(self, string)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "init_bit_array",
+                            "parameters": "(self, size)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "load",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "lookup",
+                            "parameters": "(self, string)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "optimal_bloom_filter_params",
+                            "parameters": "(n, p)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Calculate the optimal bit array size (m) and number of hash functions (k)\nfor a Bloom filter.\n\nn: expected number of items to be stored\np: acceptable false positive probability\n\nReturns a tuple (m, k)"
+                        },
+                        {
+                            "name": "save",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        }
+                    ],
+                    "properties": [],
+                    "docstring": "No docstring"
+                }
+            ]
+        },
+        {
+            "name": "tanuki.constants",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/constants.py",
+            "classes": []
+        },
+        {
+            "name": "tanuki.function_modeler",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/function_modeler.py",
+            "classes": [
+                {
+                    "name": "FunctionModeler",
+                    "type": "class",
+                    "methods": [
+                        {
+                            "name": "__init__",
+                            "parameters": "(self, data_worker: tanuki.trackers.dataset_worker.DatasetWorker, environment_id=0, api_providers: Dict[str, tanuki.language_models.llm_finetune_api_abc.LLM_Finetune_API] = None) -> None",
+                            "returnType": "None",
+                            "docstring": "Initialize self.  See help(type(self)) for accurate signature."
+                        },
+                        {
+                            "name": "_check_finetuning_condition",
+                            "parameters": "(self, func_hash)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Check if the finetuning condition is met\nCurrently finetuning condition is dependent on the number of symbolic datapoints since last finetuning"
+                        },
+                        {
+                            "name": "_check_finetuning_status",
+                            "parameters": "(self, func_hash)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Check the status of the current finetuning job\nIf the job is finished, update the config file to reflect the new model"
+                        },
+                        {
+                            "name": "_check_for_finetunes",
+                            "parameters": "(self, function_description: tanuki.models.function_description.FunctionDescription) -> Tuple[bool, Dict]",
+                            "returnType": "typing.Tuple[bool, typing.Dict]",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "_construct_config_from_finetune",
+                            "parameters": "(self, finetune_hash, finetune: tanuki.models.finetune_job.FinetuneJob)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "_execute_finetuning",
+                            "parameters": "(self, function_description, func_hash)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Execute the finetuning\nFirst create the OpenAI compatible dataset with jsonL file and upload it\nThen submit the OpenAI finetuning job\nFinally update the config file to reflect the new finetuning job as current"
+                        },
+                        {
+                            "name": "_get_dataset_info",
+                            "parameters": "(self, dataset_type, func_hash, type='length')",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Get the dataset size for a function hash"
+                        },
+                        {
+                            "name": "_get_datasets",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Get the existing datasets from the data worker"
+                        },
+                        {
+                            "name": "_get_examples_from_alignment_buffer",
+                            "parameters": "(self, buffer, max=20)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Get examples from a buffer"
+                        },
+                        {
+                            "name": "_save_contrastive_alignment_pair",
+                            "parameters": "(self, function_hash: str, args, kwargs, pair, positive=True)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Save a contrastive pair"
+                        },
+                        {
+                            "name": "_update_config_file",
+                            "parameters": "(self, func_hash)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "_update_datapoint_config",
+                            "parameters": "(self, repaired, func_hash)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Update the config to reflect the new datapoint in the training data\nFirst adds 1 to the current datapoints\nThen updates running faults depending if priority is True or not and takes last 100\nThen checks the revert condition, i.e if last 10 datapoints are 50% faulty\nFinally updates the config file \nArgs:\n   priority (bool): whether the datapoint was fixed by the teacher model/should be added to the training data"
+                        },
+                        {
+                            "name": "_update_finetune_config",
+                            "parameters": "(self, response: tanuki.models.finetune_job.FinetuneJob, func_hash, status)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Update the config file to reflect the new model and switch the current model to the finetuned model"
+                        },
+                        {
+                            "name": "check_for_finetuning",
+                            "parameters": "(self, function_description, func_hash)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Check for finetuning status\nIf already finetuning, check for finetuning status\nIf not finetuning, check for finetuning condition and execute finetuning if condition is met"
+                        },
+                        {
+                            "name": "get_embeddable_alignments",
+                            "parameters": "(self, func_hash, max=20)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Get all embeddable aligns for a function hash"
+                        },
+                        {
+                            "name": "get_models",
+                            "parameters": "(self, function_description)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Return the current model from the config file"
+                        },
+                        {
+                            "name": "get_symbolic_alignments",
+                            "parameters": "(self, func_hash, max=20)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Get all symbolic aligns for a function hash"
+                        },
+                        {
+                            "name": "load_function_config",
+                            "parameters": "(self, func_hash, function_description)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Load the config file for a function hash"
+                        },
+                        {
+                            "name": "load_symbolic_align_statements",
+                            "parameters": "(self, function_hash)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Load all align statements\nFirst check the data storage blacklist,\nif the func hash is in the blacklist, then set the dataset size to 0 and the align buffer to empty bytearray"
+                        },
+                        {
+                            "name": "postprocess_symbolic_datapoint",
+                            "parameters": "(self, func_hash, function_description, example, repaired=True)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Postprocess the datapoint\nFirst check if the datapoint should be added to the training data\nAdd the datapoint if it should be added\nThen check if the function should be finetuned and execute finetuning if it should"
+                        },
+                        {
+                            "name": "save_embeddable_align_statements",
+                            "parameters": "(self, function_hash: str, args, kwargs, positive_pairs: List[Tuple[List, Dict]], negative_pairs: List[Tuple[List, Dict]])",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Save the contrastive align statements for the embeddable function.\nDo not save if the function hash is in the store data blacklist\n\nArgs:\n    function_hash: A unique hash for the function\n    args: The arguments of the function\n    kwargs: The keyword arguments of the function\n    positive_pairs: A list of the other function invocations that are should have equivalent embeddings\n    negative_pairs: A list of the other function invocations that are should have different embeddings"
+                        },
+                        {
+                            "name": "save_symbolic_align_statements",
+                            "parameters": "(self, function_hash, args, kwargs, output)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Save the align statements and add to the align buffer\nDo not save if the function hash is in the store data blacklist\nThen just add the datapoints to the align buffer"
+                        },
+                        {
+                            "name": "save_symbolic_datapoint",
+                            "parameters": "(self, func_hash, example)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Save datapoint to the training data"
+                        }
+                    ],
+                    "properties": [],
+                    "docstring": "This class manages the registered function models and their datasets\ncomprised of symbolic and embeddable alignments, and symbolic and embeddable patches"
+                }
+            ]
+        },
+        {
+            "name": "tanuki.language_models",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/language_models/__init__.py",
+            "classes": []
+        },
+        {
+            "name": "tanuki.language_models.embedding_api_abc",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/language_models/embedding_api_abc.py",
+            "classes": [
+                {
+                    "name": "Embedding_API",
+                    "type": "interface",
+                    "methods": [
+                        {
+                            "name": "__init__",
+                            "parameters": "(self) -> None",
+                            "returnType": "None",
+                            "docstring": "Initialize self.  See help(type(self)) for accurate signature."
+                        },
+                        {
+                            "name": "embed",
+                            "parameters": "(self, texts: List[str], model: str = None, **kwargs) -> List[tanuki.models.embedding.Embedding]",
+                            "returnType": "typing.List[tanuki.models.embedding.Embedding]",
+                            "docstring": "The main embedding function, given the model and prompt, return a vector representation"
+                        }
+                    ],
+                    "properties": [],
+                    "docstring": "Helper class that provides a standard way to create an ABC using\ninheritance."
+                }
+            ]
+        },
+        {
+            "name": "tanuki.language_models.embedding_model_manager",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/language_models/embedding_model_manager.py",
+            "classes": [
+                {
+                    "name": "EmbeddingModelManager",
+                    "type": "class",
+                    "methods": [
+                        {
+                            "name": "__call__",
+                            "parameters": "(self, args, function_description, kwargs) -> tanuki.models.embedding.Embedding",
+                            "returnType": "<class 'tanuki.models.embedding.Embedding'>",
+                            "docstring": "Call self as a function."
+                        },
+                        {
+                            "name": "__init__",
+                            "parameters": "(self, function_modeler, api_providers: Dict[str, tanuki.language_models.embedding_api_abc.Embedding_API] = None)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Initialize self.  See help(type(self)) for accurate signature."
+                        },
+                        {
+                            "name": "get_embedding_case",
+                            "parameters": "(self, args, function_description: tanuki.models.function_description.FunctionDescription, kwargs, examples=None)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        }
+                    ],
+                    "properties": [],
+                    "docstring": "No docstring"
+                }
+            ]
+        },
+        {
+            "name": "tanuki.language_models.language_model_manager",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/language_models/language_model_manager.py",
+            "classes": [
+                {
+                    "name": "LanguageModelManager",
+                    "type": "class",
+                    "methods": [
+                        {
+                            "name": "__call__",
+                            "parameters": "(self, args, function_description: tanuki.models.function_description.FunctionDescription, kwargs, validator: tanuki.validator.Validator) -> Any",
+                            "returnType": "typing.Any",
+                            "docstring": "Call self as a function."
+                        },
+                        {
+                            "name": "__init__",
+                            "parameters": "(self, function_modeler: tanuki.function_modeler.FunctionModeler, generation_token_limit=512, api_providers: Dict[str, tanuki.language_models.llm_api_abc.LLM_API] = None) -> None",
+                            "returnType": "None",
+                            "docstring": "Initialize self.  See help(type(self)) for accurate signature."
+                        },
+                        {
+                            "name": "_get_distillation_model_type",
+                            "parameters": "(self, model)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Get the distilled model type given the model"
+                        },
+                        {
+                            "name": "_get_teacher_model_type",
+                            "parameters": "(self, model)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Get the teacher model type given the model"
+                        },
+                        {
+                            "name": "_parse_choice",
+                            "parameters": "(self, output)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "_synthesise_answer",
+                            "parameters": "(self, prompt, model, model_type, llm_parameters)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Synthesise an answer given the prompt, model, model_type and llm_parameters"
+                        },
+                        {
+                            "name": "choose_model_from_tokens",
+                            "parameters": "(self, models, token_count)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Choose a model from the models given the token count"
+                        },
+                        {
+                            "name": "construct_prompt",
+                            "parameters": "(self, f, args, kwargs, examples)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Cosntruct a prompt given the function description, args, kwargs and examples"
+                        },
+                        {
+                            "name": "generate",
+                            "parameters": "(self, args, kwargs, function_description, llm_parameters={})",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "The main generation function, given the args, kwargs, function description and model type, generate a response and check if the datapoint can be saved to the finetune dataset"
+                        },
+                        {
+                            "name": "generate_repair_prompt",
+                            "parameters": "(self, args, kwargs, f, failed_outputs_list, examples)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Generate a repair prompt given the args, kwargs, function description, failed outputs list and examples"
+                        },
+                        {
+                            "name": "get_generation_case",
+                            "parameters": "(self, args, kwargs, function_description)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Get the generation case with the correct prompt and model\nFirst get the current model, then if distilled model, do zero-shot prompt and return False as suitable_for_finetune\nIf not distilled model, check if suitable for finetuning, create the prompt and return the correct model given the token count"
+                        },
+                        {
+                            "name": "repair_generate",
+                            "parameters": "(self, args, kwargs, f, failed_outputs_list, examples, models)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Repair the output given the input, function description, failed outputs list, examples and models"
+                        },
+                        {
+                            "name": "repair_output",
+                            "parameters": "(self, args: tuple, kwargs: dict, function_description: tanuki.models.function_description.FunctionDescription, choice, validator: tanuki.validator.Validator) -> tuple",
+                            "returnType": "<class 'tuple'>",
+                            "docstring": "Repair an output, that failed type validation by generating a new output using the teacher model and the error\nArgs:\n    args (tuple): The args of the function\n    kwargs (dict): The kwargs of the function\n    function_description (FunctionDescription): The function description\n    choice: The output that failed type validation, type is arbitrary\n    validator (Validator): The validator object\n\nReturns:\n    choice (str): The choice that was generated by the language model\n    choice_parsed: The parsed choice, type is arbitrary\n    valid (bool): Whether the output was correctly repaired was valid"
+                        },
+                        {
+                            "name": "suitable_for_finetuning_token_check",
+                            "parameters": "(self, args, kwargs, f, distillation_token_count)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Check if the inputs are suitable for finetuning, i.e are below the finetuning token count"
+                        }
+                    ],
+                    "properties": [],
+                    "docstring": "The LanguageModelManager is responsible for managing the language models and their outputs operationally,\nthis includes:\n- Generating outputs from the language models\n- Repairing outputs from the language models\n- Saving outputs from the language models\n- Finetuning the language models from the saved outputs"
+                }
+            ]
+        },
+        {
+            "name": "tanuki.language_models.llm_api_abc",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/language_models/llm_api_abc.py",
+            "classes": [
+                {
+                    "name": "LLM_API",
+                    "type": "interface",
+                    "methods": [
+                        {
+                            "name": "__init__",
+                            "parameters": "(self) -> None",
+                            "returnType": "None",
+                            "docstring": "Initialize self.  See help(type(self)) for accurate signature."
+                        },
+                        {
+                            "name": "generate",
+                            "parameters": "(self, model, system_message, prompt, **kwargs)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "The main generation function, given the args, kwargs, function_modeler, function description and model type, generate a response and check if the datapoint can be saved to the finetune dataset"
+                        }
+                    ],
+                    "properties": [],
+                    "docstring": "Helper class that provides a standard way to create an ABC using\ninheritance."
+                }
+            ]
+        },
+        {
+            "name": "tanuki.language_models.llm_finetune_api_abc",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/language_models/llm_finetune_api_abc.py",
+            "classes": [
+                {
+                    "name": "LLM_Finetune_API",
+                    "type": "interface",
+                    "methods": [
+                        {
+                            "name": "__init__",
+                            "parameters": "(self) -> None",
+                            "returnType": "None",
+                            "docstring": "Initialize self.  See help(type(self)) for accurate signature."
+                        },
+                        {
+                            "name": "finetune",
+                            "parameters": "(self, **kwargs) -> tanuki.models.finetune_job.FinetuneJob",
+                            "returnType": "<class 'tanuki.models.finetune_job.FinetuneJob'>",
+                            "docstring": "Creates a fine-tuning run\nArgs:\n    **kwargs: \n\nReturns:"
+                        },
+                        {
+                            "name": "get_finetuned",
+                            "parameters": "(self, job_id: str, **kwargs) -> tanuki.models.finetune_job.FinetuneJob",
+                            "returnType": "<class 'tanuki.models.finetune_job.FinetuneJob'>",
+                            "docstring": "Gets a fine-tuning run by id"
+                        },
+                        {
+                            "name": "list_finetuned",
+                            "parameters": "(self, limit=100, **kwargs) -> List[tanuki.models.finetune_job.FinetuneJob]",
+                            "returnType": "typing.List[tanuki.models.finetune_job.FinetuneJob]",
+                            "docstring": "Gets the last N fine-tuning runs"
+                        }
+                    ],
+                    "properties": [],
+                    "docstring": "Helper class that provides a standard way to create an ABC using\ninheritance."
+                }
+            ]
+        },
+        {
+            "name": "tanuki.language_models.openai_api",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/language_models/openai_api.py",
+            "classes": [
+                {
+                    "name": "OpenAI_API",
+                    "type": "class",
+                    "methods": [
+                        {
+                            "name": "__init__",
+                            "parameters": "(self) -> None",
+                            "returnType": "None",
+                            "docstring": "Initialize self.  See help(type(self)) for accurate signature."
+                        },
+                        {
+                            "name": "check_api_key",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "embed",
+                            "parameters": "(self, texts: List[str], model='text-similarity-babbage-001', **kwargs) -> List[tanuki.models.embedding.Embedding]",
+                            "returnType": "typing.List[tanuki.models.embedding.Embedding]",
+                            "docstring": "Generate embeddings for the provided texts using the specified OpenAI model.\nLightweight wrapper over the OpenAI client.\n\n:param texts: A list of texts to embed.\n:param model: The model to use for embeddings.\n:return: A list of embeddings."
+                        },
+                        {
+                            "name": "finetune",
+                            "parameters": "(self, file, suffix, **kwargs) -> tanuki.models.finetune_job.FinetuneJob",
+                            "returnType": "<class 'tanuki.models.finetune_job.FinetuneJob'>",
+                            "docstring": "Creates a fine-tuning run\nArgs:\n    **kwargs: \n\nReturns:"
+                        },
+                        {
+                            "name": "generate",
+                            "parameters": "(self, model, system_message, prompt, **kwargs)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "The main generation function, given the args, kwargs, function_modeler, function description and model type, generate a response and check if the datapoint can be saved to the finetune dataset"
+                        },
+                        {
+                            "name": "get_finetuned",
+                            "parameters": "(self, job_id)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Gets a fine-tuning run by id"
+                        },
+                        {
+                            "name": "list_finetuned",
+                            "parameters": "(self, limit=100, **kwargs) -> List[tanuki.models.finetune_job.FinetuneJob]",
+                            "returnType": "typing.List[tanuki.models.finetune_job.FinetuneJob]",
+                            "docstring": "Gets the last N fine-tuning runs"
+                        }
+                    ],
+                    "properties": [],
+                    "docstring": "Helper class that provides a standard way to create an ABC using\ninheritance."
+                }
+            ]
+        },
+        {
+            "name": "tanuki.models",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/models/__init__.py",
+            "classes": []
+        },
+        {
+            "name": "tanuki.models.embedding",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/models/embedding.py",
+            "classes": [
+                {
+                    "name": "Embedding",
+                    "type": "class",
+                    "methods": [
+                        {
+                            "name": "__getattr__",
+                            "parameters": "(self, item)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "__init__",
+                            "parameters": "(self, data: List[float])",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Initialize self.  See help(type(self)) for accurate signature."
+                        },
+                        {
+                            "name": "__repr__",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Return repr(self)."
+                        },
+                        {
+                            "name": "__str__",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Return str(self)."
+                        }
+                    ],
+                    "properties": [],
+                    "docstring": "Abstract base class for generic types.\n\nA generic type is typically declared by inheriting from\nthis class parameterized with one or more type variables.\nFor example, a generic mapping type might be defined as::\n\n  class Mapping(Generic[KT, VT]):\n      def __getitem__(self, key: KT) -> VT:\n          ...\n      # Etc.\n\nThis class can then be used as follows::\n\n  def lookup_name(mapping: Mapping[KT, VT], key: KT, default: VT) -> VT:\n      try:\n          return mapping[key]\n      except KeyError:\n          return default"
+                }
+            ]
+        },
+        {
+            "name": "tanuki.models.embedding_model_output",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/models/embedding_model_output.py",
+            "classes": [
+                {
+                    "name": "EmbeddingModelOutput",
+                    "type": "class",
+                    "methods": [
+                        {
+                            "name": "__eq__",
+                            "parameters": "(self, other)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Return self==value."
+                        },
+                        {
+                            "name": "__init__",
+                            "parameters": "(self, generated_response: tanuki.models.embedding.Embedding, distilled_model: bool) -> None",
+                            "returnType": "None",
+                            "docstring": "Initialize self.  See help(type(self)) for accurate signature."
+                        },
+                        {
+                            "name": "__repr__",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Return repr(self)."
+                        }
+                    ],
+                    "properties": [],
+                    "docstring": "EmbeddingModelOutput(generated_response: tanuki.models.embedding.Embedding, distilled_model: bool)"
+                }
+            ]
+        },
+        {
+            "name": "tanuki.models.finetune_job",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/models/finetune_job.py",
+            "classes": [
+                {
+                    "name": "FinetuneJob",
+                    "type": "class",
+                    "methods": [
+                        {
+                            "name": "__eq__",
+                            "parameters": "(self, other)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Return self==value."
+                        },
+                        {
+                            "name": "__init__",
+                            "parameters": "(self, id: str, status: str, fine_tuned_model: str) -> None",
+                            "returnType": "None",
+                            "docstring": "Initialize self.  See help(type(self)) for accurate signature."
+                        },
+                        {
+                            "name": "__repr__",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Return repr(self)."
+                        }
+                    ],
+                    "properties": [],
+                    "docstring": "FinetuneJob(id: str, status: str, fine_tuned_model: str)"
+                }
+            ]
+        },
+        {
+            "name": "tanuki.models.function_description",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/models/function_description.py",
+            "classes": [
+                {
+                    "name": "FunctionDescription",
+                    "type": "class",
+                    "methods": [
+                        {
+                            "name": "__delattr__",
+                            "parameters": "(self, name)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Implement delattr(self, name)."
+                        },
+                        {
+                            "name": "__eq__",
+                            "parameters": "(self, other)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Return self==value."
+                        },
+                        {
+                            "name": "__hash__",
+                            "parameters": "(self, purpose: str = 'general')",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Return hash(self)."
+                        },
+                        {
+                            "name": "__init__",
+                            "parameters": "(self, name: str, docstring: str, input_type_hints: Dict[str, type], input_class_definitions: Dict[str, str], output_type_hint: type, output_class_definition: Optional[str], type: tanuki.models.function_type.FunctionType = <FunctionType.SYMBOLIC: 'symbolic'>) -> None",
+                            "returnType": "None",
+                            "docstring": "Initialize self.  See help(type(self)) for accurate signature."
+                        },
+                        {
+                            "name": "__repr__",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Return repr(self)."
+                        },
+                        {
+                            "name": "__setattr__",
+                            "parameters": "(self, name, value)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Implement setattr(self, name, value)."
+                        }
+                    ],
+                    "properties": [
+                        {
+                            "name": "type",
+                            "type": "FunctionType",
+                            "visibility": "public"
+                        }
+                    ],
+                    "docstring": "FunctionDescription(name: str, docstring: str, input_type_hints: Dict[str, type], input_class_definitions: Dict[str, str], output_type_hint: type, output_class_definition: Optional[str], type: tanuki.models.function_type.FunctionType = <FunctionType.SYMBOLIC: 'symbolic'>)"
+                }
+            ]
+        },
+        {
+            "name": "tanuki.models.function_example",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/models/function_example.py",
+            "classes": [
+                {
+                    "name": "FunctionExample",
+                    "type": "class",
+                    "methods": [
+                        {
+                            "name": "__delattr__",
+                            "parameters": "(self, name)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Implement delattr(self, name)."
+                        },
+                        {
+                            "name": "__eq__",
+                            "parameters": "(self, other)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Return self==value."
+                        },
+                        {
+                            "name": "__hash__",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Return hash(self)."
+                        },
+                        {
+                            "name": "__init__",
+                            "parameters": "(self, args: tuple, kwargs: dict, output: Any) -> None",
+                            "returnType": "None",
+                            "docstring": "Initialize self.  See help(type(self)) for accurate signature."
+                        },
+                        {
+                            "name": "__repr__",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Return repr(self)."
+                        },
+                        {
+                            "name": "__setattr__",
+                            "parameters": "(self, name, value)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Implement setattr(self, name, value)."
+                        }
+                    ],
+                    "properties": [],
+                    "docstring": "FunctionExample(args: tuple, kwargs: dict, output: Any)"
+                }
+            ]
+        },
+        {
+            "name": "tanuki.models.function_type",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/models/function_type.py",
+            "classes": [
+                {
+                    "name": "FunctionType",
+                    "type": "class",
+                    "methods": [],
+                    "properties": [
+                        {
+                            "name": "EMBEDDABLE",
+                            "type": "FunctionType",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "SYMBOLIC",
+                            "type": "FunctionType",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "capitalize",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "casefold",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "center",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "count",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "encode",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "endswith",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "expandtabs",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "find",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "format",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "format_map",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "index",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "isalnum",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "isalpha",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "isascii",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "isdecimal",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "isdigit",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "isidentifier",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "islower",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "isnumeric",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "isprintable",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "isspace",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "istitle",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "isupper",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "join",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "ljust",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "lower",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "lstrip",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "maketrans",
+                            "type": "builtin_function_or_method",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "name",
+                            "type": "property",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "partition",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "removeprefix",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "removesuffix",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "replace",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "rfind",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "rindex",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "rjust",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "rpartition",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "rsplit",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "rstrip",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "split",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "splitlines",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "startswith",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "strip",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "swapcase",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "title",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "translate",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "upper",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "value",
+                            "type": "property",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "zfill",
+                            "type": "method_descriptor",
+                            "visibility": "public"
+                        }
+                    ],
+                    "docstring": "str(object='') -> str\nstr(bytes_or_buffer[, encoding[, errors]]) -> str\n\nCreate a new string object from the given object. If encoding or\nerrors is specified, then the object must expose a data buffer\nthat will be decoded using the given encoding and error handler.\nOtherwise, returns the result of object.__str__() (if defined)\nor repr(object).\nencoding defaults to sys.getdefaultencoding().\nerrors defaults to 'strict'."
+                }
+            ]
+        },
+        {
+            "name": "tanuki.models.language_model_output",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/models/language_model_output.py",
+            "classes": [
+                {
+                    "name": "LanguageModelOutput",
+                    "type": "class",
+                    "methods": [
+                        {
+                            "name": "__eq__",
+                            "parameters": "(self, other)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Return self==value."
+                        },
+                        {
+                            "name": "__init__",
+                            "parameters": "(self, generated_response: str, suitable_for_finetuning: bool, distilled_model: bool) -> None",
+                            "returnType": "None",
+                            "docstring": "Initialize self.  See help(type(self)) for accurate signature."
+                        },
+                        {
+                            "name": "__repr__",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Return repr(self)."
+                        }
+                    ],
+                    "properties": [],
+                    "docstring": "LanguageModelOutput(generated_response: str, suitable_for_finetuning: bool, distilled_model: bool)"
+                }
+            ]
+        },
+        {
+            "name": "tanuki.persistence",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/persistence/__init__.py",
+            "classes": []
+        },
+        {
+            "name": "tanuki.persistence.bloom_interface",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/persistence/bloom_interface.py",
+            "classes": [
+                {
+                    "name": "IBloomFilterPersistence",
+                    "type": "class",
+                    "methods": [
+                        {
+                            "name": "load",
+                            "parameters": "(self) -> bitarray.bitarray",
+                            "returnType": "<class 'bitarray.bitarray'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "save",
+                            "parameters": "(self, bit_array: bitarray.bitarray) -> None",
+                            "returnType": "None",
+                            "docstring": "No docstring"
+                        }
+                    ],
+                    "properties": [],
+                    "docstring": "No docstring"
+                }
+            ]
+        },
+        {
+            "name": "tanuki.persistence.filesystem_bloom",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/persistence/filesystem_bloom.py",
+            "classes": [
+                {
+                    "name": "BloomFilterFileSystemDriver",
+                    "type": "class",
+                    "methods": [
+                        {
+                            "name": "__init__",
+                            "parameters": "(self, log_directory: str)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Initialize self.  See help(type(self)) for accurate signature."
+                        },
+                        {
+                            "name": "load",
+                            "parameters": "(self) -> bitarray.bitarray",
+                            "returnType": "<class 'bitarray.bitarray'>",
+                            "docstring": "Load a bloom filter from the local filesystem.\n:return: A bloom filter object containing the state of unique function invocations"
+                        },
+                        {
+                            "name": "save",
+                            "parameters": "(self, bit_array: bitarray.bitarray) -> None",
+                            "returnType": "None",
+                            "docstring": "Write a bloom filter array of bits to the local filesystem.\n:param bloom_filter: A bloom filter which tracks unique function invocations"
+                        }
+                    ],
+                    "properties": [],
+                    "docstring": "This is a Filesystem implementation of a Bloom Filter persistence layer."
+                }
+            ]
+        },
+        {
+            "name": "tanuki.persistence.persistence_layer_interface",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/persistence/persistence_layer_interface.py",
+            "classes": [
+                {
+                    "name": "IPersistenceLayer",
+                    "type": "class",
+                    "methods": [
+                        {
+                            "name": "exists",
+                            "parameters": "(self, key)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "retrieve",
+                            "parameters": "(self, key)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "store",
+                            "parameters": "(self, key, data)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "update",
+                            "parameters": "(self, key, data)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        }
+                    ],
+                    "properties": [],
+                    "docstring": "No docstring"
+                }
+            ]
+        },
+        {
+            "name": "tanuki.register",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/register.py",
+            "classes": [
+                {
+                    "name": "Register",
+                    "type": "class",
+                    "methods": [
+                        {
+                            "name": "__init__",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Initialize self.  See help(type(self)) for accurate signature."
+                        },
+                        {
+                            "name": "add_function",
+                            "parameters": "(func, function_description: tanuki.models.function_description.FunctionDescription)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "function_names_to_patch",
+                            "parameters": "(*args, type: Optional[tanuki.models.function_type.FunctionType] = None)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Get the registered function names that should be patched, either globally (if len(args)==0) or as members of\nan instance\n:param args: Optional instance to check\n:return:"
+                        },
+                        {
+                            "name": "functions_to_patch",
+                            "parameters": "(*args, type: Optional[tanuki.models.function_type.FunctionType] = None) -> Dict[str, Callable]",
+                            "returnType": "typing.Dict[str, typing.Callable]",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "get",
+                            "parameters": "(func_name) -> Tuple[tanuki.models.function_type.FunctionType, Callable]",
+                            "returnType": "typing.Tuple[tanuki.models.function_type.FunctionType, typing.Callable]",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "load_function_description",
+                            "parameters": "(func_object) -> tanuki.models.function_description.FunctionDescription",
+                            "returnType": "<class 'tanuki.models.function_description.FunctionDescription'>",
+                            "docstring": "Create a function description from a function object that can be used to register the function.\n:param func_object:\n:return:"
+                        },
+                        {
+                            "name": "load_function_description_from_name",
+                            "parameters": "(*args) -> tanuki.models.function_description.FunctionDescription",
+                            "returnType": "<class 'tanuki.models.function_description.FunctionDescription'>",
+                            "docstring": "Load a function description from a function name from the global scope.\n:param func_name:\n:return:"
+                        }
+                    ],
+                    "properties": [],
+                    "docstring": "No docstring"
+                }
+            ]
+        },
+        {
+            "name": "tanuki.repair",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/repair.py",
+            "classes": []
+        },
+        {
+            "name": "tanuki.trackers",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/trackers/__init__.py",
+            "classes": []
+        },
+        {
+            "name": "tanuki.trackers.abc_buffered_logger",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/trackers/abc_buffered_logger.py",
+            "classes": [
+                {
+                    "name": "ABCBufferedLogger",
+                    "type": "class",
+                    "methods": [
+                        {
+                            "name": "__init__",
+                            "parameters": "(self, name, level=15)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Initialize the logger with a name and an optional level."
+                        },
+                        {
+                            "name": "create_bloom_filter",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "does_object_exist",
+                            "parameters": "(self, path) -> bool",
+                            "returnType": "<class 'bool'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "ensure_persistence_location_exists",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Ensure that the place we will be writing to actually exists. If not, create it."
+                        },
+                        {
+                            "name": "flush",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "get_bloom_filter_persistence",
+                            "parameters": "(self) -> tanuki.persistence.bloom_interface.IBloomFilterPersistence",
+                            "returnType": "<class 'tanuki.persistence.bloom_interface.IBloomFilterPersistence'>",
+                            "docstring": "Get an instance of the bloom filter persistence provider. This exposes some persistent file storage,\nthat must support reading and writing raw byte streams.\n:return:"
+                        },
+                        {
+                            "name": "get_hash_from_path",
+                            "parameters": "(self, path) -> str",
+                            "returnType": "<class 'str'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "get_patch_location_for_function",
+                            "parameters": "(self, func_hash, extension='') -> str",
+                            "returnType": "<class 'str'>",
+                            "docstring": "Get the address of the function patch file.\n:param func_hash: The representation of the function\n:param extension: Whether this is a patch or an alignment\n:return:"
+                        },
+                        {
+                            "name": "load_bloom_filter",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "load_existing_datasets",
+                            "parameters": "(self) -> Dict[str, Dict[str, Any]]",
+                            "returnType": "typing.Dict[str, typing.Dict[str, typing.Any]]",
+                            "docstring": "Get the lengths of all datasets backing the registered functions, including aligns.\n:return:"
+                        },
+                        {
+                            "name": "load_function_config",
+                            "parameters": "(self, func_hash)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Get the config file for the function. Uses the message and log directory\nConfig file has to be in .json"
+                        },
+                        {
+                            "name": "log_embeddable_align",
+                            "parameters": "(self, func_hash, example, positive=True, **kws)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Log a contrastive function invocation\nArgs:\n    func_hash: A string representation of the function signature and input parameters\n    example: The example object\n    positive: Whether the example is positive or negative\n    **kws:"
+                        },
+                        {
+                            "name": "log_symbolic_align",
+                            "parameters": "(self, func_hash, *args, **kws)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Log an align function invocation to the file system\n:param func_hash: A string representation of the function signature and input parameters\n:param args: Example objects\n:param kws:\n:return:"
+                        },
+                        {
+                            "name": "log_symbolic_patch",
+                            "parameters": "(self, func_hash, example)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Log a patched function invocation to the file system\n:param func_hash: A string representation of the function signature and input parameters\n:param example:\n:return:"
+                        },
+                        {
+                            "name": "read",
+                            "parameters": "(self, path) -> str",
+                            "returnType": "<class 'str'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "read_json",
+                            "parameters": "(self, path)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "save_bloom_filter",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "update_function_config",
+                            "parameters": "(self, func_hash, config_to_be_saved)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Save the config file"
+                        },
+                        {
+                            "name": "write",
+                            "parameters": "(self, path, data, mode='a') -> None",
+                            "returnType": "None",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "write_embeddable_align_call",
+                            "parameters": "(self, func_hash, example, positive=True) -> bool",
+                            "returnType": "<class 'bool'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "write_json",
+                            "parameters": "(self, path, data)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "write_symbolic_align_call",
+                            "parameters": "(self, func_hash, example) -> bool",
+                            "returnType": "<class 'bool'>",
+                            "docstring": "No docstring"
+                        }
+                    ],
+                    "properties": [
+                        {
+                            "name": "addFilter",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "addHandler",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "callHandlers",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "critical",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "debug",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "error",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "exception",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "fatal",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "filter",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "findCaller",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "getChild",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "getEffectiveLevel",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "handle",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "hasHandlers",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "info",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "isEnabledFor",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "load_dataset",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "log",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "makeRecord",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "manager",
+                            "type": "Manager",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "removeFilter",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "removeHandler",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "root",
+                            "type": "RootLogger",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "setLevel",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "warn",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "warning",
+                            "type": "function",
+                            "visibility": "public"
+                        }
+                    ],
+                    "docstring": "Instances of the Logger class represent a single logging channel. A\n\"logging channel\" indicates an area of an application. Exactly how an\n\"area\" is defined is up to the application developer. Since an\napplication can have any number of areas, logging channels are identified\nby a unique string. Application areas can be nested (e.g. an area\nof \"input processing\" might include sub-areas \"read CSV files\", \"read\nXLS files\" and \"read Gnumeric files\"). To cater for this natural nesting,\nchannel names are organized into a namespace hierarchy where levels are\nseparated by periods, much like the Java or Python package namespace. So\nin the instance given above, channel names might be \"input\" for the upper\nlevel, and \"input.csv\", \"input.xls\" and \"input.gnu\" for the sub-levels.\nThere is no arbitrary limit to the depth of nesting."
+                }
+            ]
+        },
+        {
+            "name": "tanuki.trackers.dataset_worker",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/trackers/dataset_worker.py",
+            "classes": [
+                {
+                    "name": "DatasetWorker",
+                    "type": "class",
+                    "methods": [
+                        {
+                            "name": "__init__",
+                            "parameters": "(self, name, level=15)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Initialize the logger with a name and an optional level."
+                        },
+                        {
+                            "name": "load_dataset",
+                            "parameters": "(self, dataset_type, func_hash, return_type)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Load the datasets for a function hash\nThe datasets loaded must be a string, where different datapoints are on new lines\nThe output depends on the return type, is it either dataset, dataset_length or both\n\nArgs:\n    dataset_type (str): either \"alignments\" or \"patches\"\n    func_hash (str): the function hash\n    return_type (str): the return type, either \"dataset\", \"length\" or \"both\"\nReturns:\n    tuple: tuple of the form (dataset, length) if return_type is \"both\", otherwise just dataset or length"
+                        },
+                        {
+                            "name": "load_existing_datasets",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Get all existing datasets for functions\nOutput must be a dictionary with the following structure:\n{\n    \"alignments\": {\n        \"func_hash\": -1\n    },\n    \"patches\": {\n        \"func_hash\": -1\n    }\n}\nReturns:\n    dict: dictionary with the structure above "
+                        },
+                        {
+                            "name": "load_function_config",
+                            "parameters": "(self, func_hash)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Get the config file for the function.\nFunction config must be a dictionary and have the following structure:\n    distilled_model (str): distilled_model_name (\"\" if no distilled model),\n    current_model_stats (dict): dict for current model stats\n        example:\n        {\n            \"trained_on_datapoints\" (int): 12 (number of datapoints trained on, 0 if not trained yet),\n            \"running_faults\" (list): [0, 0, 1] (list of 0s and 1s, where 0 is no fault and 1 is fault)\n        }\n    \n    last_training_run (dict): dict for the last training run\n        example:\n        {\n            \"job_id\" (str): job_id for last training run,\n            \"trained_on_datapoints\" (int): dataset_size that was trained on,\n            \"last_checked\" (datetime in \"%Y-%m-%d %H:%M:%S\"): When the last check was made for status of training run)\n        }\n        Example when no training has been done yet:\n        {\n            \"trained_on_datapoints\": 0\n        }\n\n    current_training_run (dict): Same structure as last_training_run, only is non-empty if currently a model is training\n        Example when no training has been done yet:\n        {}\n\n    teacher_models (list of string): list of teacher models\n        example:\n        [\"gpt-4\", \"gpt-4-32k\"]\n\n    nr_of_training_runs (int): number of training runs that have been done in total\n    }\n\nThe config file must be returned as a dictionary\n\nArgs:\n    func_hash (str): the function hash\nReturns:\n    dict: the function config"
+                        },
+                        {
+                            "name": "log_embeddable_align",
+                            "parameters": "(self, func_hash, first_example: tanuki.models.function_example.FunctionExample, second_example: tanuki.models.function_example.FunctionExample, **kws)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Log a contrastive statement to the dataset defined by func_hash\nArgs:\n    second_example:\n    first_example:\n    func_hash (str): the function hash\n    *args: the args for the datapoint, where args[0] is a FunctionExample(args, kwargs, output) object\n    **kws: the kwargs for the datapoint"
+                        },
+                        {
+                            "name": "log_symbolic_align",
+                            "parameters": "(self, func_hash, *args, **kws)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Log an alignment statement to the dataset defined by func_hash\nArgs:\n    func_hash (str): the function hash\n    *args: the args for the datapoint, where args[0] is a FunctionExample(args, kwargs, output) object\n    **kws: the kwargs for the datapoint"
+                        },
+                        {
+                            "name": "log_symbolic_patch",
+                            "parameters": "(self, func_hash, example)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Save the example to the patch dataset for the function hash\nOutput must be a dictionary with the following structure:\n{\n    \"func_hash\": int\n}\nWhere func_hash is the hash of the function and int is the number of datapoints written to the dataset for this function\n\nArgs:\n    func_hash (str): the function hash\n    example (FunctionExample): the example to be saved\n\nReturns:\n    dict: dictionary with the structure above"
+                        },
+                        {
+                            "name": "update_function_config",
+                            "parameters": "(self, func_hash, config_to_be_saved)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Save the config file using the function hash to data storage\nArgs:\n    func_hash (str): the function hash\n    config_to_be_saved (dict): the config to be saved"
+                        }
+                    ],
+                    "properties": [
+                        {
+                            "name": "addFilter",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "addHandler",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "callHandlers",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "critical",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "debug",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "error",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "exception",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "fatal",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "filter",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "findCaller",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "getChild",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "getEffectiveLevel",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "handle",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "hasHandlers",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "info",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "isEnabledFor",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "log",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "makeRecord",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "manager",
+                            "type": "Manager",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "removeFilter",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "removeHandler",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "root",
+                            "type": "RootLogger",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "setLevel",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "warn",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "warning",
+                            "type": "function",
+                            "visibility": "public"
+                        }
+                    ],
+                    "docstring": "Instances of the Logger class represent a single logging channel. A\n\"logging channel\" indicates an area of an application. Exactly how an\n\"area\" is defined is up to the application developer. Since an\napplication can have any number of areas, logging channels are identified\nby a unique string. Application areas can be nested (e.g. an area\nof \"input processing\" might include sub-areas \"read CSV files\", \"read\nXLS files\" and \"read Gnumeric files\"). To cater for this natural nesting,\nchannel names are organized into a namespace hierarchy where levels are\nseparated by periods, much like the Java or Python package namespace. So\nin the instance given above, channel names might be \"input\" for the upper\nlevel, and \"input.csv\", \"input.xls\" and \"input.gnu\" for the sub-levels.\nThere is no arbitrary limit to the depth of nesting."
+                }
+            ]
+        },
+        {
+            "name": "tanuki.trackers.filesystem_buffered_logger",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/trackers/filesystem_buffered_logger.py",
+            "classes": [
+                {
+                    "name": "FilesystemBufferedLogger",
+                    "type": "class",
+                    "methods": [
+                        {
+                            "name": "__init__",
+                            "parameters": "(self, name, level=15)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Initialize the logger with a name and an optional level."
+                        },
+                        {
+                            "name": "_get_log_directory",
+                            "parameters": "(self) -> str",
+                            "returnType": "<class 'str'>",
+                            "docstring": "Find a location on the filesystem to write our logs to.\n:return:"
+                        },
+                        {
+                            "name": "does_object_exist",
+                            "parameters": "(self, path: str) -> bool",
+                            "returnType": "<class 'bool'>",
+                            "docstring": "Check to see if a path exists on the filesystem.\n:param path:\n:return:"
+                        },
+                        {
+                            "name": "ensure_persistence_location_exists",
+                            "parameters": "(self) -> None",
+                            "returnType": "None",
+                            "docstring": "Ensure that the location on the filesystem we will be writing to actually exists. If not, create it."
+                        },
+                        {
+                            "name": "get_bloom_filter_persistence",
+                            "parameters": "(self) -> tanuki.persistence.bloom_interface.IBloomFilterPersistence",
+                            "returnType": "<class 'tanuki.persistence.bloom_interface.IBloomFilterPersistence'>",
+                            "docstring": "Get an instance of the bloom filter persistence provider. Typically this will be a file system provider.\n:return: A persistence provider"
+                        },
+                        {
+                            "name": "get_hash_from_path",
+                            "parameters": "(self, path) -> str",
+                            "returnType": "<class 'str'>",
+                            "docstring": "Given a path with a hash, return only the hash\n:param path: The path to the file\n:return: The hash"
+                        },
+                        {
+                            "name": "get_patch_location_for_function",
+                            "parameters": "(self, func_hash, extension: Union[Literal['.alignments'], Literal['.patches']] = '') -> str",
+                            "returnType": "<class 'str'>",
+                            "docstring": "Get the local location of the function patch file.\n:param func_hash: The representation of the function\n:param extension: Whether this is a patch or an alignment\n:return:"
+                        },
+                        {
+                            "name": "load_dataset",
+                            "parameters": "(self, dataset_type, func_hash, return_type='both') -> Optional[int]",
+                            "returnType": "typing.Optional[int]",
+                            "docstring": "Get the size of the dataset for a function hash"
+                        },
+                        {
+                            "name": "load_existing_datasets",
+                            "parameters": "(self) -> Dict[str, Dict[str, str]]",
+                            "returnType": "typing.Dict[str, typing.Dict[str, str]]",
+                            "docstring": "Get the lengths of all datasets backing the registered functions, including aligns.\n:return:"
+                        },
+                        {
+                            "name": "read",
+                            "parameters": "(self, path: str) -> str",
+                            "returnType": "<class 'str'>",
+                            "docstring": "Read data from a file"
+                        },
+                        {
+                            "name": "write",
+                            "parameters": "(self, path: str, data: str, mode: Literal['w', 'a', 'a+b'] = 'w') -> None",
+                            "returnType": "None",
+                            "docstring": "Write data to a file"
+                        }
+                    ],
+                    "properties": [
+                        {
+                            "name": "addFilter",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "addHandler",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "callHandlers",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "create_bloom_filter",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "critical",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "debug",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "error",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "exception",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "fatal",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "filter",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "findCaller",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "flush",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "getChild",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "getEffectiveLevel",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "handle",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "hasHandlers",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "info",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "isEnabledFor",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "load_bloom_filter",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "load_function_config",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "log",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "log_embeddable_align",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "log_symbolic_align",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "log_symbolic_patch",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "makeRecord",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "manager",
+                            "type": "Manager",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "read_json",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "removeFilter",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "removeHandler",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "root",
+                            "type": "RootLogger",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "save_bloom_filter",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "setLevel",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "update_function_config",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "warn",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "warning",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "write_embeddable_align_call",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "write_json",
+                            "type": "function",
+                            "visibility": "public"
+                        },
+                        {
+                            "name": "write_symbolic_align_call",
+                            "type": "function",
+                            "visibility": "public"
+                        }
+                    ],
+                    "docstring": "A class that handles the reading and writing of patch invocations and align statements.\nIt includes the logic for a bloom filter, to ensure that we only store unique invocations."
+                }
+            ]
+        },
+        {
+            "name": "tanuki.utils",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/utils.py",
+            "classes": []
+        },
+        {
+            "name": "tanuki.validator",
+            "path": "/Users/jackhopkins/PycharmProjects/monkeyFunctions/src/tanuki/validator.py",
+            "classes": [
+                {
+                    "name": "Validator",
+                    "type": "class",
+                    "methods": [
+                        {
+                            "name": "__init__",
+                            "parameters": "(self)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "Initialize self.  See help(type(self)) for accurate signature."
+                        },
+                        {
+                            "name": "_find_generic_base_and_args",
+                            "parameters": "(self, target_type: Type) -> Tuple[Type, Tuple[Type, ...]]",
+                            "returnType": "typing.Tuple[typing.Type, typing.Tuple[typing.Type, ...]]",
+                            "docstring": "Navigate up the MRO to find the first generic base and its arguments."
+                        },
+                        {
+                            "name": "_get_recursive_args",
+                            "parameters": "(self, target_type: Type) -> Tuple[Type, ...]",
+                            "returnType": "typing.Tuple[typing.Type, ...]",
+                            "docstring": "Recursively check the base classes (i.e., the superclass chain) of the target type until we find one that\nretains the type arguments.\n:return: Type chain"
+                        },
+                        {
+                            "name": "_is_dict_like",
+                            "parameters": "(self, target_type: Type) -> bool",
+                            "returnType": "<class 'bool'>",
+                            "docstring": "Determine if the target type is dict-like."
+                        },
+                        {
+                            "name": "_is_generic",
+                            "parameters": "(cls: Type) -> bool",
+                            "returnType": "<class 'bool'>",
+                            "docstring": "Check if the provided type is a generic."
+                        },
+                        {
+                            "name": "_is_list_like",
+                            "parameters": "(self, target_type: Type) -> bool",
+                            "returnType": "<class 'bool'>",
+                            "docstring": "Determine if the target type is list-like."
+                        },
+                        {
+                            "name": "_is_set_like",
+                            "parameters": "(self, target_type: Type) -> bool",
+                            "returnType": "<class 'bool'>",
+                            "docstring": "Determine if the target type is set-like."
+                        },
+                        {
+                            "name": "_is_subclass_of_generic",
+                            "parameters": "(cls: Type, generic: Type) -> bool",
+                            "returnType": "<class 'bool'>",
+                            "docstring": "Determine if the class is a subclass of a generic type."
+                        },
+                        {
+                            "name": "_is_tuple_like",
+                            "parameters": "(self, target_type: Type) -> bool",
+                            "returnType": "<class 'bool'>",
+                            "docstring": "Determine if the target type is tuple-like."
+                        },
+                        {
+                            "name": "check_type",
+                            "parameters": "(self, value: Any, type_definition: Any) -> bool",
+                            "returnType": "<class 'bool'>",
+                            "docstring": "Validate a value against a type definition.\n\nArgs:\n    value: Any object or primitive value\n    type_definition: The type definition to validate against\n\nReturns:\n    Whether the value is valid for the type definition"
+                        },
+                        {
+                            "name": "instantiate",
+                            "parameters": "(self, data: Any, target_type: Type) -> Any",
+                            "returnType": "typing.Any",
+                            "docstring": "Attempts to convert a JSON-compatible data structure into an instance of the specified type.\n\nArgs:\n    data: JSON-compatible data structure to instantiate the target type.\n    target_type: The type to instantiate from the given data.\n\nReturns:\n    An instance of the target type initialized with the data."
+                        },
+                        {
+                            "name": "is_base_type",
+                            "parameters": "(self, _type: Any) -> bool",
+                            "returnType": "<class 'bool'>",
+                            "docstring": "Determine if a type is a base type."
+                        },
+                        {
+                            "name": "is_dataclass_instance",
+                            "parameters": "(cls)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "is_pydantic_model",
+                            "parameters": "(cls)",
+                            "returnType": "<class 'inspect._empty'>",
+                            "docstring": "No docstring"
+                        },
+                        {
+                            "name": "validate_base_type",
+                            "parameters": "(self, value: Any, typ: Any) -> bool",
+                            "returnType": "<class 'bool'>",
+                            "docstring": "Validate base types."
+                        },
+                        {
+                            "name": "validate_output",
+                            "parameters": "(self, output: str, type_definition: Any) -> bool",
+                            "returnType": "<class 'bool'>",
+                            "docstring": "No docstring"
+                        }
+                    ],
+                    "properties": [],
+                    "docstring": "No docstring"
+                }
+            ]
+        }
+    ]
+}

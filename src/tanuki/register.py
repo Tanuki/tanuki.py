@@ -4,6 +4,7 @@ from typing import get_type_hints, Literal, get_origin, Tuple, Callable, Optiona
 from tanuki.models.embedding import Embedding
 from tanuki.models.function_description import FunctionDescription
 from tanuki.models.function_type import FunctionType
+from tanuki.utils import get_source
 
 alignable_symbolic_functions = {}
 alignable_embedding_functions = {}
@@ -132,7 +133,7 @@ class Register:
                 elif hasattr(class_type, "__args__"):  # Access inner types
                     return [get_class_definition(arg) for arg in class_type.__args__ if arg is not None]
             elif inspect.isclass(class_type) and class_type.__module__ != "builtins":
-                return inspect.getsource(class_type)
+                return get_source(class_type)
             return class_type.__name__
 
         # Extract class definitions for input and output types
