@@ -1,5 +1,6 @@
 import dataclasses
 import datetime
+import inspect
 import json
 import typing
 from typing import get_args, Literal
@@ -159,7 +160,47 @@ def encode_int(n):
     charset = string.ascii_lowercase + string.digits + "_"
     return charset[n]
 
+
 def decode_int(s):
     # Define the character set for encoding
     charset = string.ascii_lowercase + string.digits + "_"
     return charset.index(s)
+
+
+def _get_source_ipython(func) -> str:
+    """
+    Get the source code of a function from IPython (to support Colab and Jupyter notebooks)
+    :param func: The function to get the source code from
+    :return: The source code of the function
+    """
+    # Get the IPython instance
+    from IPython import get_ipython
+    ipython = get_ipython()
+
+    # Get the input history
+    input_cells = ipython.history_manager.input_hist_parsed
+
+    class_name = func.__name__
+    source_code = None
+
+    for cell in input_cells:
+        if f"class {class_name}" in cell:
+            source_code = cell
+            break
+
+    # If found, print the source code
+    return source_code
+
+
+def get_source(func) -> str:
+    """
+    Get the source code of a function
+    Args:
+        func (function): the function to get the source code from
+    Returns:
+        source (str): the source code of the function
+    """
+    try:
+        return inspect.getsource(func)
+    except Exception:
+        return _get_source_ipython(func)
