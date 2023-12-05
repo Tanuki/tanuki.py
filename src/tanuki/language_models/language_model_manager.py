@@ -95,7 +95,7 @@ class LanguageModelManager(object):
                               "If you have integrated a new provider, please add it to the api_providers dict in the LanguageModelManager constructor"\
                               "and create a relevant API class to carry out the synthesis")
         if model.provider == "openai":
-            return self.api_providers[model.provider].generate(model.model_name, self.system_message, prompt, **llm_parameters)
+            return self.api_providers[model.provider].generate(model, self.system_message, prompt, **llm_parameters)
         else:
             raise NotImplementedError("Only OpenAI is supported currently. " + \
                                       "Please feel free to raise a PR to support development")
@@ -125,8 +125,7 @@ class LanguageModelManager(object):
                  aligns])
             prompt = self.construct_prompt(f, args, kwargs, examples)
             examples_token_count = approximate_token_count(examples)
-            total_token_count = examples_token_count + input_prompt_token_count + self.instruction_token_count + self.system_message_token_count
-            model = self.choose_model_from_tokens(teacher_models, total_token_count)
+            model = self.choose_model_from_tokens(teacher_models, examples_token_count + input_prompt_token_count)
             if model:
                 return prompt, model, suitable_for_distillation, False
             else:
@@ -176,14 +175,24 @@ class LanguageModelManager(object):
         prompt = f"{self.repair_instruction}\nFUNCTION DESCRIPTION: {f}\n{successful_examples}---Inputs:\nArgs: {args}\nKwargs: {kwargs}\nFAILED EXAMPLES: {failed_examples}Correct output:"
         return prompt
 
-    def choose_model_from_tokens(self, models, token_count):
+    def choose_model_from_tokens(self, models, input_token_count):
         """
         Choose a model from the models given the token count
         """
 
         for model in models:
-            # check if model is in the models
-            if token_count < model.context_length:
+            # check if input token count is less than the context length
+            # If the model config has custom messages, then use those, otherwise use the default ones
+            if model.system_message is not None:
+                system_message_token_count = approximate_token_count(model.system_message)
+            else:
+                system_message_token_count = self.system_message_token_count
+            if model.instructions is not None:
+                instructions_token_count = approximate_token_count(model.instructions)
+            else:
+                instructions_token_count = self.instruction_token_count
+            total_token_count = input_token_count + instructions_token_count + system_message_token_count
+            if total_token_count < model.context_length:
                 return model
         return None
 

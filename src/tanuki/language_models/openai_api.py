@@ -68,7 +68,7 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
         frequency_penalty = kwargs.get("frequency_penalty", 0)
         presence_penalty = kwargs.get("presence_penalty", 0)
         params = {
-            "model": model,
+            "model": model.model_name,
             "temperature": temperature,
             "max_tokens": 512,
             "top_p": top_p,

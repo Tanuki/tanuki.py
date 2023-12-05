@@ -10,6 +10,7 @@ class ModelConfigFactory:
         if isinstance(input_config, BaseModelConfig):
             return input_config
         if isinstance(input_config, str):
+            # This is purely for backwards compatibility as we used to save the model as a string
             if type == "distillation":
                 config = DEFAULT_MODELS["gpt-3.5-finetune"]
                 config.model_name = input_config

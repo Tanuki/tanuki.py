@@ -15,22 +15,9 @@ from tanuki.language_models.llm_api_abc import LLM_API
 import os
 import json
 from tanuki.models.finetune_job import FinetuneJob
-
+from tanuki.language_models.llm_configs.abc_base_config import BaseModelConfig
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 import requests
-
-
-class PromptTemplate:
-
-    @abc.abstractmethod
-    def prompt_gen(self, system_prompt, user_prompt):
-        pass
-
-
-class AnthropicClaudePromptTemplate(PromptTemplate):
-
-    def prompt_gen(self, system_prompt, user_prompt):
-        return f"\n\nHuman: {system_prompt}\n\n {user_prompt}\n\nAssistant:\n"
 
 
 class Bedrock_API(LLM_API, LLM_Finetune_API):
@@ -42,7 +29,7 @@ class Bedrock_API(LLM_API, LLM_Finetune_API):
             region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
         )
 
-    def generate(self, model, system_message, prompt, **kwargs):
+    def generate(self, model: BaseModelConfig, system_message: str, prompt: str, **kwargs):
         """
         The main generation function, given the args, kwargs, function_modeler, function description and model type,
          generate a response and check if the datapoint can be saved to the finetune dataset
@@ -54,9 +41,13 @@ class Bedrock_API(LLM_API, LLM_Finetune_API):
         top_p = kwargs.get("top_p", 1)
         top_k = kwargs.get("top_k", 250)
         max_tokens_to_sample = kwargs.get("max_tokens_to_sample", 4096)
+        chat_prompt = model.chat_template
+        if chat_prompt is None:
+            raise Exception("Chat prompt is not defined for this model"\
+                            "Please define it in the model config")
+        final_prompt = chat_prompt.format(system_message=system_message, user_prompt=prompt)
         body = json.dumps({
-            "prompt": AnthropicClaudePromptTemplate().prompt_gen(system_prompt=system_message,
-                                                                 user_prompt=prompt),
+            "prompt": final_prompt,
             "max_tokens_to_sample": max_tokens_to_sample,
             "temperature": temperature,
             "top_k": top_k,
@@ -74,7 +65,7 @@ class Bedrock_API(LLM_API, LLM_Finetune_API):
         while counter <= 5:
             try:
                 response = self.bedrock_runtime.invoke_model(body=body,
-                                                             modelId=model,
+                                                             modelId=model.model_name,
                                                              contentType="application/json",
                                                              accept="application/json")
                 choice = json.loads(response.get('body').read().decode())['completion']
@@ -93,59 +84,3 @@ class Bedrock_API(LLM_API, LLM_Finetune_API):
 
         return choice
 
-
-
-class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
-    def __init__(self) -> None:
-        # initialise the abstract base class
-        super().__init__()
-
-        self.api_key = os.environ.get("OPENAI_API_KEY")
-
-        self.client = None
-
-
-    def list_finetuned(self, limit=100, **kwargs) -> List[FinetuneJob]:
-        self.check_api_key()
-        response = self.client.fine_tuning.jobs.list(limit=limit)
-        jobs = []
-        for job in response.data:
-            jobs.append(FinetuneJob(job.id, job.status, job.fine_tuned_model))
-
-        return jobs
-
-    def get_finetuned(self, job_id):
-        self.check_api_key()
-        return self.client.fine_tuning.jobs.retrieve(job_id)
-
-    def finetune(self, file, suffix, **kwargs) -> FinetuneJob:
-        self.check_api_key()
-        # Use the stream as a file
-        try:
-            response = self.client.files.create(file=file, purpose='fine-tune')
-        except Exception as e:
-            return
-
-        training_file_id = response.id
-        # submit the finetuning job
-        try:
-            finetuning_response: FineTuningJob = self.client.fine_tuning.jobs.create(training_file=training_file_id,
-                                                                      model="gpt-3.5-turbo",
-                                                                      suffix=suffix)
-        except Exception as e:
-            return
-
-        finetune_job = FinetuneJob(finetuning_response.id, finetuning_response.status, finetuning_response.fine_tuned_model)
-
-        return finetune_job
-
-    def check_api_key(self):
-        # check if api key is not none
-        if self.api_key is None:
-            # try to get the api key from the environment, maybe it has been set later
-            self.api_key = os.getenv("OPENAI_API_KEY")
-            if self.api_key is None:
-                raise ValueError("OpenAI API key is not set")
-
-        if not self.client:
-            self.client = OpenAI(api_key=self.api_key)
