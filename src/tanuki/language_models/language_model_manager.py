@@ -159,8 +159,7 @@ class LanguageModelManager(object):
         prompt_token_count = approximate_token_count(prompt)
         model = self.choose_model_from_tokens(models, prompt_token_count)
         if model:
-            model_type = self._get_teacher_model_type(model)
-            choice = self._synthesise_answer(prompt, model, model_type, {})
+            choice = self._synthesise_answer(prompt, model, {})
             return choice
         else:
             return None
