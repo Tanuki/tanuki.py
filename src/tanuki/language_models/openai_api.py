@@ -12,7 +12,7 @@ from tanuki.models.embedding import Embedding
 from tanuki.language_models.embedding_api_abc import Embedding_API
 from tanuki.language_models.llm_api_abc import LLM_API
 import os
-
+from tanuki.language_models.llm_configs.default_models import DEFAULT_MODELS
 from tanuki.models.finetune_job import FinetuneJob
 
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
@@ -124,7 +124,9 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
         response = self.client.fine_tuning.jobs.list(limit=limit)
         jobs = []
         for job in response.data:
-            jobs.append(FinetuneJob(job.id, job.status, job.fine_tuned_model))
+            model_config = DEFAULT_MODELS["gpt-3.5-finetune"]
+            model_config.model_name = job.fine_tuned_model
+            jobs.append(FinetuneJob(job.id, job.status, model_config))
 
         return jobs
 

@@ -22,18 +22,12 @@ class FunctionConfig(BaseModel):
         self.last_training_run = json_dict["last_training_run"]
         self.current_training_run = json_dict["current_training_run"]
         self.nr_of_training_runs = json_dict["nr_of_training_runs"]
-        self.teacher_models = [config_factory.create_config(teacher_model, "teacher") for teacher_model in json_dict["teacher_models"]]
+        if len(json_dict["teacher_models"]) > 0:
+            self.teacher_models = [config_factory.create_config(teacher_model, "teacher") for teacher_model in json_dict["teacher_models"]]
         return self
     
     def to_dict(self):
-        return {
-            "distilled_model": self.distilled_model.to_dict(),
-            "current_model_stats": self.current_model_stats,
-            "last_training_run": self.last_training_run,
-            "current_training_run": self.current_training_run,
-            "nr_of_training_runs": self.nr_of_training_runs,
-            "teacher_models": [teacher_model.to_dict() for teacher_model in self.teacher_models]
-        }
+        return self.model_dump()
     
         
     

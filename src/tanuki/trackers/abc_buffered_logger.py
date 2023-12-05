@@ -304,7 +304,7 @@ class ABCBufferedLogger(DatasetWorker):
         log_file_path = self.get_patch_location_for_function(func_hash)
         config_path = f"{log_file_path}.json"
         try:
-            self.write_json(config_path, config_to_be_saved)
+            self.write_json(config_path, config_to_be_saved.to_dict())
         except Exception as e:
             pass
 

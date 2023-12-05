@@ -17,7 +17,7 @@ from tanuki.models.function_example import FunctionExample
 from tanuki.trackers.dataset_worker import DatasetWorker
 from tanuki.utils import approximate_token_count, prepare_object_for_saving, encode_int, decode_int
 import copy
-
+from tanuki.models.function_config import FunctionConfig
 
 class FunctionModeler(object):
     """
@@ -290,6 +290,8 @@ class FunctionModeler(object):
             finetuned, finetune_config = self._check_for_finetunes(function_description, finetune_provider)
             if finetuned:
                 config = finetune_config
+        if func_hash in self.teacher_models_override:
+            config.teacher_models = self.teacher_models_override[func_hash]
         self.function_configs[func_hash] = config
         return config
 
@@ -333,8 +335,9 @@ class FunctionModeler(object):
                 "running_faults": []},
             "last_training_run": {"trained_on_datapoints": nr_of_training_points},
             "current_training_run": {},
-            "teacher_models": ["gpt-4", "gpt-4-32k"],  # currently supported teacher models
+            "teacher_models": [],  # default teacher models, will be overwritten if needed
             "nr_of_training_runs": nr_of_training_runs}
+        config = FunctionConfig().load_from_dict(config)
 
         return config
 

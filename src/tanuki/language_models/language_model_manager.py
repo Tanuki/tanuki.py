@@ -33,16 +33,6 @@ class LanguageModelManager(object):
         self.system_message_token_count = approximate_token_count(self.system_message)
         self.repair_instruction = "Below are an outputs of a function applied to inputs, which failed type validation. The input to the function is brought out in the INPUT section and function description is brought out in the FUNCTION DESCRIPTION section. Your task is to apply the function to the input and return a correct output in the right type. The FAILED EXAMPLES section will show previous outputs of this function applied to the data, which failed type validation and hence are wrong outputs. Using the input and function description output the accurate output following the output_class_definition and output_type_hint attributes of the function description, which define the output type. Make sure the output is an accurate function output and in the correct type. Return None if you can't apply the function to the input or if the output is optional and the correct output is None."
         self.generation_length = generation_token_limit
-        self.models = {
-            "gpt-4-1106-preview": {
-                "token_limit": 128000 - self.generation_length, "type": "openai"
-            },
-            "gpt-4": {
-                "token_limit": 8192 - self.generation_length, "type": "openai"
-            },
-            "gpt-4-32k": {
-                "token_limit": 32768 - self.generation_length, "type": "openai"}
-        }  # models and token counts
 
     def __call__(self,
                  args,
@@ -91,41 +81,25 @@ class LanguageModelManager(object):
 
         prompt, model, save_to_finetune, is_distilled_model = self.get_generation_case(args, kwargs,
                                                                                        function_description)
-        if is_distilled_model:
-            model_type = self._get_distillation_model_type(model)
-        else:
-            model_type = self._get_teacher_model_type(model)
-        choice = self._synthesise_answer(prompt, model, model_type, llm_parameters)
+        choice = self._synthesise_answer(prompt, model, llm_parameters)
 
         output = LanguageModelOutput(choice, save_to_finetune, is_distilled_model)
         return output
 
-    def _synthesise_answer(self, prompt, model, model_type, llm_parameters):
+    def _synthesise_answer(self, prompt, model, llm_parameters):
         """
         Synthesise an answer given the prompt, model, model_type and llm_parameters
         """
-        if model_type == "openai":
-            return self.api_providers[model_type].generate(model, self.system_message, prompt, **llm_parameters)
+        if model.provider not in self.api_providers:
+            raise ValueError(f"Model provider {model.provider} not found in api_providers."\
+                              "If you have integrated a new provider, please add it to the api_providers dict in the LanguageModelManager constructor"\
+                              "and create a relevant API class to carry out the synthesis")
+        if model.provider == "openai":
+            return self.api_providers[model.provider].generate(model.model_name, self.system_message, prompt, **llm_parameters)
         else:
             raise NotImplementedError("Only OpenAI is supported currently. " + \
                                       "Please feel free to raise a PR to support development")
 
-    def _get_distillation_model_type(self, model):
-        """
-        Get the distilled model type given the model
-        """
-        # currently only openai is supported
-        return "openai"
-
-    def _get_teacher_model_type(self, model):
-        """
-        Get the teacher model type given the model
-        """
-        # check if model is in the models
-        if model in self.models.keys():
-            return self.models[model]["type"]
-        else:
-            raise ValueError("This teacher model is not supported")
 
     def get_generation_case(self, args, kwargs, function_description):
         """
@@ -136,9 +110,9 @@ class LanguageModelManager(object):
         f = str(function_description.__dict__.__repr__())
 
         distilled_model, teacher_models = self.function_modeler.get_models(function_description)
-        is_distilled_model = distilled_model != ""
+        is_distilled_model = distilled_model.model_name != ""
         suitable_for_distillation, input_prompt_token_count = self.suitable_for_finetuning_token_check(args, kwargs, f,
-                                                                                                       self.function_modeler.distillation_token_limit)
+                                                                                                       distilled_model.context_length)
         # no examples needed, using a finetuned model. Dont save to finetune dataset
         if is_distilled_model and suitable_for_distillation:
             prompt = self.construct_prompt(f, args, kwargs, None)
@@ -210,9 +184,8 @@ class LanguageModelManager(object):
 
         for model in models:
             # check if model is in the models
-            if model in self.models.keys():
-                if token_count < self.models[model]["token_limit"]:
-                    return model
+            if token_count < model.context_length:
+                return model
         return None
 
     def repair_output(self,
