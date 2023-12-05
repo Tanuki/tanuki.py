@@ -6,7 +6,9 @@ from tanuki.language_models.llm_configs.default_models import DEFAULT_MODELS
 
 class ModelConfigFactory:
     @staticmethod
-    def create_config(input_config: Union[str, dict], type: str) -> BaseModelConfig:
+    def create_config(input_config: Union[str, dict, BaseModelConfig], type: str) -> BaseModelConfig:
+        if isinstance(input_config, BaseModelConfig):
+            return input_config
         if isinstance(input_config, str):
             if type == "distillation":
                 config = DEFAULT_MODELS["gpt-3.5-finetune"]

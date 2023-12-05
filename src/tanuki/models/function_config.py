@@ -29,5 +29,16 @@ class FunctionConfig(BaseModel):
     def to_dict(self):
         return self.model_dump()
     
-        
+    def update_with_finetuned_response(self, response):
+        if response.status == "failed":
+            self.current_training_run = {}
+        else:
+            self.distilled_model.model_name = response.fine_tuned_model
+            self.last_training_run = self.current_training_run
+            self.current_model_stats = {
+                "trained_on_datapoints": self.current_training_run[
+                    "trained_on_datapoints"],
+                "running_faults": []}
+            self.nr_of_training_runs += 1
+            self.current_training_run = {}
     

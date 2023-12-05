@@ -290,6 +290,7 @@ class FunctionModeler(object):
             finetuned, finetune_config = self._check_for_finetunes(function_description, finetune_provider)
             if finetuned:
                 config = finetune_config
+        # update teachers if not default
         if func_hash in self.teacher_models_override:
             config.teacher_models = self.teacher_models_override[func_hash]
         self.function_configs[func_hash] = config
@@ -308,7 +309,7 @@ class FunctionModeler(object):
         # So this gets the latest finetune
         for finetune in finetunes:
             # check if the finetune hash is in the fine-tuned model name
-            if finetune.status == "succeeded" and finetune_hash in finetune.fine_tuned_model:
+            if finetune.status == "succeeded" and finetune_hash in finetune.fine_tuned_model.model_name:
                 try:
                     config = self._construct_config_from_finetune(finetune_hash, finetune)
                     # save the config
@@ -322,9 +323,9 @@ class FunctionModeler(object):
     def _construct_config_from_finetune(self, finetune_hash, finetune: FinetuneJob):
         model = finetune.fine_tuned_model
         # get the ending location of finetune hash in the model name
-        finetune_hash_end = model.find(finetune_hash) + len(finetune_hash)
+        finetune_hash_end = model.model_name.find(finetune_hash) + len(finetune_hash)
         # get the next character after the finetune hash
-        next_char = model[finetune_hash_end]
+        next_char = model.model_name[finetune_hash_end]
         # get the number of training runs
         nr_of_training_runs = decode_int(next_char) + 1
         nr_of_training_points = (2 ** (nr_of_training_runs - 1)) * 200
@@ -525,31 +526,21 @@ class FunctionModeler(object):
         last_checked = self.function_configs[func_hash].current_training_run["last_checked"]
         # check if last checked was more than 30 mins ago
         if (datetime.datetime.now() - datetime.datetime.strptime(last_checked,
-                                                                 "%Y-%m-%d %H:%M:%S")).total_seconds() > 1800:
+                                                                 "%Y-%m-%d %H:%M:%S")).total_seconds() > 1:
             finetune_provider = self.function_configs[func_hash].distilled_model.provider
             response = self.api_providers[finetune_provider].get_finetuned(job_id)
             self.function_configs[func_hash].current_training_run["last_checked"] = datetime.datetime.now().strftime(
                 "%Y-%m-%d %H:%M:%S")
             if response.status == "succeeded" or response.status == "failed":
-                self._update_finetune_config(response, func_hash, response.status)
+                self._update_finetune_config(response, func_hash)
             else:
                 self._update_config_file(func_hash)
 
-    def _update_finetune_config(self, response: FinetuneJob, func_hash, status):
+    def _update_finetune_config(self, response: FinetuneJob, func_hash):
         """
         Update the config file to reflect the new model and switch the current model to the finetuned model
         """
-        if status == "failed":
-            self.function_configs[func_hash].current_training_run = {}
-        else:
-            self.function_configs[func_hash].distilled_model.model_name = response.fine_tuned_model
-            self.function_configs[func_hash].last_training_run = self.function_configs[func_hash].current_training_run
-            self.function_configs[func_hash]["current_model_stats"] = {
-                "trained_on_datapoints": self.function_configs[func_hash].current_training_run[
-                    "trained_on_datapoints"],
-                "running_faults": []}
-            self.function_configs[func_hash].nr_of_training_runs += 1
-            self.function_configs[func_hash].current_training_run = {}
+        self.function_configs[func_hash].update_with_finetuned_response(response)
         try:
             self._update_config_file(func_hash)
         except Exception as e:
