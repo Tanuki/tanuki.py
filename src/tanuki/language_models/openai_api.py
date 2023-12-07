@@ -1,6 +1,6 @@
 from typing import List
 
-import openai
+import logging
 import time
 # import abstract base class
 from openai import OpenAI
@@ -17,7 +17,7 @@ from tanuki.models.finetune_job import FinetuneJob
 import copy
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 import requests
-
+LLM_GENERATION_PARAMETERS = ["temperature", "top_p", "max_new_tokens", "frequency_penalty", "presence_penalty"]
 
 class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
     def __init__(self) -> None:
@@ -63,14 +63,21 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
 
         self.check_api_key()
 
-        temperature = kwargs.get("temperature", 0)
+        temperature = kwargs.get("temperature", 0.1)
         top_p = kwargs.get("top_p", 1)
         frequency_penalty = kwargs.get("frequency_penalty", 0)
         presence_penalty = kwargs.get("presence_penalty", 0)
+        max_new_tokens = kwargs.get("max_new_tokens")
+        # check if there are any generation parameters that are not supported
+        unsupported_params = [param for param in kwargs.keys() if param not in LLM_GENERATION_PARAMETERS]
+        if len(unsupported_params) > 0:
+            # log warning
+            logging.warning(f"Unused generation parameters sent as input: {unsupported_params}."\
+                             "For OpenAI, only the following parameters are supported: {LLM_GENERATION_PARAMETERS}")
         params = {
             "model": model.model_name,
             "temperature": temperature,
-            "max_tokens": 512,
+            "max_tokens": max_new_tokens,
             "top_p": top_p,
             "frequency_penalty": frequency_penalty,
             "presence_penalty": presence_penalty,
