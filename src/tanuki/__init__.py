@@ -16,7 +16,7 @@ from tanuki.function_modeler import FunctionModeler
 from tanuki.language_models.embedding_model_manager import EmbeddingModelManager
 from tanuki.language_models.language_model_manager import LanguageModelManager
 from tanuki.language_models.openai_api import OpenAI_API
-from tanuki.language_models.aws_bedrock_api import Bedrock_API
+from tanuki.language_models.Llama_bedrock_api import LLama_Bedrock_API
 from tanuki.models.embedding import Embedding
 from tanuki.models.function_description import FunctionDescription
 from tanuki.models.function_example import FunctionExample
@@ -74,7 +74,7 @@ logging.basicConfig(level=ALIGN_LEVEL_NUM)
 logger = logger_factory(__name__)
 
 
-api_providers = {"openai": OpenAI_API(), "bedrock": Bedrock_API()}
+api_providers = {"openai": OpenAI_API(), "llama_bedrock": LLama_Bedrock_API()}
 # currently only use buffered logger as default
 function_modeler = FunctionModeler(data_worker=logger, api_providers=api_providers)
 language_modeler = LanguageModelManager(function_modeler, api_providers=api_providers)
@@ -254,7 +254,8 @@ def patch(patchable_func=None,
           ignore_finetune_fetching: bool = False,
           ignore_finetuning: bool = False,
           ignore_data_storage: bool = False,
-          teacher_models : list = []
+          teacher_models : list = [],
+          generation_params : dict = {}
           ):
     """
     The main decorator for patching a function.
@@ -282,7 +283,11 @@ def patch(patchable_func=None,
                 instantiated: Embedding = embedding_modeler(args, function_description, kwargs)
             else:
                 # If the function is expected to return a choice, we choose the LLM API.
-                instantiated: Any = language_modeler(args, function_description, kwargs, validator)
+                instantiated: Any = language_modeler(args, 
+                                                     function_description, 
+                                                     kwargs, 
+                                                     validator, 
+                                                     generation_params)
 
             return instantiated  # test_func(*args, **kwargs)
 
@@ -296,6 +301,8 @@ def patch(patchable_func=None,
             function_modeler.check_finetune_blacklist.append(func_hash)
         if ignore_data_storage:
             function_modeler.store_data_blacklist.append(func_hash)
+        if len(teacher_models) > 0:
+            function_modeler._configure_teacher_models(teacher_models, func_hash)
         _load_alignments(func_hash)
 
         wrapper._is_alignable = True

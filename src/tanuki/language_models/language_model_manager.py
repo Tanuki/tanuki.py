@@ -32,14 +32,20 @@ class LanguageModelManager(object):
         self.instruction_token_count = approximate_token_count(self.instruction)
         self.system_message_token_count = approximate_token_count(self.system_message)
         self.repair_instruction = "Below are an outputs of a function applied to inputs, which failed type validation. The input to the function is brought out in the INPUT section and function description is brought out in the FUNCTION DESCRIPTION section. Your task is to apply the function to the input and return a correct output in the right type. The FAILED EXAMPLES section will show previous outputs of this function applied to the data, which failed type validation and hence are wrong outputs. Using the input and function description output the accurate output following the output_class_definition and output_type_hint attributes of the function description, which define the output type. Make sure the output is an accurate function output and in the correct type. Return None if you can't apply the function to the input or if the output is optional and the correct output is None."
-        self.generation_length = generation_token_limit
+        self.default_generation_length = generation_token_limit
 
     def __call__(self,
                  args,
                  function_description: FunctionDescription,
                  kwargs,
-                 validator: Validator) -> Any:
-        output = self.generate(args, kwargs, function_description)
+                 validator: Validator,
+                 generation_parameters: dict) -> Any:
+        
+        # add the generation length if not there
+        if "max_new_tokens" not in generation_parameters:
+            generation_parameters["max_new_tokens"] = self.default_generation_length
+
+        output = self.generate(args, kwargs, function_description, generation_parameters)
         # start parsing the object, very hacky way for the time being
         choice_parsed = self._parse_choice(output)
         valid = validator.check_type(choice_parsed, function_description.output_type_hint)
@@ -80,7 +86,8 @@ class LanguageModelManager(object):
         """
 
         prompt, model, save_to_finetune, is_distilled_model = self.get_generation_case(args, kwargs,
-                                                                                       function_description)
+                                                                                       function_description,
+                                                                                       llm_parameters)
         choice = self._synthesise_answer(prompt, model, llm_parameters)
 
         output = LanguageModelOutput(choice, save_to_finetune, is_distilled_model)
@@ -90,18 +97,15 @@ class LanguageModelManager(object):
         """
         Synthesise an answer given the prompt, model, model_type and llm_parameters
         """
+        system_message = model.system_message if model.system_message else self.system_message
         if model.provider not in self.api_providers:
             raise ValueError(f"Model provider {model.provider} not found in api_providers."\
                               "If you have integrated a new provider, please add it to the api_providers dict in the LanguageModelManager constructor"\
                               "and create a relevant API class to carry out the synthesis")
-        if model.provider == "openai":
-            return self.api_providers[model.provider].generate(model, self.system_message, prompt, **llm_parameters)
-        else:
-            raise NotImplementedError("Only OpenAI is supported currently. " + \
-                                      "Please feel free to raise a PR to support development")
+        return self.api_providers[model.provider].generate(model, system_message, prompt, **llm_parameters)
 
 
-    def get_generation_case(self, args, kwargs, function_description):
+    def get_generation_case(self, args, kwargs, function_description, llm_parameters):
         """
         Get the generation case with the correct prompt and model
         First get the current model, then if distilled model, do zero-shot prompt and return False as suitable_for_finetune
@@ -115,17 +119,20 @@ class LanguageModelManager(object):
                                                                                                        distilled_model.context_length)
         # no examples needed, using a finetuned model. Dont save to finetune dataset
         if is_distilled_model and suitable_for_distillation:
-            prompt = self.construct_prompt(f, args, kwargs, None)
+            prompt = self.construct_prompt(f, args, kwargs, [], distilled_model)
             return prompt, distilled_model, suitable_for_distillation, True
 
         else:
             aligns = self.function_modeler.get_symbolic_alignments(function_description.__hash__(), max=16)
-            examples = "\n".join(
-                [f"Inputs:\nArgs: {align['args']}\nKwargs: {align['kwargs']}\nOutput: {align['output']}" for align in
-                 aligns])
-            prompt = self.construct_prompt(f, args, kwargs, examples)
-            examples_token_count = approximate_token_count(examples)
-            model = self.choose_model_from_tokens(teacher_models, examples_token_count + input_prompt_token_count)
+            examples = [f"Inputs:\nArgs: {align['args']}\nKwargs: {align['kwargs']}\nOutput: {align['output']}" for align in
+                 aligns]
+            
+            examples_token_count = sum([approximate_token_count(example) for example in examples])
+            generation_tokens = llm_parameters.get("max_new_tokens", self.default_generation_length)
+            model = self.choose_model_from_tokens(teacher_models,
+                                                  examples_token_count + input_prompt_token_count + generation_tokens,
+                                                  len(examples))
+            prompt = self.construct_prompt(f, args, kwargs, examples, model)
             if model:
                 return prompt, model, suitable_for_distillation, False
             else:
@@ -142,12 +149,20 @@ class LanguageModelManager(object):
         suitable_for_finetune = input_prompt_token_count + self.instruction_token_count + self.system_message_token_count < distillation_token_count
         return suitable_for_finetune, input_prompt_token_count
 
-    def construct_prompt(self, f, args, kwargs, examples):
+    def construct_prompt(self, f, args, kwargs, examples, model):
         """
         Cosntruct a prompt given the function description, args, kwargs and examples
         """
-        example_input = f"Examples:{examples}\n" if examples else ""
-        content = f"{self.instruction}\nFunction: {f}\n{example_input}---\nInputs:\nArgs: {args}\nKwargs: {kwargs}\nOutput:"
+        if examples:
+            final_examples = "\n".join(
+                    [f"{model.parsing_helper_tokens['start_token']}{align}{model.parsing_helper_tokens['end_token']}" for align in
+                     examples])
+            example_input = f"Examples:{final_examples}\n"
+        else:
+            example_input = ""
+
+        instruction_prompt = model.instructions if model.instructions else self.instruction
+        content = f"{instruction_prompt}\nFunction: {f}\n{example_input}---\n{model.parsing_helper_tokens['start_token']}Inputs:\nArgs: {args}\nKwargs: {kwargs}\nOutput:"
         return content
 
     def repair_generate(self, args, kwargs, f, failed_outputs_list, examples, models):
@@ -175,7 +190,7 @@ class LanguageModelManager(object):
         prompt = f"{self.repair_instruction}\nFUNCTION DESCRIPTION: {f}\n{successful_examples}---Inputs:\nArgs: {args}\nKwargs: {kwargs}\nFAILED EXAMPLES: {failed_examples}Correct output:"
         return prompt
 
-    def choose_model_from_tokens(self, models, input_token_count):
+    def choose_model_from_tokens(self, models, input_token_count, nr_of_examples=0):
         """
         Choose a model from the models given the token count
         """
@@ -191,6 +206,10 @@ class LanguageModelManager(object):
                 instructions_token_count = approximate_token_count(model.instructions)
             else:
                 instructions_token_count = self.instruction_token_count
+            if model.parsing_helper_tokens["start_token"]:
+                input_token_count += 2*nr_of_examples
+            if model.parsing_helper_tokens["end_token"]:
+                input_token_count += 2*nr_of_examples
             total_token_count = input_token_count + instructions_token_count + system_message_token_count
             if total_token_count < model.context_length:
                 return model

@@ -52,13 +52,17 @@ class FunctionModeler(object):
         """
         Get the dataset size for a function hash
         """
+        if func_hash not in self.teacher_models_override:
+                self.teacher_models_override[func_hash] = []
         for model in teacher_models:
             if isinstance(model, str):
                 if model not in DEFAULT_MODELS:
                     raise Exception(f"Teacher model {model} not supported by default. Please include it in the list in extended config format")
                 model_config = DEFAULT_MODELS[model]
-            
             self.teacher_models_override[func_hash].append(model_config)
+            # currently ban all non-openai models from finetuning because it doesnt make sense 
+            if model_config.provider != "openai" and func_hash not in self.check_finetune_blacklist:
+                self.check_finetune_blacklist.append(func_hash)
 
     def _get_datasets(self):
         """

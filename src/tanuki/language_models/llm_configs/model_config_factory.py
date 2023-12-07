@@ -1,5 +1,6 @@
 from tanuki.language_models.llm_configs.abc_base_config import BaseModelConfig
 from tanuki.language_models.llm_configs.openai_config import OpenAI_Config
+from tanuki.language_models.llm_configs.llama_config import Llama_Bedrock_Config
 from typing import Union
 from tanuki.language_models.llm_configs.default_models import DEFAULT_MODELS
 
@@ -23,5 +24,10 @@ class ModelConfigFactory:
         else:
             if input_config["provider"] == "openai":
                 return OpenAI_Config(**input_config)
+            elif input_config["provider"] == "llama_bedrock":
+                return Llama_Bedrock_Config(**input_config)
             else:
-                raise ValueError("Unsupported provider in the config")
+                try:
+                    return BaseModelConfig(**input_config)
+                except:
+                    raise Exception("Error loading the model config, saved config model was saved a dict but is not a valid model config")
