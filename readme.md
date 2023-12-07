@@ -1,4 +1,4 @@
-# Tanuki <span style="font-family:Papyrus; font-size:2em;">🦝</span> ![Discord](https://img.shields.io/discord/1168948553222197248)  | Join us on [Discord](https://discord.gg/uUzX5DYctk)
+# Tanuki <span style="font-family:Papyrus; font-size:2em;">🦝</span> ![Discord](https://img.shields.io/discord/1168948553222197248)  | <span style="font-family:Papyrus; font-size:1em;"> Join us on [Discord](https://discord.gg/uUzX5DYctk) </span>
 
 Easily build LLM-powered apps that get cheaper and faster over time.
 
