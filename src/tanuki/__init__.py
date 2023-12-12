@@ -17,6 +17,7 @@ from tanuki.language_models.embedding_model_manager import EmbeddingModelManager
 from tanuki.language_models.language_model_manager import LanguageModelManager
 from tanuki.language_models.openai_api import OpenAI_API
 from tanuki.language_models.Llama_bedrock_api import LLama_Bedrock_API
+from tanuki.language_models.hf_transformers_api import HF_Transformers_API
 from tanuki.models.embedding import Embedding
 from tanuki.models.function_description import FunctionDescription
 from tanuki.models.function_example import FunctionExample
@@ -74,13 +75,13 @@ logging.basicConfig(level=ALIGN_LEVEL_NUM)
 logger = logger_factory(__name__)
 
 
-api_providers = {"openai": OpenAI_API(), "llama_bedrock": LLama_Bedrock_API()}
+api_providers = {"openai": OpenAI_API(), "llama_bedrock": LLama_Bedrock_API(), "hf_transformers": HF_Transformers_API()}
 # currently only use buffered logger as default
 function_modeler = FunctionModeler(data_worker=logger, api_providers=api_providers)
 language_modeler = LanguageModelManager(function_modeler, api_providers=api_providers)
 embedding_modeler = EmbeddingModelManager(function_modeler, api_providers=api_providers)
 telemetry_enabled: bool = True
-
+validator = Validator()
 
 @staticmethod
 def _load_alignments(func_hash: str):
@@ -274,7 +275,6 @@ def patch(patchable_func=None,
     def wrap(test_func):
         @wraps(test_func)
         def wrapper(*args, **kwargs) -> Union[Embedding, Any]:
-            validator = Validator()
             function_description: FunctionDescription = Register.load_function_description(test_func)
 
             # If the function is expected to return an embedding, we choose the embedding API, rather than an LLM.
@@ -293,6 +293,8 @@ def patch(patchable_func=None,
 
         _anonymous_usage(logger=logger.name)
         function_description = Register.load_function_description(test_func)
+        # make gen code done more smarter and at other place
+        generation_code = validator.create_generation_code(function_description.output_type_hint)
         func_hash = function_description.__hash__()
         function_modeler.environment_id = environment_id
         if ignore_finetuning:
@@ -302,7 +304,7 @@ def patch(patchable_func=None,
         if ignore_data_storage:
             function_modeler.store_data_blacklist.append(func_hash)
         if len(teacher_models) > 0:
-            function_modeler._configure_teacher_models(teacher_models, func_hash)
+            function_modeler._configure_teacher_models(teacher_models, func_hash, generation_code)
         _load_alignments(func_hash)
 
         wrapper._is_alignable = True

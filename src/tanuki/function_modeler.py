@@ -48,7 +48,7 @@ class FunctionModeler(object):
         """
         return self.data_worker.load_dataset(dataset_type, func_hash, return_type=type)
     
-    def _configure_teacher_models(self, teacher_models, func_hash):
+    def _configure_teacher_models(self, teacher_models, func_hash, model_generation_code):
         """
         Get the dataset size for a function hash
         """
@@ -58,11 +58,15 @@ class FunctionModeler(object):
             if isinstance(model, str):
                 if model not in DEFAULT_MODELS:
                     raise Exception(f"Teacher model {model} not supported by default. Please include it in the list in extended config format")
-                model_config = DEFAULT_MODELS[model]
+                model_config = copy.deepcopy(DEFAULT_MODELS[model])
             self.teacher_models_override[func_hash].append(model_config)
             # currently ban all non-openai models from finetuning because it doesnt make sense 
             if model_config.provider != "openai" and func_hash not in self.check_finetune_blacklist:
                 self.check_finetune_blacklist.append(func_hash)
+            
+            if model_config.provider == "hf_transformers" :
+                model_config.generator_code = model_generation_code
+                self.teacher_models_override[func_hash].append(model_config)
 
     def _get_datasets(self):
         """

@@ -6,7 +6,7 @@ from tanuki.language_models.llm_api_abc import LLM_API
 from tanuki.models.function_description import FunctionDescription
 from tanuki.models.function_example import FunctionExample
 from tanuki.models.language_model_output import LanguageModelOutput
-from tanuki.utils import approximate_token_count
+from tanuki.utils import approximate_token_count, get_string_represntation, prepare_object_for_saving
 from tanuki.validator import Validator
 
 
@@ -69,6 +69,8 @@ class LanguageModelManager(object):
         return instantiated
 
     def _parse_choice(self, output):
+        if isinstance(output.generated_response, dict):
+            return output.generated_response
         try:
             # json load
             choice_parsed = json.loads(output.generated_response)
@@ -126,7 +128,7 @@ class LanguageModelManager(object):
             aligns = self.function_modeler.get_symbolic_alignments(function_description.__hash__(), max=16)
             examples = [f"Inputs:\nArgs: {align['args']}\nKwargs: {align['kwargs']}\nOutput: {align['output']}" for align in
                  aligns]
-            
+            examples = self.create_examples(aligns)
             examples_token_count = sum([approximate_token_count(example) for example in examples])
             generation_tokens = llm_parameters.get("max_new_tokens", self.default_generation_length)
             model = self.choose_model_from_tokens(teacher_models,
@@ -139,6 +141,20 @@ class LanguageModelManager(object):
                 raise ValueError(
                     "The input content and align statements combined are too long, please shorten it. The maximum currently allowed token limit is 32000")
 
+    def create_examples(self, aligns):
+        """
+        Create examples given the aligns
+        """
+        final_examples = []
+        for align in aligns:
+            # create a json dumped examples
+            args = get_string_represntation(align["args"])
+            kwargs = get_string_represntation(align["kwargs"])
+            output = get_string_represntation(align["output"])
+            final_examples.append(f"Inputs:\nArgs: {args}\nKwargs: {kwargs}\nOutput: {output}")
+        #examples = [f"Inputs:\nArgs: {align['args']}\nKwargs: {align['kwargs']}\nOutput: {align['output']}" for align in
+        #         aligns]
+        return final_examples
     def suitable_for_finetuning_token_check(self, args, kwargs, f, distillation_token_count):
         """
         Check if the inputs are suitable for finetuning, i.e are below the finetuning token count
@@ -162,6 +178,9 @@ class LanguageModelManager(object):
             example_input = ""
 
         instruction_prompt = model.instructions if model.instructions else self.instruction
+        # make args and kwargs same representation as loaded examples
+        args = get_string_represntation(prepare_object_for_saving(args))
+        kwargs = get_string_represntation(prepare_object_for_saving(kwargs))
         content = f"{instruction_prompt}\nFunction: {f}\n{example_input}---\n{model.parsing_helper_tokens['start_token']}Inputs:\nArgs: {args}\nKwargs: {kwargs}\nOutput:"
         return content
 

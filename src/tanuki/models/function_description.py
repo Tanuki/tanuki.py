@@ -24,3 +24,6 @@ class FunctionDescription:
             json_encoded = json_dumps(self).encode('utf-8')
             h = hashlib.shake_256(json_encoded).hexdigest(8)
             return str(h)
+        
+    def to_json(self):
+        return json_dumps(self)

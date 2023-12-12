@@ -549,3 +549,48 @@ class Validator:
 
         # If none of the above, return the data as-is
         return data
+
+
+
+    def create_generation_code(self, type_definition: Any) -> dict:
+        """
+        Validate a value against a type definition.
+
+        Args:
+            value: Any object or primitive value
+            type_definition: The type definition to validate against
+
+        Returns:
+            Whether the value is valid for the type definition
+        """
+        schema = {}
+        # any
+        if type_definition is Any:
+            schema["type"] = "any"
+            return schema
+
+        # int str float bool
+        if self.is_base_type(type_definition):
+            schema["type"] = type_definition.__name__
+            return schema
+        
+        origin = get_origin(type_definition) or type_definition
+        args = get_args(type_definition)
+
+        if origin == list:
+            schema["type"] = "list"
+            for arg in args:
+                schema["properties"] = self.create_generation_code(arg)
+            return schema
+
+        if origin == Literal:
+            str_args = [f"{arg}" if not isinstance(arg, str) else f"\'{arg}\'" for arg in args]
+            return {"type": "literal", "str_options": str_args, "original_options": args}
+        
+        if self.is_pydantic_model(origin):
+            schema["type"] = "object"
+            schema["properties"] = {}
+            # get all arguments and their types from origin
+            for arg, arg_type in origin.__annotations__.items():
+                schema["properties"][arg] = self.create_generation_code(arg_type)
+            return schema

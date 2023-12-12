@@ -163,3 +163,10 @@ def decode_int(s):
     # Define the character set for encoding
     charset = string.ascii_lowercase + string.digits + "_"
     return charset.index(s)
+
+
+def get_string_represntation(input) -> str:
+    try:
+        return json_dumps(input)
+    except:
+        return str(input)
