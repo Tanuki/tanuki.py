@@ -164,10 +164,10 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
 
     def check_api_key(self):
         # check if api key is not none
-        if self.api_key is None:
+        if not self.api_key:
             # try to get the api key from the environment, maybe it has been set later
             self.api_key = os.getenv("OPENAI_API_KEY")
-            if self.api_key is None:
+            if not self.api_key:
                 raise ValueError("OpenAI API key is not set")
 
         if not self.client:

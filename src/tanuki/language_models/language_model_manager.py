@@ -132,8 +132,8 @@ class LanguageModelManager(object):
             model = self.choose_model_from_tokens(teacher_models,
                                                   examples_token_count + input_prompt_token_count + generation_tokens,
                                                   len(examples))
-            prompt = self.construct_prompt(f, args, kwargs, examples, model)
             if model:
+                prompt = self.construct_prompt(f, args, kwargs, examples, model)
                 return prompt, model, suitable_for_distillation, False
             else:
                 raise ValueError(

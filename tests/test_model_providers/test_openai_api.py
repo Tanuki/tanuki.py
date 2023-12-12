@@ -7,7 +7,7 @@ load_dotenv()
 from openai.types.fine_tuning import FineTuningJob
 
 from tanuki.language_models.openai_api import OpenAI_API
-
+from tanuki.language_models.llm_configs.openai_config import OpenAI_Config
 
 
 
@@ -15,10 +15,10 @@ class TestOpenAI_API(unittest.TestCase):
 
     @patch('os.getenv')
     def test_missing_api_key(self, mock_getenv):
-        mock_getenv.return_value = None
+        mock_getenv.return_value = ""
         api = OpenAI_API()
         with self.assertRaises(ValueError):
-            api.generate("model_name", "system_message", "prompt")
+            api.generate(OpenAI_Config(model_name="test_model", context_length=112), "system_message", "prompt")
 
     @patch('requests.post')
     @patch('os.getenv')
@@ -32,7 +32,7 @@ class TestOpenAI_API(unittest.TestCase):
 
         api = OpenAI_API()
         with self.assertRaises(Exception) as context:
-            api.generate("model_name", "system_message", "prompt")
+            api.generate(OpenAI_Config(model_name="test_model", context_length=112), "system_message", "prompt")
         self.assertIn("invalid", str(context.exception))
 
     @patch('requests.post')
@@ -46,7 +46,7 @@ class TestOpenAI_API(unittest.TestCase):
         mock_post.return_value = mock_response
 
         api = OpenAI_API()
-        result = api.generate("model_name", "system_message", "prompt")
+        result = api.generate(OpenAI_Config(model_name="test_model", context_length=112), "system_message", "prompt")
         self.assertEqual(result, "Generated response")
 
     @patch('openai.fine_tuning.jobs.list')
