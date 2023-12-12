@@ -1,7 +1,7 @@
 from tanuki.language_models.llm_configs.abc_base_config import BaseModelConfig
 
 
-class Claude_Config(BaseModelConfig):
+class ClaudeConfig(BaseModelConfig):
     model_name: str
     provider: str = 'bedrock'
     context_length: int

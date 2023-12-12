@@ -5,7 +5,7 @@ from tanuki.models.finetune_job import FinetuneJob
 from tanuki.register import Register
 from tanuki.trackers.filesystem_buffered_logger import FilesystemBufferedLogger
 from tanuki.utils import encode_int, decode_int
-from tanuki.language_models.llm_configs.openai_config import OpenAI_Config
+from tanuki.language_models.llm_configs.openai_config import OpenAIConfig
 
 def dummy_func(input: str) -> List[str]:
     """
@@ -41,7 +41,7 @@ def test_encode_decode_hash():
     logger = FilesystemBufferedLogger("test")
     func_modeler = FunctionModeler(logger, environment_id=workspace_id)
     finetune_hash = function_description.__hash__(purpose = "finetune") + encode_int(func_modeler.environment_id) + encode_int(nr_of_training_runs)
-    finetune = FinetuneJob(id="", status="", fine_tuned_model=OpenAI_Config(model_name = f"Test_model:__{finetune_hash}:asd[]asd"
+    finetune = FinetuneJob(id="", status="", fine_tuned_model=OpenAIConfig(model_name = f"Test_model:__{finetune_hash}:asd[]asd"
                                                                             , context_length= 1200))
 
     config = func_modeler._construct_config_from_finetune(finetune_hash[:-1], finetune)
@@ -49,7 +49,7 @@ def test_encode_decode_hash():
     assert config.current_model_stats["trained_on_datapoints"] == 6400
     assert config.last_training_run["trained_on_datapoints"] == 6400
     assert len(config.teacher_models) == 2 and  ["gpt-4","gpt-4-32k"]
-    assert isinstance(config.teacher_models[0], OpenAI_Config) and isinstance(config.teacher_models[1], OpenAI_Config)
+    assert isinstance(config.teacher_models[0], OpenAIConfig) and isinstance(config.teacher_models[1], OpenAIConfig)
     assert config.teacher_models[0].model_name ==  "gpt-4"
     assert config.teacher_models[1].model_name ==  "gpt-4-32k"
     assert config.nr_of_training_runs == nr_of_training_runs + 1

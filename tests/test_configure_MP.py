@@ -6,8 +6,8 @@ from typing import Optional, Literal, List
 import openai
 from dotenv import load_dotenv
 import tanuki
-from tanuki.language_models.llm_configs.openai_config import OpenAI_Config
-from tanuki.language_models.llm_configs.llama_config import Llama_Bedrock_Config
+from tanuki.language_models.llm_configs.openai_config import OpenAIConfig
+from tanuki.language_models.llm_configs.llama_config import LlamaBedrockConfig
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -52,7 +52,7 @@ def test_classify_sentiment():
     assert classify_sentiment_2("I do not like you you", bad_input) == 'Bad'
     assert classify_sentiment_2("I am neutral", "I am neutral too") == None
 
-@tanuki.patch(teacher_models=[OpenAI_Config(model_name = "gpt-4441", context_length = 112)])
+@tanuki.patch(teacher_models=[OpenAIConfig(model_name = "gpt-4441", context_length = 112)])
 def func_full_openai(input: str) -> Optional[Literal['Good', 'Bad']]:
     """
     Determine if the input is positive or negative sentiment
@@ -65,7 +65,7 @@ def func_default_openai(input: str) -> Optional[Literal['Good', 'Bad']]:
     """
 
 
-@tanuki.patch(teacher_models=[Llama_Bedrock_Config(model_name = "llama778", context_length = 1)])
+@tanuki.patch(teacher_models=[LlamaBedrockConfig(model_name = "llama778", context_length = 1)])
 def func_full_llama_bedrock(input: str) -> Optional[Literal['Good', 'Bad']]:
     """
     Determine if the input is positive or negative sentiment
@@ -78,7 +78,7 @@ def func_default_llama_bedrock(input: str) -> Optional[Literal['Good', 'Bad']]:
     """
 
 @tanuki.patch(teacher_models=["llama_70b_chat_aws",
-                                OpenAI_Config(model_name = "gpt-4441", context_length = 8192)])
+                                OpenAIConfig(model_name = "gpt-4441", context_length = 8192)])
 def func_mixed(input: str) -> Optional[Literal['Good', 'Bad']]:
     """
     Determine if the input is positive or negative sentiment

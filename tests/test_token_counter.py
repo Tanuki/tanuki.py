@@ -4,7 +4,7 @@ from tanuki.function_modeler import FunctionModeler
 from tanuki.language_models.language_model_manager import LanguageModelManager
 from tanuki.register import Register
 from tanuki.trackers.filesystem_buffered_logger import FilesystemBufferedLogger
-from tanuki.language_models.llm_configs.openai_config import OpenAI_Config
+from tanuki.language_models.llm_configs.openai_config import OpenAIConfig
 
 def dummy_func(input: str) -> List[str]:
     """
@@ -18,8 +18,8 @@ def initiate_test(func_modeler, function_description):
     for keys, values in func_modeler.function_configs.items():
         if func_hash in keys:
             values.distilled_model.model_name = "test_ft_1"
-            values.teacher_models = [OpenAI_Config(model_name = "gpt-4", context_length = 8192),
-                                     OpenAI_Config(model_name = "gpt-4-32k", context_length = 32768)] # model and its token limit]
+            values.teacher_models = [OpenAIConfig(model_name = "gpt-4", context_length = 8192),
+                                     OpenAIConfig(model_name = "gpt-4-32k", context_length = 32768)] # model and its token limit]
     func_modeler._update_config_file(func_hash)
 
 def test_token_counter_finetunable():

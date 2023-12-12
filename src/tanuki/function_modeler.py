@@ -8,7 +8,7 @@ import openai
 
 from tanuki.constants import EXAMPLE_ELEMENT_LIMIT, PATCHES, SYMBOLIC_ALIGNMENTS, POSITIVE_EMBEDDABLE_ALIGNMENTS, \
     NEGATIVE_EMBEDDABLE_ALIGNMENTS
-from tanuki.language_models.llm_configs.openai_config import OpenAI_Config
+from tanuki.language_models.llm_configs.openai_config import OpenAIConfig
 from tanuki.language_models.llm_configs.default_models import DEFAULT_MODELS
 from tanuki.language_models.llm_configs.abc_base_config import BaseModelConfig
 from tanuki.language_models.llm_finetune_api_abc import LLM_Finetune_API
