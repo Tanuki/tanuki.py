@@ -33,7 +33,7 @@ class FunctionConfig(BaseModel):
         if response.status == "failed":
             self.current_training_run = {}
         else:
-            self.distilled_model.model_name = response.fine_tuned_model
+            self.distilled_model = response.fine_tuned_model
             self.last_training_run = self.current_training_run
             self.current_model_stats = {
                 "trained_on_datapoints": self.current_training_run[

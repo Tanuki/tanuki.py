@@ -19,7 +19,7 @@ class ModelConfigFactory:
             elif type == "teacher":
                 if input_config not in DEFAULT_MODELS:
                     raise Exception("Error loading the teacher model, saved config model was saved a string but is not a default model")
-                model = DEFAULT_MODELS[model]
+                model = DEFAULT_MODELS[input_config]
                 return model
         else:
             if input_config["provider"] == "openai":

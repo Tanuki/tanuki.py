@@ -29,7 +29,7 @@ class LLama_Bedrock_API(Bedrock_API):
         if len(unsupported_params) > 0:
             # log warning
             logging.warning(f"Unused generation parameters sent as input: {unsupported_params}."\
-                            "For Llama Bedrock, only the following parameters are supported: {LLM_GENERATION_PARAMETERS}")
+                            f"For Llama Bedrock, only the following parameters are supported: {LLM_GENERATION_PARAMETERS}")
         chat_prompt = model.chat_template
         if chat_prompt is None:
             raise Exception("Chat prompt is not defined for this model"\

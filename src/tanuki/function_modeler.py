@@ -10,6 +10,7 @@ from tanuki.constants import EXAMPLE_ELEMENT_LIMIT, PATCHES, SYMBOLIC_ALIGNMENTS
     NEGATIVE_EMBEDDABLE_ALIGNMENTS
 from tanuki.language_models.llm_configs.openai_config import OpenAI_Config
 from tanuki.language_models.llm_configs.default_models import DEFAULT_MODELS
+from tanuki.language_models.llm_configs.abc_base_config import BaseModelConfig
 from tanuki.language_models.llm_finetune_api_abc import LLM_Finetune_API
 from tanuki.models.finetune_job import FinetuneJob
 from tanuki.models.function_description import FunctionDescription
@@ -59,6 +60,8 @@ class FunctionModeler(object):
                 if model not in DEFAULT_MODELS:
                     raise Exception(f"Teacher model {model} not supported by default. Please include it in the list in extended config format")
                 model_config = DEFAULT_MODELS[model]
+            elif isinstance(model, BaseModelConfig):
+                model_config = model
             self.teacher_models_override[func_hash].append(model_config)
             # currently ban all non-openai models from finetuning because it doesnt make sense 
             if model_config.provider != "openai" and func_hash not in self.check_finetune_blacklist:

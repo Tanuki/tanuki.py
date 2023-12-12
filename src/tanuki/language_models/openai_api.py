@@ -73,7 +73,7 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
         if len(unsupported_params) > 0:
             # log warning
             logging.warning(f"Unused generation parameters sent as input: {unsupported_params}."\
-                             "For OpenAI, only the following parameters are supported: {LLM_GENERATION_PARAMETERS}")
+                             f"For OpenAI, only the following parameters are supported: {LLM_GENERATION_PARAMETERS}")
         params = {
             "model": model.model_name,
             "temperature": temperature,
