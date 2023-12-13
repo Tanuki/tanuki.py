@@ -8,4 +8,5 @@ DEFAULT_MODELS = {
             "gpt-3.5-finetune": OpenAIConfig(model_name = "", context_length = 3000),
             "anthropic.claude-v2:1": ClaudeConfig(model_name = "anthropic.claude-v2:1", context_length = 200000),
             "llama_70b_chat_aws": LlamaBedrockConfig(model_name = "meta.llama2-70b-chat-v1", context_length = 4096),
+            "ada-002": OpenAIConfig(model_name="text-embedding-ada-002", context_length=-1)
         }

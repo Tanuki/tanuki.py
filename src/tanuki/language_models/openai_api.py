@@ -13,6 +13,7 @@ from tanuki.language_models.embedding_api_abc import Embedding_API
 from tanuki.language_models.llm_api_abc import LLM_API
 import os
 from tanuki.language_models.llm_configs.default_models import DEFAULT_MODELS
+from tanuki.language_models.llm_configs.openai_config import OpenAIConfig
 from tanuki.models.finetune_job import FinetuneJob
 import copy
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
@@ -28,7 +29,7 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
 
         self.client = None
 
-    def embed(self, texts: List[str], model="text-similarity-babbage-001", **kwargs) -> List[Embedding]:
+    def embed(self, texts: List[str], model: OpenAIConfig, **kwargs) -> List[Embedding]:
         """
         Generate embeddings for the provided texts using the specified OpenAI model.
         Lightweight wrapper over the OpenAI client.
@@ -42,7 +43,7 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
         try:
             response: CreateEmbeddingResponse = self.client.embeddings.create(
                 input=texts,
-                model=model,
+                model=model.model_name,
                 **kwargs
             )
             assert response.object == "list"
