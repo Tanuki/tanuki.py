@@ -30,6 +30,7 @@ class HF_Transformers_API(LLM_API):
             self.models[model.model_name] = AutoModelForCausalLM.from_pretrained(model.model_name)
             self.tokenizers[model.model_name] = AutoTokenizer.from_pretrained(model.model_name)
 
+        prompt = self.get_prompt(system_message, prompt, model.chat_template, self.tokenizers[model.model_name])
         jsonformer = Jsonformer(self.models[model.model_name],
                                 self.tokenizers[model.model_name], 
                                 model.generator_code,
@@ -39,6 +40,28 @@ class HF_Transformers_API(LLM_API):
         generated_data = jsonformer()
         
         return generated_data
+    
+    def get_prompt(system_message, prompt, chat_template, tokenizer):
+        try:
+          model_specific_prompt_messages = [{"role": "system", "content": system_message},
+            {"role": "user", "content": prompt}
+          ]
+          model_specific_prompt = tokenizer.apply_chat_template(model_specific_prompt_messages,
+                                                                tokenize = False,
+                                                                add_generation_prompt=True)
+        except:
+          try:
+            model_specific_prompt_messages = [{"role": "user", "content": prompt}]
+            model_specific_prompt = tokenizer.apply_chat_template(model_specific_prompt_messages,
+                                                                  tokenize = False,
+                                                                  add_generation_prompt=True)
+          except:
+            if not chat_template:
+              return prompt
+            else:
+              model_specific_prompt = chat_template.format(system_message=system_message, user_prompt=prompt)
+        return model_specific_prompt
+    
         #temperature = kwargs.get("temperature", 0.1)
         #top_p = kwargs.get("top_p", 1)
         #frequency_penalty = kwargs.get("frequency_penalty", 0)
