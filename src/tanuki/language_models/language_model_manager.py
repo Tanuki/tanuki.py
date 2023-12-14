@@ -72,7 +72,8 @@ class LanguageModelManager(object):
         return instantiated
 
     def _parse_choice(self, output):
-        if isinstance(output.generated_response, dict):
+        # if its not a string, the type has already been parsed
+        if not isinstance(output.generated_response, str):
             return output.generated_response
         try:
             # json load
