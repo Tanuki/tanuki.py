@@ -89,8 +89,7 @@ class LanguageModelManager(object):
         prompt, model, save_to_finetune, is_distilled_model = self.get_generation_case(args, kwargs,
                                                                                        function_description,
                                                                                        llm_parameters)
-        #choice = self._synthesise_answer(prompt, model, llm_parameters)
-        choice = "something went wrong"
+        choice = self._synthesise_answer(prompt, model, llm_parameters)
         output = LanguageModelOutput(choice, save_to_finetune, is_distilled_model)
         return output
 
