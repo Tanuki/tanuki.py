@@ -54,7 +54,8 @@ class LanguageModelManager(object):
                                                                           kwargs,
                                                                           function_description,
                                                                           output.generated_response,
-                                                                          validator)
+                                                                          validator,
+                                                                          generation_parameters)
 
             if not successful_repair:
                 raise TypeError(
@@ -88,8 +89,8 @@ class LanguageModelManager(object):
         prompt, model, save_to_finetune, is_distilled_model = self.get_generation_case(args, kwargs,
                                                                                        function_description,
                                                                                        llm_parameters)
-        choice = self._synthesise_answer(prompt, model, llm_parameters)
-
+        #choice = self._synthesise_answer(prompt, model, llm_parameters)
+        choice = "something went wrong"
         output = LanguageModelOutput(choice, save_to_finetune, is_distilled_model)
         return output
 
@@ -165,29 +166,47 @@ class LanguageModelManager(object):
         content = f"{instruction_prompt}\nFunction: {f}\n{example_input}---\n{model.parsing_helper_tokens['start_token']}Inputs:\nArgs: {args}\nKwargs: {kwargs}\nOutput:"
         return content
 
-    def repair_generate(self, args, kwargs, f, failed_outputs_list, examples, models):
+    def repair_generate(self, args, kwargs, f, failed_outputs_list, aligns, models, llm_parameters):
         """
         Repair the output given the input, function description, failed outputs list, examples and models
         """
-        prompt = self.generate_repair_prompt(args, kwargs, f, failed_outputs_list, examples)
-        prompt_token_count = approximate_token_count(prompt)
-        model = self.choose_model_from_tokens(models, prompt_token_count)
+        # get the token counts
+        examples = [f"Inputs:\nArgs: {align['args']}\nKwargs: {align['kwargs']}\nOutput: {align['output']}" for align in
+                 aligns]
+        examples_token_count = sum([approximate_token_count(example) for example in examples])
+        failed_examples_token_count = sum([approximate_token_count(failed_output[0]) + approximate_token_count(failed_output[1]) for failed_output in failed_outputs_list])
+        input_prompt_token_count = approximate_token_count(f"Function: {f}\n---\nInputs:\nArgs: {args}\nKwargs: {kwargs}\nOutput:")
+        generation_tokens = llm_parameters.get("max_new_tokens", self.default_generation_length)
+        model = self.choose_model_from_tokens(models, 
+                                              examples_token_count+input_prompt_token_count+generation_tokens+failed_examples_token_count,
+                                              len(examples))
         if model:
-            choice = self._synthesise_answer(prompt, model, {})
+            prompt = self.generate_repair_prompt(args, kwargs, f, failed_outputs_list, examples, model)
+            choice = self._synthesise_answer(prompt, model, llm_parameters)
             return choice
         else:
             return None
 
-    def generate_repair_prompt(self, args, kwargs, f, failed_outputs_list, examples):
+    def generate_repair_prompt(self, args, kwargs, f, failed_outputs_list, examples, model):
         """
         Generate a repair prompt given the args, kwargs, function description, failed outputs list and examples
         """
 
+        if examples:
+            final_examples = "\n".join(
+                    [f"{model.parsing_helper_tokens['start_token']}{align}{model.parsing_helper_tokens['end_token']}" for align in
+                     examples])
+            successful_examples = f"Examples:{final_examples}\n"
+        else:
+            successful_examples = ""
+
         failed_examples = ""
         for failed_output in failed_outputs_list:
             failed_examples += f"Output: {failed_output[0]}\nError: {failed_output[1]}\n\n"
-        successful_examples = f"Successful Examples:{examples}\n" if examples else ""
-        prompt = f"{self.repair_instruction}\nFUNCTION DESCRIPTION: {f}\n{successful_examples}---Inputs:\nArgs: {args}\nKwargs: {kwargs}\nFAILED EXAMPLES: {failed_examples}Correct output:"
+        end_token_addition = ""
+        if model.parsing_helper_tokens["end_token"]:
+            end_token_addition = f"Make sure to add the {model.parsing_helper_tokens['end_token']} token at the end of the output."
+        prompt = f"{self.repair_instruction}{end_token_addition}\nFUNCTION DESCRIPTION: {f}\n{successful_examples}---{model.parsing_helper_tokens['start_token']}Inputs:\nArgs: {args}\nKwargs: {kwargs}\nFAILED EXAMPLES: {failed_examples}Correct output:"
         return prompt
 
     def choose_model_from_tokens(self, models, input_token_count, nr_of_examples=0):
@@ -220,7 +239,8 @@ class LanguageModelManager(object):
                       kwargs: dict,
                       function_description: FunctionDescription,
                       choice,
-                      validator: Validator) -> tuple:
+                      validator: Validator,
+                      generation_parameters: dict) -> tuple:
         """
         Repair an output, that failed type validation by generating a new output using the teacher model and the error
         Args:
@@ -247,11 +267,14 @@ class LanguageModelManager(object):
         while retry_index > 0 and not valid:
             # get the alignments
             aligns = self.function_modeler.get_symbolic_alignments(function_description.__hash__(), max=5)
-            examples = "\n".join(
-                [f"Inputs:\nArgs: {align['args']}\nKwargs {align['kwargs']}\nOutput: {align['output']}" for align in
-                 aligns])
             # Generate the reparied LLM output
-            choice = self.repair_generate(args, kwargs, f, failed_outputs_list, examples, teacher_models)
+            choice = self.repair_generate(args, 
+                                          kwargs, 
+                                          f, 
+                                          failed_outputs_list, 
+                                          aligns, 
+                                          teacher_models,
+                                          generation_parameters)
             if not choice:
                 # if no choice then the input was too long for the model
                 # no specific error but the retry index goes down

@@ -43,6 +43,8 @@ class LLama_Bedrock_API(Bedrock_API):
         })
 
         choice = self.send_api_request(model, body)
-        choice = choice.split(model.parsing_helper_tokens["end_token"])[0]
+        if model.parsing_helper_tokens["end_token"]:
+            # remove the end token from the choice
+            choice = choice.split(model.parsing_helper_tokens["end_token"])[0]
 
         return choice
