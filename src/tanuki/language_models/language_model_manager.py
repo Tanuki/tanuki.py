@@ -26,11 +26,14 @@ class LanguageModelManager(object):
                  api_providers: Dict[str, LLM_API] = None) -> None:
         self.api_providers = api_providers
         self.function_modeler = function_modeler
-        self.instruction = "You are given below a function description and input data. The function description of what the function must carry out can be found in the Function section, with input and output type hints. The input data can be found in Input section. Using the function description, apply the function to the Input and return a valid output type, that is acceptable by the output_class_definition and output_class_hint. Return None if you can't apply the function to the input or if the output is optional and the correct output is None.\nINCREDIBLY IMPORTANT: Only output a JSON-compatible string in the correct response format."
-        self.system_message = f"You are a skillful and accurate language model, who applies a described function on input data. Make sure the function is applied accurately and correctly and the outputs follow the output type hints and are valid outputs given the output types."
+        self.default_instruction = "You are given below a function description and input data. The function description of what the function must carry out can be found in the Function section, with input and output type hints. The input data can be found in Input section. Using the function description, apply the function to the Input and return a valid output type, that is acceptable by the output_class_definition and output_class_hint. Return None if you can't apply the function to the input or if the output is optional and the correct output is None.\nINCREDIBLY IMPORTANT: Only output a JSON-compatible string in the correct response format."
+        self.default_system_message = "You are a skillful and accurate language model, who applies a described function on input data. Make sure the function is applied accurately and correctly and the outputs follow the output type hints and are valid outputs given the output types."
+        self.default_prompt_template = "{instruction_prompt}\nFunction: {f}\n{example_input}---\n{start_parsing_helper_token}Inputs:\nArgs: {args}\nKwargs: {kwargs}\nOutput:"
 
-        self.instruction_token_count = approximate_token_count(self.instruction)
-        self.system_message_token_count = approximate_token_count(self.system_message)
+        self.instruction_token_count = approximate_token_count(self.default_instruction)
+        self.system_message_token_count = approximate_token_count(self.default_system_message)
+        self.prompt_template_token_count = int(approximate_token_count(self.default_prompt_template) - (6*1.33 + 12))
+
         self.repair_instruction = "Below are an outputs of a function applied to inputs, which failed type validation. The input to the function is brought out in the INPUT section and function description is brought out in the FUNCTION DESCRIPTION section. Your task is to apply the function to the input and return a correct output in the right type. The FAILED EXAMPLES section will show previous outputs of this function applied to the data, which failed type validation and hence are wrong outputs. Using the input and function description output the accurate output following the output_class_definition and output_type_hint attributes of the function description, which define the output type. Make sure the output is an accurate function output and in the correct type. Return None if you can't apply the function to the input or if the output is optional and the correct output is None."
         self.default_generation_length = generation_token_limit
 
@@ -99,7 +102,7 @@ class LanguageModelManager(object):
         """
         Synthesise an answer given the prompt, model, model_type and llm_parameters
         """
-        system_message = model.system_message if model.system_message else self.system_message
+        system_message = model.system_message if model.system_message else self.default_system_message
         if model.provider not in self.api_providers:
             raise ValueError(f"Model provider {model.provider} not found in api_providers."\
                               "If you have integrated a new provider, please add it to the api_providers dict in the LanguageModelManager constructor"\
@@ -177,11 +180,17 @@ class LanguageModelManager(object):
         else:
             example_input = ""
 
-        instruction_prompt = model.instructions if model.instructions else self.instruction
+        instruction_prompt = model.instructions if model.instructions else self.default_instruction
+        prompt_template = model.prompt_template if model.prompt_template else self.default_prompt_template
         # make args and kwargs same representation as loaded examples
         args = get_string_represntation(prepare_object_for_saving(args))
         kwargs = get_string_represntation(prepare_object_for_saving(kwargs))
-        content = f"{instruction_prompt}\nFunction: {f}\n{example_input}---\n{model.parsing_helper_tokens['start_token']}Inputs:\nArgs: {args}\nKwargs: {kwargs}\nOutput:"
+        content = prompt_template.format(instruction_prompt=instruction_prompt,
+                                            f=f,
+                                            example_input=example_input,
+                                            start_parsing_helper_token=model.parsing_helper_tokens["start_token"],
+                                            args=args,
+                                            kwargs=kwargs)
         return content
 
     def repair_generate(self, args, kwargs, f, failed_outputs_list, examples, models):
@@ -225,11 +234,17 @@ class LanguageModelManager(object):
                 instructions_token_count = approximate_token_count(model.instructions)
             else:
                 instructions_token_count = self.instruction_token_count
+            
+            if model.prompt_template is not None:
+                prompt_template_token_count = int(approximate_token_count(model.prompt_template) - (6*1.33 + 12))
+            else:
+                prompt_template_token_count = self.prompt_template_token_count
+
             if model.parsing_helper_tokens["start_token"]:
                 input_token_count += 2*nr_of_examples
             if model.parsing_helper_tokens["end_token"]:
                 input_token_count += 2*nr_of_examples
-            total_token_count = input_token_count + instructions_token_count + system_message_token_count
+            total_token_count = input_token_count + instructions_token_count + system_message_token_count + prompt_template_token_count
             if total_token_count < model.context_length:
                 return model
         return None

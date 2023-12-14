@@ -167,6 +167,6 @@ def decode_int(s):
 
 def get_string_represntation(input) -> str:
     try:
-        return json_dumps(input)
+        return json.dumps(input)
     except:
         return str(input)

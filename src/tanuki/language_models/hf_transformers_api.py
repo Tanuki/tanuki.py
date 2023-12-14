@@ -1,8 +1,7 @@
 
 from tanuki.language_models.llm_api_abc import LLM_API
 from transformers import GPTNeoXForCausalLM, AutoTokenizer, AutoModelForCausalLM
-from jsonformer import Jsonformer
-import json
+from tanuki.language_models.jsonformer.jsonformer import Jsonformer
 
 
 LLM_GENERATION_PARAMETERS = ["temperature", "top_p", "max_new_tokens", "frequency_penalty", "presence_penalty"]
@@ -26,11 +25,17 @@ class HF_Transformers_API(LLM_API):
         # Bool and str done in Pydantic classes
 
         max_new_tokens = kwargs.get("max_new_tokens")
+        temperature = kwargs.get("temperature", 0.1)
         if model.model_name not in self.models:
             self.models[model.model_name] = AutoModelForCausalLM.from_pretrained(model.model_name)
             self.tokenizers[model.model_name] = AutoTokenizer.from_pretrained(model.model_name)
 
-        jsonformer = Jsonformer(self.models[model.model_name], self.tokenizers[model.model_name], model.generator_code, prompt, max_number_tokens=max_new_tokens)
+        jsonformer = Jsonformer(self.models[model.model_name],
+                                self.tokenizers[model.model_name], 
+                                model.generator_code,
+                                prompt,
+                                max_number_tokens=max_new_tokens, 
+                                temperature=temperature)
         generated_data = jsonformer()
         
         return generated_data

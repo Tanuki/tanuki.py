@@ -12,4 +12,5 @@ class BaseModelConfig(abc.ABC, BaseModel):
     chat_template : Optional[str] = None
     system_message : Optional[str] = None
     instructions : Optional[str] = None
+    prompt_template : Optional[str] = None
     parsing_helper_tokens: Optional[dict] = {"start_token": "", "end_token": ""}
