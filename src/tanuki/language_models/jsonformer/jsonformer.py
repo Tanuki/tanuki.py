@@ -25,10 +25,8 @@ class Jsonformer:
         prompt: str,
         *,
         debug: bool = False,
+        generation_params: dict,
         max_array_length: int = 100,
-        max_number_tokens: int = 6,
-        temperature: float = 1.0,
-        max_string_token_length: int = 10,
     ):
         self.model = model
         self.tokenizer = tokenizer
@@ -42,12 +40,28 @@ class Jsonformer:
 
         self.generation_marker = "|GENERATION|"
         self.debug_on = debug
+        self.generation_params = generation_params
+
         self.max_array_length = max_array_length
+        self.max_number_tokens = generation_params.get("max_new_tokens")
+        self.max_string_token_length = self.max_number_tokens
+        self.generation_params.pop("max_new_tokens")
+        self.temperature = generation_params["temperature"]
+        self.generation_params.pop("temperature")
+        self.locked_generation_params = ["temperature", 
+                                         "max_new_tokens", 
+                                         "do_sample", 
+                                         "num_return_sequences", 
+                                         "logits_processor", 
+                                         "stopping_criteria",
+                                         "pad_token_id"]
+        self._remove_duplicate_generation_params()
 
-        self.max_number_tokens = max_number_tokens
-        self.temperature = temperature
-        self.max_string_token_length = max_number_tokens
-
+    def _remove_duplicate_generation_params(self):
+        for key in self.locked_generation_params:
+            if key in self.generation_params:
+                self.generation_params.pop(key)
+    
     def debug(self, caller: str, value: str, is_prompt: bool = False):
         if self.debug_on:
             if is_prompt:
@@ -76,6 +90,7 @@ class Jsonformer:
             ],
             temperature=temperature,
             pad_token_id=self.tokenizer.eos_token_id,
+            **self.generation_params
         )
 
         if (
@@ -122,6 +137,7 @@ class Jsonformer:
             ],
             temperature=temperature,
             pad_token_id=self.tokenizer.eos_token_id,
+            **self.generation_params
         )
         
         response = self.tokenizer.decode(response[0][len(input_tokens[0]):], skip_special_tokens=True)
@@ -154,6 +170,7 @@ class Jsonformer:
                 StringStoppingCriteria(self.tokenizer, len(input_tokens[0]))
             ],
             pad_token_id=self.tokenizer.eos_token_id,
+            **self.generation_params
         )
 
         # Some models output the prompt as part of the response
@@ -274,6 +291,7 @@ class Jsonformer:
             num_return_sequences=1,
             temperature=self.temperature,
             pad_token_id=self.tokenizer.eos_token_id,
+            **self.generation_params
         )
 
         # Some models output the prompt as part of the response

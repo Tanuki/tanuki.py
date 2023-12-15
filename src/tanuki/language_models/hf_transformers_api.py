@@ -12,6 +12,7 @@ class HF_Transformers_API(LLM_API):
         super().__init__()
         self.models = {}
         self.tokenizers = {}
+        self.default_temperature = 0.1
 
 
 
@@ -23,9 +24,10 @@ class HF_Transformers_API(LLM_API):
         ## Optionals, literals, lists, dicts, enums, sets, tuples, unions, default values, Annotated[int, Field(gt=0, lt=10)], any cosntraints
         # # int str float bool
         # Bool and str done in Pydantic classes
-
-        max_new_tokens = kwargs.get("max_new_tokens")
-        temperature = kwargs.get("temperature", 0.1)
+        generation_params = kwargs
+        if "temperature" not in generation_params:
+            generation_params["temperature"] = self.default_temperature
+        
         if model.model_name not in self.models:
             self.models[model.model_name] = AutoModelForCausalLM.from_pretrained(model.model_name, **model.model_kwargs)
             self.tokenizers[model.model_name] = AutoTokenizer.from_pretrained(model.model_name)
@@ -35,8 +37,7 @@ class HF_Transformers_API(LLM_API):
                                 self.tokenizers[model.model_name], 
                                 model.generator_code,
                                 prompt,
-                                max_number_tokens=max_new_tokens, 
-                                temperature=temperature)
+                                generation_params)
         generated_data = jsonformer()
         
         return generated_data
