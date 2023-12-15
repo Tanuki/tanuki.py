@@ -27,7 +27,7 @@ class HF_Transformers_API(LLM_API):
         max_new_tokens = kwargs.get("max_new_tokens")
         temperature = kwargs.get("temperature", 0.1)
         if model.model_name not in self.models:
-            self.models[model.model_name] = AutoModelForCausalLM.from_pretrained(model.model_name)
+            self.models[model.model_name] = AutoModelForCausalLM.from_pretrained(model.model_name, **model.model_kwargs)
             self.tokenizers[model.model_name] = AutoTokenizer.from_pretrained(model.model_name)
 
         prompt = self.get_prompt(system_message, prompt, model.chat_template, self.tokenizers[model.model_name])

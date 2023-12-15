@@ -7,6 +7,7 @@ class BaseModelConfig(abc.ABC, BaseModel):
             protected_namespaces=()
         )
     model_name: str
+    model_kwargs: Optional[dict] = {}
     provider: str
     context_length: int
     chat_template : Optional[str] = None
