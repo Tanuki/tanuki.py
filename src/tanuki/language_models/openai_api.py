@@ -59,7 +59,12 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
 
     def generate(self, model, system_message, prompt, **kwargs):
         """
-        The main generation function, given the args, kwargs, function_modeler, function description and model type, generate a response and check if the datapoint can be saved to the finetune dataset
+        The main generation function, given the args, kwargs, function_modeler, function description and model type, generate a response
+        Args
+            model (OpenAIConfig): The model to use for generation.
+            system_message (str): The system message to use for generation.
+            prompt (str): The prompt to use for generation.
+            kwargs (dict): Additional generation parameters.
         """
 
         self.check_api_key()

@@ -15,8 +15,16 @@ class LLama_Bedrock_API(Bedrock_API):
 
     def generate(self, model: BaseModelConfig, system_message: str, prompt: str, **kwargs):
         """
-        The main generation function, given the args, kwargs, function_modeler, function description and model type,
-         generate a response and check if the datapoint can be saved to the finetune dataset
+        Generate a response using the Bedrock API for the specified LLama model.
+
+        Args:
+            model: The model to use for generation.
+            system_message: The system message to use for generation.
+            prompt: The prompt to use for generation.
+            kwargs: Additional generation parameters.
+        
+        Returns:
+            The generated response.
         """
 
         # this needs to be done generally better, introduce the LLM_gen params class

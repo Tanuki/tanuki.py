@@ -2,6 +2,10 @@ from tanuki.language_models.llm_configs.abc_base_config import BaseModelConfig
 
 
 class LlamaBedrockConfig(BaseModelConfig):
+    """
+    Config for Llama Bedrock models.
+    The custom prompting parameters have been prefilled
+    """
     model_name: str
     provider: str = 'llama_bedrock'
     context_length: int

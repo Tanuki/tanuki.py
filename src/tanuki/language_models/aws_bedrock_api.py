@@ -17,12 +17,17 @@ class Bedrock_API(LLM_API):
 
     def send_api_request(self, model: BaseModelConfig, body: str):
         """
-        The main generation function, given the args, kwargs, function_modeler, function description and model type,
-         generate a response and check if the datapoint can be saved to the finetune dataset
+        Send a API request to the Bedrock API.
+
+        Args:
+            model: The model to use for generation.
+            body: The body of the request to send to the Bedrock API.
+        
+        Returns:
+            The generated response.
         """
 
-        # this needs to be done generally better, introduce the LLM_gen params class
-        # so you can config it at the start
+        # check the runtime access
         self.check_runtime()
         counter = 0
         choice = None
@@ -52,7 +57,7 @@ class Bedrock_API(LLM_API):
         return choice
 
     def check_runtime(self):
-        # check if api key is not none
+        # check if the runtime is configured
         if self.bedrock_runtime is None:
             self.bedrock_runtime = boto3.client(
             service_name='bedrock-runtime',

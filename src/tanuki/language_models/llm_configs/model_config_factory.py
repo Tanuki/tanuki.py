@@ -8,6 +8,14 @@ from tanuki.language_models.llm_configs.default_models import DEFAULT_MODELS
 class ModelConfigFactory:
     @staticmethod
     def create_config(input_config: Union[str, dict, BaseModelConfig], type: str) -> BaseModelConfig:
+        """
+        Creates a model config from a string, dict or BaseModelConfig
+        Args:
+            input_config: The config to create the model from
+            type: The type of the input model
+        Returns:
+            A model config
+        """
         if isinstance(input_config, BaseModelConfig):
             return input_config
         if isinstance(input_config, str):

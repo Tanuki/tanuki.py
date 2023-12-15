@@ -49,9 +49,13 @@ class FunctionModeler(object):
         """
         return self.data_worker.load_dataset(dataset_type, func_hash, return_type=type)
     
-    def _configure_teacher_models(self, teacher_models, func_hash):
+    def _configure_teacher_models(self, teacher_models: list, func_hash: str):
         """
-        Get the dataset size for a function hash
+        Add custom teacher models to the function config
+        First this is added to the teacher_models_override dict, which is used to override the teacher models
+        Args:
+            teacher_models: A list of teacher models to use for the function hash
+            func_hash: The function hash to add the teacher models to
         """
         if func_hash not in self.teacher_models_override:
                 self.teacher_models_override[func_hash] = []
@@ -304,7 +308,6 @@ class FunctionModeler(object):
         return config
 
     def _check_for_finetunes(self, function_description: FunctionDescription, finetune_provider : str) -> Tuple[bool, Dict]:
-        # This here should be discussed, what's the bestd way to do it
         # hash the function_hash into 16 characters (to embed it into the name of OpenAI finetunes, for later retrieval)
 
         finetune_hash = function_description.__hash__(purpose="finetune") + encode_int(self.environment_id)
@@ -327,7 +330,16 @@ class FunctionModeler(object):
 
         return False, {}
 
-    def _construct_config_from_finetune(self, finetune_hash, finetune: FinetuneJob):
+    def _construct_config_from_finetune(self, finetune_hash: str, finetune: FinetuneJob):
+        """
+        Construct a valid function config from a finetune job
+
+        Args:
+            finetune_hash: The hash of the function
+            finetune: The finetune job
+        Returns:
+            config: The function config
+        """
         model = finetune.fine_tuned_model
         # get the ending location of finetune hash in the model name
         finetune_hash_end = model.model_name.find(finetune_hash) + len(finetune_hash)

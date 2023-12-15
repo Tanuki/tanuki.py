@@ -294,6 +294,7 @@ def patch(patchable_func=None,
         _anonymous_usage(logger=logger.name)
         function_description = Register.load_function_description(test_func)
         func_hash = function_description.__hash__()
+        # Configure the function modeler using incoming parameters
         function_modeler.environment_id = environment_id
         if ignore_finetuning:
             function_modeler.execute_finetune_blacklist.append(func_hash)

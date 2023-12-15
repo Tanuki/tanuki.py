@@ -96,6 +96,13 @@ class LanguageModelManager(object):
     def _synthesise_answer(self, prompt, model, llm_parameters):
         """
         Synthesise an answer given the prompt, model, model_type and llm_parameters
+        Args:
+            prompt (str): The prompt to send to the model
+            model (BaseModelConfig): The model to use for generation
+            llm_parameters (dict): The parameters to use for generation
+        return:
+            choice (str): The generated response
+
         """
         system_message = model.system_message if model.system_message else self.system_message
         if model.provider not in self.api_providers:
@@ -151,7 +158,17 @@ class LanguageModelManager(object):
 
     def construct_prompt(self, f, args, kwargs, examples, model):
         """
-        Cosntruct a prompt given the function description, args, kwargs and examples
+        Construct a prompt given the model, function description, args, kwargs and examples
+
+        Args:
+            model (BaseModelConfig): The model to use for generation
+            f (str): The function description
+            args (tuple): The args of the function
+            kwargs (tuple): The kwargs of the function
+            examples (list): The examples of the function
+        
+        Returns:
+            content (str): The prompt to send to the model
         """
         if examples:
             final_examples = "\n".join(
@@ -210,7 +227,15 @@ class LanguageModelManager(object):
 
     def choose_model_from_tokens(self, models, input_token_count, nr_of_examples=0):
         """
-        Choose a model from the models given the token count
+        Choose a model from the models given the token count and number of examples
+
+        Args:
+            models (list): The models to choose from
+            input_token_count (int): The token count of the input
+            nr_of_examples (int): The number of examples
+        
+        Returns:
+            model (BaseModelConfig): The chosen model
         """
 
         for model in models:
