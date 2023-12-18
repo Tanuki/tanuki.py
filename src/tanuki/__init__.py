@@ -10,13 +10,11 @@ from typing import Optional, Union, Any
 from unittest.mock import patch as mock_patch
 
 import requests
-
+from tanuki.models.api_manager import APIManager
 from tanuki.assertion_visitor import AssertionVisitor
 from tanuki.function_modeler import FunctionModeler
 from tanuki.language_models.embedding_model_manager import EmbeddingModelManager
 from tanuki.language_models.language_model_manager import LanguageModelManager
-from tanuki.language_models.openai_api import OpenAI_API
-from tanuki.language_models.Llama_bedrock_api import LLama_Bedrock_API
 from tanuki.models.embedding import Embedding
 from tanuki.models.function_description import FunctionDescription
 from tanuki.models.function_example import FunctionExample
@@ -74,11 +72,11 @@ logging.basicConfig(level=ALIGN_LEVEL_NUM)
 logger = logger_factory(__name__)
 
 
-api_providers = {"openai": OpenAI_API(), "llama_bedrock": LLama_Bedrock_API()}
 # currently only use buffered logger as default
-function_modeler = FunctionModeler(data_worker=logger, api_providers=api_providers)
-language_modeler = LanguageModelManager(function_modeler, api_providers=api_providers)
-embedding_modeler = EmbeddingModelManager(function_modeler, api_providers=api_providers)
+api_provider = APIManager()
+function_modeler = FunctionModeler(data_worker=logger, api_provider=api_provider)
+language_modeler = LanguageModelManager(function_modeler, api_provider=api_provider)
+embedding_modeler = EmbeddingModelManager(function_modeler, api_provider=api_provider)
 telemetry_enabled: bool = True
 
 

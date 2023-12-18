@@ -19,7 +19,7 @@ from tanuki.trackers.dataset_worker import DatasetWorker
 from tanuki.utils import approximate_token_count, prepare_object_for_saving, encode_int, decode_int
 import copy
 from tanuki.models.function_config import FunctionConfig
-
+from tanuki.models.api_manager import APIManager
 class FunctionModeler(object):
     """
     This class manages the registered function models and their datasets
@@ -27,8 +27,8 @@ class FunctionModeler(object):
     """
 
     def __init__(self, data_worker: DatasetWorker,
+                 api_provider: APIManager,
                  environment_id=0,
-                 api_providers: Dict[str, LLM_Finetune_API] = None
                  ) -> None:
         self.function_configs = {}
         self.data_worker = data_worker
@@ -40,7 +40,7 @@ class FunctionModeler(object):
         self.check_finetune_blacklist = []
         self.execute_finetune_blacklist = []
         self.store_data_blacklist = []
-        self.api_providers = api_providers
+        self.api_provider = api_provider
         self.teacher_models_override = {}
 
     def _get_dataset_info(self, dataset_type, func_hash, type="length"):
@@ -312,7 +312,7 @@ class FunctionModeler(object):
 
         finetune_hash = function_description.__hash__(purpose="finetune") + encode_int(self.environment_id)
         # List 10 fine-tuning jobs
-        finetunes: List[FinetuneJob] = self.api_providers[finetune_provider].list_finetuned(limit=1000)
+        finetunes: List[FinetuneJob] = self.api_provider[finetune_provider].list_finetuned(limit=1000)
 
         # Check if the function_hash is in the fine-tuning jobs
         # the finetunes are in chronological order starting from newest
@@ -520,7 +520,7 @@ class FunctionModeler(object):
         # Use the stream as a file
         try:
             finetune_provider = self.function_configs[func_hash].distilled_model.provider
-            finetuning_response: FinetuneJob = self.api_providers[finetune_provider].finetune(file=temp_file, suffix=finetune_hash)
+            finetuning_response: FinetuneJob = self.api_provider[finetune_provider].finetune(file=temp_file, suffix=finetune_hash)
         except Exception as e:
             return
 
@@ -547,7 +547,7 @@ class FunctionModeler(object):
         if (datetime.datetime.now() - datetime.datetime.strptime(last_checked,
                                                                  "%Y-%m-%d %H:%M:%S")).total_seconds() > 1:
             finetune_provider = self.function_configs[func_hash].distilled_model.provider
-            response = self.api_providers[finetune_provider].get_finetuned(job_id)
+            response = self.api_provider[finetune_provider].get_finetuned(job_id)
             self.function_configs[func_hash].current_training_run["last_checked"] = datetime.datetime.now().strftime(
                 "%Y-%m-%d %H:%M:%S")
             if response.status == "succeeded" or response.status == "failed":
