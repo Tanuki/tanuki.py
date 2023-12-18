@@ -20,22 +20,22 @@ class APIManager(object):
         
         return self.api_providers[provider]
 
-    def add_api_provider(self, model):
+    def add_api_provider(self, provider):
         """
         Adds an API provider to the API manager.
         """
-        if model.provider =="openai":
+        if provider =="openai":
             try:
                 from tanuki.language_models.openai_api import OpenAI_API
-                self.api_providers[model.provider] = OpenAI_API()
+                self.api_providers[provider] = OpenAI_API()
             except ImportError:
-                raise Exception(f"You need to install the Tanuki {model.provider} package to use the {model.provider} api provider")
-        elif model.provider == "llama_bedrock":
+                raise Exception(f"You need to install the Tanuki {provider} package to use the {provider} api provider")
+        elif provider == "llama_bedrock":
             try:
                 from tanuki.language_models.Llama_bedrock_api import LLama_Bedrock_API
-                self.api_providers[model.provider] = LLama_Bedrock_API()
+                self.api_providers[provider] = LLama_Bedrock_API()
             except ImportError:
-                raise Exception(f"You need to install the Tanuki {model.provider} package to use the {model.provider} api provider")
+                raise Exception(f"You need to install the Tanuki {provider} package to use the {provider} api provider")
         else:
-            raise Exception(f"Provider {model.provider} is not supported")
+            raise Exception(f"Provider {provider} is not supported")
 
