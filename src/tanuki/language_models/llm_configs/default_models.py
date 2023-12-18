@@ -11,5 +11,7 @@ DEFAULT_MODELS = {
             "gpt-3.5-finetune": OpenAI_Config(model_name = "", context_length = 3000),
             "anthropic.claude-v2:1": Claude_Config(model_name = "anthropic.claude-v2:1", context_length = 200000),
             "llama_70b_chat_aws": Llama_Bedrock_Config(model_name = "meta.llama2-70b-chat-v1", context_length = 4096),
-            "test_pythia" : HF_Model_Config(model_name = "EleutherAI/pythia-160m", context_length = 4096)
+            "test_pythia" : HF_Model_Config(model_name = "EleutherAI/pythia-160m",
+                                            context_length = 4096,
+                                            chat_template="{user_prompt}")
         }

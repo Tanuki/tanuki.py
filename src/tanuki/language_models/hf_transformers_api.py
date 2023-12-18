@@ -50,11 +50,11 @@ class HF_Transformers_API(LLM_API):
                                   generation_params)
           generated_data = jsonformer()
         else:
-           generated_data = self.generate_with_default_transformers(model.model_name, prompt, generation_params)
+           generated_data = self.generate_with_default_transformers(model, prompt, generation_params)
         
         return generated_data
     
-    def get_prompt(system_message, prompt, chat_template, tokenizer) -> str:
+    def get_prompt(self, system_message, prompt, chat_template, tokenizer) -> str:
         """
         Create a model specific prompt from the system message and user prompt.
         Tries multiple different chat template ways to create the prompt.
@@ -65,39 +65,56 @@ class HF_Transformers_API(LLM_API):
             chat_template (str): The chat template to use for generation.
             tokenizer (transformers.tokenizer): The tokenizer to use for generation.
         """
-        try:
-          model_specific_prompt_messages = [{"role": "system", "content": system_message},
-            {"role": "user", "content": prompt}
-          ]
-          model_specific_prompt = tokenizer.apply_chat_template(model_specific_prompt_messages,
-                                                                tokenize = False,
-                                                                add_generation_prompt=True)
-        except:
+        if not chat_template:
           try:
-            model_specific_prompt_messages = [{"role": "user", "content": prompt}]
+            model_specific_prompt_messages = [{"role": "system", "content": system_message},
+              {"role": "user", "content": prompt}
+            ]
             model_specific_prompt = tokenizer.apply_chat_template(model_specific_prompt_messages,
                                                                   tokenize = False,
                                                                   add_generation_prompt=True)
           except:
-            if not chat_template:
-              return prompt
-            else:
-              model_specific_prompt = chat_template.format(system_message=system_message, user_prompt=prompt)
+            try:
+              model_specific_prompt_messages = [{"role": "user", "content": prompt}]
+              model_specific_prompt = tokenizer.apply_chat_template(model_specific_prompt_messages,
+                                                                    tokenize = False,
+                                                                    add_generation_prompt=True)
+            except:
+                return prompt
+        else:
+          model_specific_prompt = chat_template.format(system_message=system_message, user_prompt=prompt)
         return model_specific_prompt
     
-    def generate_with_default_transformers(self, model_name, prompt, generation_params) -> str:
+    def generate_with_default_transformers(self, model, prompt, generation_params) -> str:
       """
       Generate a response using the default decoding of the HF transformers library for the specified model.
       Args:
-          model_name (str): The model to use for generation.
+          model (BaseModelConfig): The model to use for generation.
           prompt (str): The prompt to use for generation.
           generation_params (dict): Additional generation parameters.
       
       Returns:
           The generated response.
       """
-      input_tokens = self.tokenizers[model_name](prompt, return_tensors="pt")
-      input_ids = input_tokens.input_ids
-      generated_ids = self.models[model_name].generate(input_ids, **generation_params)
-      generated_data = self.tokenizers[model_name].batch_decode(generated_ids, skip_special_tokens=True)
+      input_tokens = self.tokenizers[model.model_name](prompt, return_tensors="pt").to(
+            self.models[model.model_name].device
+        )
+      response = self.models[model.model_name].generate(input_ids = input_tokens.input_ids,
+                                                        attention_mask=input_tokens.attention_mask,
+                                                        **generation_params)
+      # Some models output the prompt as part of the response
+      # This removes the prompt from the response if it is present
+      if (
+          len(response[0]) >= len(input_tokens.input_ids[0])
+          and (response[0][: len(input_tokens.input_ids[0])] == input_tokens.input_ids).all()
+      ):
+          response = response[0][len(input_tokens[0]) :]
+      if response.shape[0] == 1:
+          response = response[0]
+      
+      generated_data = self.tokenizers[model.model_name].decode(response, skip_special_tokens=True).strip()
+      
+      if model.parsing_helper_tokens["end_token"]:
+            # remove the end token from the choice
+            generated_data = generated_data.split(model.parsing_helper_tokens["end_token"])[0]
       return generated_data
