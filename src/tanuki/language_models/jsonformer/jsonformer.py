@@ -32,6 +32,10 @@ class Jsonformer:
         generation_params: dict,
         max_array_length: int = 100,
     ):
+    
+        """
+        Initialize the Jsonformer class
+        """
         self.model = model
         self.tokenizer = tokenizer
         # add a padding token to the tokenizer if it doesn't already have one
@@ -62,6 +66,9 @@ class Jsonformer:
         self._remove_duplicate_generation_params()
 
     def _remove_duplicate_generation_params(self):
+        """
+        Remove the locked generation params from the generation params
+        """
         for key in self.locked_generation_params:
             if key in self.generation_params:
                 self.generation_params.pop(key)
@@ -76,6 +83,9 @@ class Jsonformer:
                 cprint(value, "blue")
 
     def generate_number(self, temperature: Union[float, None] = None, iterations=0):
+        """
+        Customer decoding for number (int of float) generation
+        """
         prompt = self.get_prompt()
         self.debug("[generate_number]", prompt, is_prompt=True)
         input_tokens = self.tokenizer.encode(prompt, return_tensors="pt").to(
@@ -96,7 +106,8 @@ class Jsonformer:
             pad_token_id=self.tokenizer.eos_token_id,
             **self.generation_params
         )
-
+        # Some models output the prompt as part of the response
+        # This removes the prompt from the response if it is present
         if (
             len(response[0]) >= len(input_tokens[0])
             and (response[0][: len(input_tokens[0])] == input_tokens).all()
@@ -119,6 +130,9 @@ class Jsonformer:
 
 
     def generate_literal(self, literal: list,  temperature: Union[float, None] = None, iterations=0):
+        """
+        Customer decoding for literal (list of allowed options) generation
+        """
         prompt = self.get_prompt()
         self.debug("[generate_literal]", prompt, is_prompt=True)
         input_tokens = self.tokenizer.encode(prompt, return_tensors="pt").to(
@@ -157,6 +171,9 @@ class Jsonformer:
             return options[0]
 
     def generate_string(self, temperature: Union[float, None] = None) -> str:
+        """
+        Customer decoding for string generation
+        """
         prompt = self.get_prompt() + '"'
         self.debug("[generate_string]", prompt, is_prompt=True)
         input_tokens = self.tokenizer.encode(prompt, return_tensors="pt").to(
@@ -199,6 +216,9 @@ class Jsonformer:
     def generate_object(
         self, properties: Dict[str, Any], obj: Dict[str, Any]
     ) -> Dict[str, Any]:
+        """
+        Generate the object with object generation schema
+        """
         for key, schema in properties.items():
             self.debug("[generate_object] generating value for", key)
             obj[key] = self.generate_value(schema, obj, key)
@@ -210,6 +230,9 @@ class Jsonformer:
         obj: Union[Dict[str, Any], List[Any]],
         key: Union[str, None] = None,
     ) -> Any:
+        """
+        Main generation function, given the schema, generate a value
+        """
         schema_type = schema["type"]
         if schema_type in ["int", "float"]:
             if key:
@@ -278,6 +301,9 @@ class Jsonformer:
             raise ValueError(f"Unsupported schema type: {schema_type}")
 
     def generate_collection_simple(self, collection = "list") -> Union[list, tuple, set]:
+        """
+        A simple generation function for collections (list, tuple, set)
+        """
         if collection == "list":
             prompt = self.get_prompt() + "["
 
@@ -366,6 +392,9 @@ class Jsonformer:
         return obj
 
     def get_prompt(self):
+        """
+        Format the prompt for generation
+        """
         template = """{prompt} {progress}"""
         progress = json.dumps(self.value)
         gen_marker_index = progress.find(f"{self.generation_marker}")-1

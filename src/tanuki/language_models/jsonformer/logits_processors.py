@@ -2,6 +2,12 @@ from typing import List
 from transformers import PreTrainedTokenizer, LogitsWarper, StoppingCriteria
 import torch
 
+"""
+This was forked and developed upon 
+https://github.com/1rgs/jsonformer
+All credit for the great idea and implementation goes to the original author
+"""
+
 class StringStoppingCriteria(StoppingCriteria):
     def __init__(self, tokenizer: PreTrainedTokenizer, prompt_length: int):
         self.tokenizer = tokenizer
