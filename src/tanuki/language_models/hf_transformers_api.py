@@ -47,7 +47,7 @@ class HF_Transformers_API(LLM_API):
                                   self.tokenizers[model.model_name], 
                                   model.generator_code,
                                   prompt,
-                                  generation_params)
+                                  generation_params = generation_params)
           generated_data = jsonformer()
         else:
            generated_data = self.generate_with_default_transformers(model, prompt, generation_params)
