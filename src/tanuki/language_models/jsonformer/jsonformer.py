@@ -12,7 +12,11 @@ from transformers import PreTrainedModel, PreTrainedTokenizer
 import json
 
 GENERATION_MARKER = "|GENERATION|"
-
+"""
+This was forked and developed upon 
+https://github.com/1rgs/jsonformer
+All credit for the great idea and implementation goes to the original author
+"""
 
 class Jsonformer:
     value: Dict[str, Any] = {}

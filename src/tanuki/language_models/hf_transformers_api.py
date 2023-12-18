@@ -28,17 +28,26 @@ class HF_Transformers_API(LLM_API):
         if "temperature" not in generation_params:
             generation_params["temperature"] = self.default_temperature
         
+        if "custom_decoding" not in generation_params:
+          custom_decoding = False
+        else:
+          custom_decoding = generation_params["custom_decoding"]
+          del generation_params["custom_decoding"]
+        
         if model.model_name not in self.models:
             self.models[model.model_name] = AutoModelForCausalLM.from_pretrained(model.model_name, **model.model_kwargs)
             self.tokenizers[model.model_name] = AutoTokenizer.from_pretrained(model.model_name)
 
         prompt = self.get_prompt(system_message, prompt, model.chat_template, self.tokenizers[model.model_name])
-        jsonformer = Jsonformer(self.models[model.model_name],
-                                self.tokenizers[model.model_name], 
-                                model.generator_code,
-                                prompt,
-                                generation_params)
-        generated_data = jsonformer()
+        if custom_decoding:
+          jsonformer = Jsonformer(self.models[model.model_name],
+                                  self.tokenizers[model.model_name], 
+                                  model.generator_code,
+                                  prompt,
+                                  generation_params)
+          generated_data = jsonformer()
+        else:
+           generated_data = self.generate_with_default_transformers(model.model_name, prompt, generation_params)
         
         return generated_data
     
@@ -63,65 +72,9 @@ class HF_Transformers_API(LLM_API):
               model_specific_prompt = chat_template.format(system_message=system_message, user_prompt=prompt)
         return model_specific_prompt
     
-        #temperature = kwargs.get("temperature", 0.1)
-        #top_p = kwargs.get("top_p", 1)
-        #frequency_penalty = kwargs.get("frequency_penalty", 0)
-        #presence_penalty = kwargs.get("presence_penalty", 0)
-        
-        ## check if there are any generation parameters that are not supported
-        #unsupported_params = [param for param in kwargs.keys() if param not in LLM_GENERATION_PARAMETERS]
-        #if len(unsupported_params) > 0:
-        #    # log warning
-        #    logging.warning(f"Unused generation parameters sent as input: {unsupported_params}."\
-        #                     "For OpenAI, only the following parameters are supported: {LLM_GENERATION_PARAMETERS}")
-        #params = {
-        #    "model": model.model_name,
-        #    "temperature": temperature,
-        #    "max_tokens": max_new_tokens,
-        #    "top_p": top_p,
-        #    "frequency_penalty": frequency_penalty,
-        #    "presence_penalty": presence_penalty,
-        #}
-        #messages = [
-        #    {
-        #        "role": "system",
-        #        "content": system_message
-        #    },
-        #    {
-        #        "role": "user",
-        #        "content": prompt
-        #    }
-        #]
-        #params["messages"] = messages
-#
-        #counter = 0
-        #choice = None
-        ## initiate response so exception logic doesnt error out when checking for error in response
-        #response = {}
-        #while counter <= 5:
-        #    try:
-        #        openai_headers = {
-        #            "Authorization": f"Bearer {self.api_key}",
-        #            "Content-Type": "application/json",
-        #        }
-        #        response = requests.post(
-        #            OPENAI_URL, headers=openai_headers, json=params, timeout=50
-        #        )
-        #        response = response.json()
-        #        choice = response["choices"][0]["message"]["content"].strip("'")
-        #        break
-        #    except Exception as e:
-        #        if ("error" in response and
-        #                "code" in response["error"] and
-        #                response["error"]["code"] == 'invalid_api_key'):
-        #            raise Exception(f"The supplied OpenAI API key {self.api_key} is invalid")
-        #        if counter == 5:
-        #            raise Exception(f"OpenAI API failed to generate a response: {e}")
-        #        counter += 1
-        #        time.sleep(2 ** counter)
-        #        continue
-#
-        #if not choice:
-        #    raise Exception("OpenAI API failed to generate a response")
-#
-        #return choice
+    def generate_with_default_transformers(self, model_name, prompt, generation_params):
+      input_tokens = self.tokenizers[model_name](prompt, return_tensors="pt")
+      input_ids = input_tokens.input_ids
+      generated_ids = self.models[model_name].generate(input_ids, **generation_params)
+      generated_data = self.tokenizers[model_name].batch_decode(generated_ids, skip_special_tokens=True)
+      return generated_data

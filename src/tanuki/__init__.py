@@ -75,7 +75,9 @@ logging.basicConfig(level=ALIGN_LEVEL_NUM)
 logger = logger_factory(__name__)
 
 
-api_providers = {"openai": OpenAI_API(), "llama_bedrock": LLama_Bedrock_API(), "hf_transformers": HF_Transformers_API()}
+api_providers = {"openai": OpenAI_API(), 
+                 "llama_bedrock": LLama_Bedrock_API(), 
+                 "hf_transformers": HF_Transformers_API()}
 # currently only use buffered logger as default
 function_modeler = FunctionModeler(data_worker=logger, api_providers=api_providers)
 language_modeler = LanguageModelManager(function_modeler, api_providers=api_providers)
