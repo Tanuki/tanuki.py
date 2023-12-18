@@ -125,7 +125,7 @@ class Jsonformer:
             if iterations > 3:
                 raise ValueError("Failed to generate a valid number")
 
-            return self.generate_number(temperature=self.temperature * 1.3)
+            return self.generate_number(temperature=temperature * 1.3, iterations=iterations+1)
 
 
 
@@ -166,7 +166,7 @@ class Jsonformer:
         if len(options) != 1:
             if iterations > 3:
                 raise ValueError("Failed to generate a valid literal")
-            return self.generate_literal(literal, temperature=self.temperature * 1.3, iterations=iterations+1)
+            return self.generate_literal(literal, temperature=temperature * 1.3, iterations=iterations+1)
         else:
             return options[0]
 
@@ -300,7 +300,7 @@ class Jsonformer:
         else:
             raise ValueError(f"Unsupported schema type: {schema_type}")
 
-    def generate_collection_simple(self, collection = "list") -> Union[list, tuple, set]:
+    def generate_collection_simple(self, collection = "list", temperature: Union[float, None] = None, iterations=0) -> Union[list, tuple, set]:
         """
         A simple generation function for collections (list, tuple, set)
         """
@@ -314,12 +314,14 @@ class Jsonformer:
         input_tokens = self.tokenizer.encode(prompt, return_tensors="pt").to(
             self.model.device
         )
-
+        temperature = temperature or self.temperature
+        do_sample = True if temperature > 0 else False
         response = self.model.generate(
             input_tokens,
+            do_sample = do_sample,
             max_new_tokens=self.max_string_token_length,
             num_return_sequences=1,
-            temperature=self.temperature,
+            temperature=temperature,
             pad_token_id=self.tokenizer.eos_token_id,
             **self.generation_params
         )
@@ -353,7 +355,9 @@ class Jsonformer:
         try:
             final_expression = eval(string_expression)
         except:
-            final_expression = eval(string_expression)
+            if iterations > 3:
+                raise ValueError(f"Failed to generate a valid collection of type {collection}")
+            return self.generate_collection_simple(collection, temperature=temperature * 1.3, iterations=iterations+1)
         return final_expression
 
 
