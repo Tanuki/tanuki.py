@@ -1,6 +1,7 @@
 from tanuki.language_models.llm_configs.abc_base_config import BaseModelConfig
 from tanuki.language_models.llm_configs.openai_config import OpenAI_Config
 from tanuki.language_models.llm_configs.llama_config import Llama_Bedrock_Config
+from tanuki.language_models.llm_configs.hf_model_config import HFModelConfig
 from typing import Union
 from tanuki.language_models.llm_configs.default_models import DEFAULT_MODELS
 
@@ -26,6 +27,8 @@ class ModelConfigFactory:
                 return OpenAI_Config(**input_config)
             elif input_config["provider"] == "llama_bedrock":
                 return Llama_Bedrock_Config(**input_config)
+            elif input_config["provider"] == "hf_transformers":
+                return HFModelConfig(**input_config)
             else:
                 try:
                     return BaseModelConfig(**input_config)
