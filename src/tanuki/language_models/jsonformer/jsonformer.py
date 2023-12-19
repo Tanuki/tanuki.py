@@ -307,7 +307,7 @@ class Jsonformer:
         if collection == "list":
             prompt = self.get_prompt() + "["
 
-        if collection == "tuple":
+        if collection in ["tuple", "set"]:
             prompt = self.get_prompt() + "("
 
         self.debug("[generate_array_simple]", prompt, is_prompt=True)
@@ -342,13 +342,13 @@ class Jsonformer:
 
         if collection == "list":
             if response.count("]") < 1:
-                response.append("']")
+                response += "']"
             final_index = response.find("]")
             string_expression = "[" + response[:final_index+1]
 
-        if collection == "tuple":
+        if collection in ["tuple", "set"]:
             if response.count(")") < 1:
-                response.append("')")
+                response += "')"
             final_index = response.find(")")
             string_expression = "(" + response[:final_index+1]
         print(string_expression)
