@@ -8,7 +8,7 @@ from tanuki.models.function_example import FunctionExample
 from tanuki.models.language_model_output import LanguageModelOutput
 from tanuki.utils import approximate_token_count
 from tanuki.validator import Validator
-
+from tanuki.models.api_manager import APIManager
 
 class LanguageModelManager(object):
     """
@@ -22,9 +22,9 @@ class LanguageModelManager(object):
 
     def __init__(self,
                  function_modeler: FunctionModeler,
-                 generation_token_limit=512,
-                 api_providers: Dict[str, LLM_API] = None) -> None:
-        self.api_providers = api_providers
+                 api_provider: APIManager,
+                 generation_token_limit=512,) -> None:
+        self.api_provider = api_provider
         self.function_modeler = function_modeler
         self.instruction = "You are given below a function description and input data. The function description of what the function must carry out can be found in the Function section, with input and output type hints. The input data can be found in Input section. Using the function description, apply the function to the Input and return a valid output type, that is acceptable by the output_class_definition and output_class_hint. Return None if you can't apply the function to the input or if the output is optional and the correct output is None.\nINCREDIBLY IMPORTANT: Only output a JSON-compatible string in the correct response format."
         self.system_message = f"You are a skillful and accurate language model, who applies a described function on input data. Make sure the function is applied accurately and correctly and the outputs follow the output type hints and are valid outputs given the output types."
@@ -105,11 +105,11 @@ class LanguageModelManager(object):
 
         """
         system_message = model.system_message if model.system_message else self.system_message
-        if model.provider not in self.api_providers:
+        if model.provider not in self.api_provider.keys():
             raise ValueError(f"Model provider {model.provider} not found in api_providers."\
                               "If you have integrated a new provider, please add it to the api_providers dict in the LanguageModelManager constructor"\
                               "and create a relevant API class to carry out the synthesis")
-        return self.api_providers[model.provider].generate(model, system_message, prompt, **llm_parameters)
+        return self.api_provider[model.provider].generate(model, system_message, prompt, **llm_parameters)
 
 
     def get_generation_case(self, args, kwargs, function_description, llm_parameters):
