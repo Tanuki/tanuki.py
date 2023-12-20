@@ -579,8 +579,9 @@ class Validator:
 
         if origin == list:
             schema["type"] = "list"
+            schema["properties"] = []
             for arg in args:
-                schema["properties"] = self.create_generation_code(arg)
+                schema["properties"].append(self.create_generation_code(arg))
             return schema
 
         if origin == Literal:

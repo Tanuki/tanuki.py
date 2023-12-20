@@ -31,11 +31,11 @@ class HF_Transformers_API(LLM_API):
         if "temperature" not in generation_params:
             generation_params["temperature"] = self.default_temperature
         
-        if "json_decoding" not in generation_params:
+        if "structural_decoding" not in generation_params:
           custom_decoding = False
         else:
-          custom_decoding = generation_params["json_decoding"]
-          del generation_params["json_decoding"]
+          custom_decoding = generation_params["structural_decoding"]
+          del generation_params["structural_decoding"]
         
         if model.model_name not in self.models:
             self.models[model.model_name] = AutoModelForCausalLM.from_pretrained(model.model_name, **model.model_kwargs)
