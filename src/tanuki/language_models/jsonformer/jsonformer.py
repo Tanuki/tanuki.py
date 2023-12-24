@@ -10,7 +10,7 @@ from tanuki.language_models.jsonformer.logits_processors import (
 from termcolor import cprint
 from transformers import PreTrainedModel, PreTrainedTokenizer
 import json
-
+import copy
 GENERATION_MARKER = "|GENERATION|"
 """
 This was forked and developed upon 
@@ -266,29 +266,14 @@ class Jsonformer:
             else:
                 obj.append(self.generation_marker)
             return self.generate_string()
-        elif schema_type == "list":
-            new_array = []
+        elif schema_type in ["list", "tuple", "set"]:
+            # WE NEED A SEPARATE GEN ARRAY FUNCTION
             if key:
-                obj[key] = new_array
+                obj[key] = self.generation_marker
             else:
-                obj.append(new_array)
-            return self.generate_collection_simple(collection="list")
-
-        elif schema_type == "tuple":
-            new_array = []
-            if key:
-                obj[key] = new_array
-            else:
-                obj.append(new_array)
-            return self.generate_collection_simple(collection="tuple")
-
-        elif schema_type == "set":
-            new_array = []
-            if key:
-                obj[key] = new_array
-            else:
-                obj.append(new_array)
-            return set(self.generate_collection_simple(collection="list"))
+                obj.append(self.generation_marker)
+            output = self.generate_array(collection=schema_type)
+            return output
 
         elif schema_type == "object":
             new_obj = {}
@@ -358,42 +343,85 @@ class Jsonformer:
             if iterations > 3:
                 raise ValueError(f"Failed to generate a valid collection of type {collection}")
             return self.generate_collection_simple(collection, temperature=temperature * 1.3, iterations=iterations+1)
+        
+        if collection == "set":
+            return set(final_expression)
+        elif collection == "tuple":
+            return tuple(final_expression)
         return final_expression
 
 
-    def generate_array(self, item_schema: Dict[str, Any], obj: Dict[str, Any]) -> list:
-        for _ in range(self.max_array_length):
-            # forces array to have at least one element
-            element = self.generate_value(item_schema, obj)
-            obj[-1] = element
+    def generate_array(self, item_schema: Dict[str, Any], obj: Dict[str, Any], collection: str) -> Union[list, tuple, set]:
+        if collection == "list":
+            start_token = "["
+            end_token = "]"
+        elif collection in ["tuple", "set"]:
+            start_token = "("
+            end_token = ")"
 
-            obj.append(self.generation_marker)
-            input_prompt = self.get_prompt()
-            obj.pop()
-            input_tensor = self.tokenizer.encode(input_prompt, return_tensors="pt")
+        element_tracker = []
+        for _ in range(self.max_array_length):
+            if collection == "list":
+                obj = copy.deepcopy(element_tracker) + [self.generation_marker]
+            elif collection in ["tuple", "set"]:
+                obj = tuple(copy.deepcopy(element_tracker) + [self.generation_marker])
+            prompt = self.get_prompt()
+            # first check if need to close and return the sequence
+            input_tensor = self.tokenizer.encode(prompt, return_tensors="pt")
             output = self.model.forward(input_tensor.to(self.model.device))
             logits = output.logits[0, -1]
-
-
             top_indices = logits.topk(30).indices
             sorted_token_ids = top_indices[logits[top_indices].argsort(descending=True)]
 
-            found_comma = False
-            found_close_bracket = False
-
-            for token_id in sorted_token_ids:
+            found_comma = -1
+            found_close_bracket = -1
+            # get the , token id
+            comma_token_id = self.tokenizer.encode(",")[0]
+            end_token_id = self.tokenizer.encode(end_token)[0]
+            for idx, token_id in enumerate(sorted_token_ids):
                 decoded_token = self.tokenizer.decode(token_id)
                 if ',' in decoded_token:
-                    found_comma = True
+                    found_comma = idx
+                    
+                if end_token in decoded_token:
+                    found_close_bracket = idx
+            
+            if len(element_tracker) == 0: # special case for the first case generation
+                if found_close_bracket != 1: # continue if the first token is not the end token
+                    continue
+                else: # if the frist token was the end token, return the empty array
                     break
-                if ']' in decoded_token:
-                    found_close_bracket = True
-                    break
-
-            if found_close_bracket or not found_comma:
+            if found_comma == -1 and found_close_bracket == -1:
                 break
 
+            if found_comma < found_close_bracket:
+                break
+
+            # forces array to have at least one element
+            element = self.generate_value(item_schema, [])
+            element_tracker.append(element)
+
+
+        if collection == "list":
+            obj = list(element_tracker)
+        elif collection in ["tuple"]:
+            obj = tuple(element_tracker)
+        elif collection in ["set"]:
+            obj = set(element_tracker)
         return obj
+
+
+    def generate_array_object(self, schema: dict, obj) -> Union[list, tuple, set]:
+        # currently support schemas with only 1 type
+        if len(schema["properties"]) > 1:
+                raise ValueError(
+                    "We currently only support arrays with 1 typehint for items"
+                )
+        generated_data = self.generate_array(
+            self.json_schema["properties"][0], obj, self.json_schema["type"]
+        )
+
+        return generated_data
 
     def get_prompt(self):
         """
@@ -402,9 +430,9 @@ class Jsonformer:
         template = """{prompt} {progress}"""
         progress = json.dumps(self.value)
         gen_marker_index = progress.find(f"{self.generation_marker}")-1
-        if gen_marker_index != -1:
+        if gen_marker_index >= 0:
             progress = progress[:gen_marker_index]
-        else:
+        elif progress != "{}":
             raise ValueError("Failed to find generation marker")
 
         prompt = template.format(
@@ -414,13 +442,19 @@ class Jsonformer:
         )
 
         return prompt
-
+    
     def __call__(self) -> Dict[str, Any]:
-        self.value = {}
         if self.json_schema["type"] == "object":
+            self.value = {}
             generated_data = self.generate_object(
                 self.json_schema["properties"], self.value
             )
+        elif self.json_schema["type"] in ["list", "tuple", "set"]:
+            self.value = [self.generation_marker]
+            generated_data = self.generate_array_object(
+                self.json_schema, self.value
+            )
+        
         else:
             generated_data = self.generate_value(self.json_schema, [])
         return generated_data
