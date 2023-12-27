@@ -577,8 +577,13 @@ class Validator:
         origin = get_origin(type_definition) or type_definition
         args = get_args(type_definition)
 
-        if origin == list:
-            schema["type"] = "list"
+        if origin in [list, tuple, set]:
+            if origin == list:
+                schema["type"] = "list"
+            elif origin == tuple:
+                schema["type"] = "tuple"
+            elif origin == set:
+                schema["type"] = "set"
             schema["properties"] = []
             for arg in args:
                 schema["properties"].append(self.create_generation_code(arg))

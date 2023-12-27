@@ -267,12 +267,13 @@ class Jsonformer:
                 obj.append(self.generation_marker)
             return self.generate_string()
         elif schema_type in ["list", "tuple", "set"]:
-            # WE NEED A SEPARATE GEN ARRAY FUNCTION
             if key:
-                obj[key] = self.generation_marker
+                obj[key] = [self.generation_marker]
             else:
                 obj.append(self.generation_marker)
-            output = self.generate_array(collection=schema_type)
+            output = self.generate_array(item_schema= schema["properties"][0], 
+                                         obj = obj[key],
+                                         collection=schema_type)
             return output
 
         elif schema_type == "object":
@@ -351,21 +352,13 @@ class Jsonformer:
         return final_expression
 
 
-    def generate_array(self, item_schema: Dict[str, Any], obj: Dict[str, Any], collection: str) -> Union[list, tuple, set]:
-        if collection == "list":
-            start_token = "["
-            end_token = "]"
-        elif collection in ["tuple", "set"]:
-            start_token = "("
-            end_token = ")"
-
-        element_tracker = []
+    def generate_array(self, item_schema: Dict[str, Any], obj: List, collection: str) -> Union[list, tuple, set]:
+    
+        end_token = "]"
         for _ in range(self.max_array_length):
-            if collection == "list":
-                obj = copy.deepcopy(element_tracker) + [self.generation_marker]
-            elif collection in ["tuple", "set"]:
-                obj = tuple(copy.deepcopy(element_tracker) + [self.generation_marker])
             prompt = self.get_prompt()
+            # check if the second 2 last elements are ", "
+            prompt = prompt.rstrip(", ")
             # first check if need to close and return the sequence
             input_tensor = self.tokenizer.encode(prompt, return_tensors="pt")
             output = self.model.forward(input_tensor.to(self.model.device))
@@ -376,39 +369,35 @@ class Jsonformer:
             found_comma = -1
             found_close_bracket = -1
             # get the , token id
-            comma_token_id = self.tokenizer.encode(",")[0]
-            end_token_id = self.tokenizer.encode(end_token)[0]
             for idx, token_id in enumerate(sorted_token_ids):
                 decoded_token = self.tokenizer.decode(token_id)
-                if ',' in decoded_token:
+                if ',' in decoded_token and found_comma == -1:
                     found_comma = idx
                     
-                if end_token in decoded_token:
+                if end_token in decoded_token and found_close_bracket == -1:
                     found_close_bracket = idx
             
-            if len(element_tracker) == 0: # special case for the first case generation
-                if found_close_bracket != 1: # continue if the first token is not the end token
-                    continue
-                else: # if the frist token was the end token, return the empty array
+            if len(obj) == 1: # special case for the first case generation
+                # if the frist token was the end token, return the empty array
+                if found_close_bracket == 0:
                     break
-            if found_comma == -1 and found_close_bracket == -1:
-                break
+            else:
+                if found_comma == -1 and found_close_bracket == -1:
+                    break
+                # if found close bracket had a smaller index, then we should stop
+                if found_comma >= found_close_bracket:
+                    break
 
-            if found_comma < found_close_bracket:
-                break
-
-            # forces array to have at least one element
+            # generate an element into the array if the stopping conditions werent met
             element = self.generate_value(item_schema, [])
-            element_tracker.append(element)
+            # add the element as the second to last element
+            obj.insert(-1, element)
 
-
-        if collection == "list":
-            obj = list(element_tracker)
-        elif collection in ["tuple"]:
-            obj = tuple(element_tracker)
-        elif collection in ["set"]:
-            obj = set(element_tracker)
+        # remove the generation marker
+        obj.pop(-1)
         return obj
+
+
 
 
     def generate_array_object(self, schema: dict, obj) -> Union[list, tuple, set]:
@@ -420,7 +409,10 @@ class Jsonformer:
         generated_data = self.generate_array(
             self.json_schema["properties"][0], obj, self.json_schema["type"]
         )
-
+        if schema["type"] == "tuple":
+            generated_data = tuple(generated_data)
+        elif schema["type"] == "set":
+            generated_data = set(generated_data)
         return generated_data
 
     def get_prompt(self):
