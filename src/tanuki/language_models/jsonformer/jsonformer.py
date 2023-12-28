@@ -53,7 +53,6 @@ class Jsonformer:
 
         self.max_array_length = max_array_length
         self.max_number_tokens = generation_params.get("max_new_tokens")
-        self.max_string_token_length = self.max_number_tokens
         self.generation_params.pop("max_new_tokens")
         self.temperature = generation_params["temperature"]
         self.generation_params.pop("temperature")
@@ -185,7 +184,7 @@ class Jsonformer:
         response = self.model.generate(
             input_tokens,
             do_sample = do_sample,
-            max_new_tokens=self.max_string_token_length,
+            max_new_tokens=self.max_number_tokens,
             num_return_sequences=1,
             temperature=temperature,
             stopping_criteria=[
@@ -326,7 +325,7 @@ class Jsonformer:
         response = self.model.generate(
             input_tokens,
             do_sample = do_sample,
-            max_new_tokens=self.max_string_token_length,
+            max_new_tokens=self.max_number_tokens,
             num_return_sequences=1,
             temperature=temperature,
             pad_token_id=self.tokenizer.eos_token_id,
@@ -376,6 +375,7 @@ class Jsonformer:
     def generate_array(self, item_schema: Dict[str, Any], obj: List, collection: str) -> Union[list, tuple, set]:
     
         end_token = "]"
+        self.max_number_tokens -= 2 # for the start and end token
         for _ in range(self.max_array_length):
             prompt = self.get_prompt()
             # check if the second 2 last elements are ", "
@@ -411,6 +411,10 @@ class Jsonformer:
 
             # generate an element into the array if the stopping conditions werent met
             element = self.generate_value(item_schema, [])
+            element_tokens = self.tokenizer.encode(element) + 1 # for the comma
+            if element_tokens > self.max_number_tokens:
+                break
+            self.max_number_tokens -= element_tokens
             # add the element as the second to last element
             obj.insert(-1, element)
 
