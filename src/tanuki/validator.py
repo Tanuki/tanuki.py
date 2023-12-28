@@ -566,7 +566,7 @@ class Validator:
         schema = {}
         # any
         if type_definition is Any:
-            schema["type"] = "any"
+            schema["type"] = "Any"
             return schema
 
         # int str float bool
@@ -589,12 +589,26 @@ class Validator:
                 schema["properties"].append(self.create_generation_code(arg))
             return schema
 
+        if origin == Union:
+            schema["type"] = "Union"
+            schema["properties"] = []
+            for arg in args:
+                schema["properties"].append(self.create_generation_code(arg))
+            return schema
+            
         if origin == Literal:
             str_args = [f"{arg}" if not isinstance(arg, str) else f"\'{arg}\'" for arg in args]
             return {"type": "literal", "str_options": str_args, "original_options": args}
+
+        if origin == dict:
+            schema["type"] = "dict"
+            schema["properties"] = []
+            for arg in args:
+                schema["properties"].append(self.create_generation_code(arg))
+            return schema
         
         if self.is_pydantic_model(origin):
-            schema["type"] = "object"
+            schema["type"] = "pydantic_object"
             schema["properties"] = {}
             # get all arguments and their types from origin
             for arg, arg_type in origin.__annotations__.items():

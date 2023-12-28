@@ -47,6 +47,7 @@ class Jsonformer:
         self.number_logit_processor = OutputNumbersTokens(self.tokenizer, self.prompt)
 
         self.generation_marker = "|GENERATION|"
+        self.supported_schema_types = ["int", "float", "bool", "literal", "str", "list", "tuple", "set", "pydantic_object"]
         self.debug_on = debug
         self.generation_params = generation_params
 
@@ -221,6 +222,10 @@ class Jsonformer:
         """
         for key, schema in properties.items():
             self.debug("[generate_object] generating value for", key)
+            #if len(schema["properties"]) != 1:
+            #    raise ValueError(
+            #        "We currently only support objects where each attribute has only one typehint"
+            #    )
             obj[key] = self.generate_value(schema, obj, key)
         return obj
 
@@ -233,7 +238,18 @@ class Jsonformer:
         """
         Main generation function, given the schema, generate a value
         """
-        schema_type = schema["type"]
+        try:
+            schema_type = schema["type"]
+            if schema_type not in self.supported_schema_types:
+                raise ValueError(f"The schema type {schema_type} is not supported yet for custom decoding. "\
+                                  f"The following schemas are supported {self.supported_schema_types}. "\
+                                    f"For {schema_type} please use the normal decoding or a different model.")
+        except KeyError:
+            raise ValueError(f"The schema type {schema} is not supported yet for custom decoding. "\
+                                  f"A combination of following schemas are supported {self.supported_schema_types}. "\
+                                    f"For {schema} please use the normal decoding or a different model.")
+        
+
         if schema_type in ["int", "float"]:
             if key:
                 obj[key] = self.generation_marker
@@ -271,12 +287,17 @@ class Jsonformer:
                 obj[key] = [self.generation_marker]
             else:
                 obj.append(self.generation_marker)
+            if len(schema["properties"]) != 1:
+                raise ValueError(
+                    "We currently only support arrays with 1 typehint for items. "\
+                    f"Attribute {key} has {len(schema['properties'])} typehints set."
+                )
             output = self.generate_array(item_schema= schema["properties"][0], 
                                          obj = obj[key],
                                          collection=schema_type)
             return output
 
-        elif schema_type == "object":
+        elif schema_type == "pydantic_object":
             new_obj = {}
             if key:
                 obj[key] = new_obj
@@ -284,7 +305,7 @@ class Jsonformer:
                 obj.append(new_obj)
             return self.generate_object(schema["properties"], new_obj)
         else:
-            raise ValueError(f"Unsupported schema type: {schema_type}")
+            raise ValueError(f"The schema type {schema_type} is not supported yet for custom decoding. Please use the normal decoding or a different model.")
 
     def generate_collection_simple(self, collection = "list", temperature: Union[float, None] = None, iterations=0) -> Union[list, tuple, set]:
         """
@@ -402,9 +423,9 @@ class Jsonformer:
 
     def generate_array_object(self, schema: dict, obj) -> Union[list, tuple, set]:
         # currently support schemas with only 1 type
-        if len(schema["properties"]) > 1:
+        if len(schema["properties"]) != 1:
                 raise ValueError(
-                    "We currently only support arrays with 1 typehint for items"
+                    "We currently only support custom decoding with arrays with exactly 1 typehint for items"
                 )
         generated_data = self.generate_array(
             self.json_schema["properties"][0], obj, self.json_schema["type"]
@@ -436,7 +457,7 @@ class Jsonformer:
         return prompt
     
     def __call__(self) -> Dict[str, Any]:
-        if self.json_schema["type"] == "object":
+        if self.json_schema["type"] == "pydantic_object":
             self.value = {}
             generated_data = self.generate_object(
                 self.json_schema["properties"], self.value
