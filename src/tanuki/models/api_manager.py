@@ -41,7 +41,8 @@ class APIManager(object):
                 from tanuki.language_models.Llama_bedrock_api import LLama_Bedrock_API
                 self.api_providers[provider] = LLama_Bedrock_API()
             except ImportError:
-                raise Exception(f"You need to install the Tanuki {provider} package to use the {provider} api provider")
+                raise Exception(f"You need to install the Tanuki aws_bedrock package to use the llama_bedrock api provider."\
+                                 "Please install it as pip install tanuki[aws_bedrock]")
         else:
             raise Exception(f"Provider {provider} is not supported")
 
