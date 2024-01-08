@@ -105,10 +105,6 @@ class LanguageModelManager(object):
 
         """
         system_message = model.system_message if model.system_message else self.system_message
-        if model.provider not in self.api_provider.keys():
-            raise ValueError(f"Model provider {model.provider} not found in api_providers."\
-                              "If you have integrated a new provider, please add it to the api_providers dict in the LanguageModelManager constructor"\
-                              "and create a relevant API class to carry out the synthesis")
         return self.api_provider[model.provider].generate(model, system_message, prompt, **llm_parameters)
 
 
