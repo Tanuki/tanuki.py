@@ -24,6 +24,13 @@ setup(
         "pydantic==2.4.2",
         "requests~=2.31.0"
     ],
+    extras_require={
+        'aws_bedrock': [
+            "boto3==1.33.1",
+            "botocore==1.33.1",
+            # Add any additional dependencies for the optional feature here
+        ],
+    },
     classifiers=[
         'Development Status :: 3 - Alpha',
         # Chose either "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package
