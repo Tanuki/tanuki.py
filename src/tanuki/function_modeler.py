@@ -7,9 +7,9 @@ from typing import List, Tuple, Dict
 import openai
 
 from tanuki.constants import EXAMPLE_ELEMENT_LIMIT, PATCHES, SYMBOLIC_ALIGNMENTS, POSITIVE_EMBEDDABLE_ALIGNMENTS, \
-    NEGATIVE_EMBEDDABLE_ALIGNMENTS
-from tanuki.language_models.llm_configs.openai_config import OpenAIConfig
-from tanuki.language_models.llm_configs.default_models import DEFAULT_MODELS
+    NEGATIVE_EMBEDDABLE_ALIGNMENTS, OPENAI_PROVIDER
+from tanuki.models.function_type import FunctionType
+from tanuki.language_models.llm_configs import DEFAULT_GENERATIVE_MODELS, DEFAULT_EMBEDDING_MODELS
 from tanuki.language_models.llm_configs.abc_base_config import BaseModelConfig
 from tanuki.language_models.llm_finetune_api_abc import LLM_Finetune_API
 from tanuki.models.finetune_job import FinetuneJob
@@ -49,7 +49,10 @@ class FunctionModeler(object):
         """
         return self.data_worker.load_dataset(dataset_type, func_hash, return_type=type)
     
-    def _configure_teacher_models(self, teacher_models: list, func_hash: str):
+    def _configure_teacher_models(self,
+                                    teacher_models: list[str, BaseModelConfig],
+                                    func_hash: str,
+                                    task_type: str):
         """
         Add custom teacher models to the function config
         First this is added to the teacher_models_override dict, which is used to override the teacher models
@@ -59,16 +62,20 @@ class FunctionModeler(object):
         """
         if func_hash not in self.teacher_models_override:
                 self.teacher_models_override[func_hash] = []
+        if task_type == FunctionType.EMBEDDABLE:
+            preconfigured_models = DEFAULT_EMBEDDING_MODELS
+        elif task_type == FunctionType.SYMBOLIC:
+            preconfigured_models = DEFAULT_GENERATIVE_MODELS
         for model in teacher_models:
             if isinstance(model, str):
-                if model not in DEFAULT_MODELS:
+                if model not in preconfigured_models:
                     raise Exception(f"Teacher model {model} not supported by default. Please include it in the list in extended config format")
-                model_config = DEFAULT_MODELS[model]
+                model_config = preconfigured_models[model]
             elif isinstance(model, BaseModelConfig):
                 model_config = model
             self.teacher_models_override[func_hash].append(model_config)
             # currently ban all non-openai models from finetuning because it doesnt make sense 
-            if model_config.provider != "openai" and func_hash not in self.check_finetune_blacklist:
+            if model_config.provider != OPENAI_PROVIDER and func_hash not in self.check_finetune_blacklist:
                 self.check_finetune_blacklist.append(func_hash)
 
     def _get_datasets(self):

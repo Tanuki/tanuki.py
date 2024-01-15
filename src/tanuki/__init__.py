@@ -299,8 +299,11 @@ def patch(patchable_func=None,
             function_modeler.check_finetune_blacklist.append(func_hash)
         if ignore_data_storage:
             function_modeler.store_data_blacklist.append(func_hash)
+        task_type = function_description.type
         if len(teacher_models) > 0:
-            function_modeler._configure_teacher_models(teacher_models, func_hash)
+            function_modeler._configure_teacher_models(teacher_models,
+                                                        func_hash,
+                                                        task_type)
         _load_alignments(func_hash)
 
         wrapper._is_alignable = True
