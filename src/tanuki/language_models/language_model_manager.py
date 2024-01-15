@@ -9,7 +9,7 @@ from tanuki.models.language_model_output import LanguageModelOutput
 from tanuki.utils import approximate_token_count
 from tanuki.validator import Validator
 from tanuki.models.api_manager import APIManager
-
+import logging
 class LanguageModelManager(object):
     """
     The LanguageModelManager is responsible for managing the language models and their outputs operationally,
@@ -33,6 +33,7 @@ class LanguageModelManager(object):
         self.system_message_token_count = approximate_token_count(self.system_message)
         self.repair_instruction = "Below are an outputs of a function applied to inputs, which failed type validation. The input to the function is brought out in the INPUT section and function description is brought out in the FUNCTION DESCRIPTION section. Your task is to apply the function to the input and return a correct output in the right type. The FAILED EXAMPLES section will show previous outputs of this function applied to the data, which failed type validation and hence are wrong outputs. Using the input and function description output the accurate output following the output_class_definition and output_type_hint attributes of the function description, which define the output type. Make sure the output is an accurate function output and in the correct type. Return None if you can't apply the function to the input or if the output is optional and the correct output is None."
         self.default_generation_length = generation_token_limit
+        self.current_generators = {}
 
     def __call__(self,
                  args,
@@ -89,6 +90,15 @@ class LanguageModelManager(object):
         prompt, model, save_to_finetune, is_distilled_model = self.get_generation_case(args, kwargs,
                                                                                        function_description,
                                                                                        llm_parameters)
+        func_hash = function_description.__hash__()
+        # loggings
+        if func_hash not in self.current_generators:
+            logging.info(f"Generating function outputs with {model.model_name}")
+            self.current_generators[func_hash] = model.model_name
+        elif self.current_generators[func_hash] != model.model_name:
+            logging.info(f"Switching output generation from {self.current_generators[func_hash]} to {model.model_name}")
+            self.current_generators[func_hash] = model.model_name
+
         choice = self._synthesise_answer(prompt, model, llm_parameters)
         output = LanguageModelOutput(choice, save_to_finetune, is_distilled_model)
         return output
@@ -194,6 +204,7 @@ class LanguageModelManager(object):
                                               len(examples))
         if model:
             prompt = self.generate_repair_prompt(args, kwargs, f, failed_outputs_list, examples, model)
+            logging.info(f"Previous output failed type validation, attempting to repair with {model.model_name}")
             choice = self._synthesise_answer(prompt, model, llm_parameters)
             return choice
         else:
@@ -318,5 +329,7 @@ class LanguageModelManager(object):
                 error = f"Output type was not valid. Expected an object of type {function_description.output_type_hint}, got '{choice}'"
                 failed_outputs_list.append((choice, error))
                 retry_index -= 1
+            if valid:
+                logging.info(f"Successfully repaired output.")
 
         return choice, choice_parsed, valid

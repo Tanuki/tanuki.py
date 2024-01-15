@@ -1,6 +1,6 @@
 import json
 from typing import Any, Dict
-
+from tanuki.constants import OPENAI_PROVIDER, LLAMA_BEDROCK_PROVIDER, TITAN_BEDROCK_PROVIDER
 
 
 class APIManager(object):
@@ -30,18 +30,25 @@ class APIManager(object):
         """
         Adds an API provider to the API manager.
         """
-        if provider =="openai":
+        if provider == OPENAI_PROVIDER:
             try:
                 from tanuki.language_models.openai_api import OpenAI_API
                 self.api_providers[provider] = OpenAI_API()
             except ImportError:
                 raise Exception(f"You need to install the Tanuki {provider} package to use the {provider} api provider")
-        elif provider == "llama_bedrock":
+        elif provider == LLAMA_BEDROCK_PROVIDER:
             try:
-                from tanuki.language_models.Llama_bedrock_api import LLama_Bedrock_API
+                from tanuki.language_models.llama_bedrock_api import LLama_Bedrock_API
                 self.api_providers[provider] = LLama_Bedrock_API()
             except ImportError:
                 raise Exception(f"You need to install the Tanuki aws_bedrock package to use the llama_bedrock api provider."\
+                                 "Please install it as pip install tanuki.py[aws_bedrock]")
+        elif provider == TITAN_BEDROCK_PROVIDER:
+            try:
+                from tanuki.language_models.titan_bedrock_api import Titan_Bedrock_API
+                self.api_providers[provider] = Titan_Bedrock_API()
+            except ImportError:
+                raise Exception(f"You need to install the Tanuki aws_bedrock package to use the titan_bedrock api provider."\
                                  "Please install it as pip install tanuki.py[aws_bedrock]")
         else:
             raise Exception(f"Model provider {provider} is currently not supported."\
