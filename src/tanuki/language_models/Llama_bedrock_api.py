@@ -50,7 +50,8 @@ class LLama_Bedrock_API(Bedrock_API):
             "top_p": top_p,
         })
 
-        choice = self.send_api_request(model, body)
+        response_body = self.send_api_request(model, body)
+        choice = response_body.get("generation")
         if model.parsing_helper_tokens["end_token"]:
             # remove the end token from the choice
             choice = choice.split(model.parsing_helper_tokens["end_token"])[0]

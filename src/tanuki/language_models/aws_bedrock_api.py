@@ -30,7 +30,7 @@ class Bedrock_API(LLM_API):
         # check the runtime access
         self.check_runtime()
         counter = 0
-        choice = None
+        response_body = None
         # initiate response so exception logic doesnt error out when checking for error in response
         response = {}
         while counter <= 5:
@@ -40,7 +40,6 @@ class Bedrock_API(LLM_API):
                                                              contentType="application/json",
                                                              accept="application/json")
                 response_body = json.loads(response.get('body').read())
-                choice = response_body.get('generation')
                 break
             except botocore.exceptions.ClientError as error:
                 raise Exception("boto3 had an error: " + error.response['Error']['Message'])
@@ -51,10 +50,10 @@ class Bedrock_API(LLM_API):
                 time.sleep(2 ** counter)
                 continue
 
-        if not choice:
+        if not response_body:
             raise Exception("AWS Bedrock API failed to generate a response")
 
-        return choice
+        return response_body
 
     def check_runtime(self):
         # check if the runtime is configured
