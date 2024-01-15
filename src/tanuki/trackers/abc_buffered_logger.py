@@ -288,7 +288,10 @@ class ABCBufferedLogger(DatasetWorker):
             if not self.does_object_exist(config_path):
                 function_config = self.default_function_config
                 default = True
-                self.write_json(config_path, function_config.to_dict())
+                func_config_dict = function_config.to_dict()
+                # remove teacher_models from the config 
+                func_config_dict.pop("teacher_models")
+                self.write_json(config_path, func_config_dict)
             else:
                 function_config = FunctionConfig().load_from_dict(self.read_json(config_path))
 
@@ -304,7 +307,10 @@ class ABCBufferedLogger(DatasetWorker):
         log_file_path = self.get_patch_location_for_function(func_hash)
         config_path = f"{log_file_path}.json"
         try:
-            self.write_json(config_path, config_to_be_saved.to_dict())
+            func_config_dict = config_to_be_saved.to_dict()
+            # remove teacher_models from the config 
+            func_config_dict.pop("teacher_models")
+            self.write_json(config_path, func_config_dict)
         except Exception as e:
             pass
 

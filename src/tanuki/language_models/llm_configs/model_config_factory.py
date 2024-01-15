@@ -1,9 +1,11 @@
 from tanuki.language_models.llm_configs.abc_base_config import BaseModelConfig
 from tanuki.language_models.llm_configs.openai_config import OpenAIConfig
 from tanuki.language_models.llm_configs.llama_config import LlamaBedrockConfig
+from tanuki.language_models.llm_configs.titan_config import TitanBedrockConfig
 from typing import Union
-from tanuki.language_models.llm_configs.default_models import DEFAULT_MODELS
-
+from tanuki.language_models.llm_configs import DEFAULT_GENERATIVE_MODELS
+from tanuki.constants import DEFAULT_DISTILLED_MODEL_NAME, OPENAI_PROVIDER, LLAMA_BEDROCK_PROVIDER, \
+    DISTILLED_MODEL, TEACHER_MODEL, TITAN_BEDROCK_PROVIDER
 
 class ModelConfigFactory:
     @staticmethod
@@ -20,20 +22,22 @@ class ModelConfigFactory:
             return input_config
         if isinstance(input_config, str):
             # This is purely for backwards compatibility as we used to save the model as a string
-            if type == "distillation":
-                config = DEFAULT_MODELS["gpt-3.5-finetune"]
+            if type == DISTILLED_MODEL:
+                config = DEFAULT_GENERATIVE_MODELS[DEFAULT_DISTILLED_MODEL_NAME]
                 config.model_name = input_config
                 return config
-            elif type == "teacher":
-                if input_config not in DEFAULT_MODELS:
+            elif type == TEACHER_MODEL:
+                if input_config not in DEFAULT_GENERATIVE_MODELS:
                     raise Exception("Error loading the teacher model, saved config model was saved a string but is not a default model")
-                model = DEFAULT_MODELS[input_config]
+                model = DEFAULT_GENERATIVE_MODELS[input_config]
                 return model
         else:
-            if input_config["provider"] == "openai":
+            if input_config["provider"] == OPENAI_PROVIDER:
                 return OpenAIConfig(**input_config)
-            elif input_config["provider"] == "llama_bedrock":
+            elif input_config["provider"] == LLAMA_BEDROCK_PROVIDER:
                 return LlamaBedrockConfig(**input_config)
+            elif input_config["provider"] == TITAN_BEDROCK_PROVIDER:
+                return TitanBedrockConfig(**input_config)
             else:
                 try:
                     return BaseModelConfig(**input_config)
