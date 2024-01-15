@@ -9,6 +9,7 @@ from tanuki.models.language_model_output import LanguageModelOutput
 from tanuki.utils import approximate_token_count
 from tanuki.validator import Validator
 from tanuki.models.api_manager import APIManager
+from tanuki.language_models.llm_configs.abc_base_config import BaseModelConfig
 import logging
 class LanguageModelManager(object):
     """
@@ -26,14 +27,9 @@ class LanguageModelManager(object):
                  generation_token_limit=512,) -> None:
         self.api_provider = api_provider
         self.function_modeler = function_modeler
-        self.instruction = "You are given below a function description and input data. The function description of what the function must carry out can be found in the Function section, with input and output type hints. The input data can be found in Input section. Using the function description, apply the function to the Input and return a valid output type, that is acceptable by the output_class_definition and output_class_hint. Return None if you can't apply the function to the input or if the output is optional and the correct output is None.\nINCREDIBLY IMPORTANT: Only output a JSON-compatible string in the correct response format."
-        self.system_message = f"You are a skillful and accurate language model, who applies a described function on input data. Make sure the function is applied accurately and correctly and the outputs follow the output type hints and are valid outputs given the output types."
-
-        self.instruction_token_count = approximate_token_count(self.instruction)
-        self.system_message_token_count = approximate_token_count(self.system_message)
-        self.repair_instruction = "Below are an outputs of a function applied to inputs, which failed type validation. The input to the function is brought out in the INPUT section and function description is brought out in the FUNCTION DESCRIPTION section. Your task is to apply the function to the input and return a correct output in the right type. The FAILED EXAMPLES section will show previous outputs of this function applied to the data, which failed type validation and hence are wrong outputs. Using the input and function description output the accurate output following the output_class_definition and output_type_hint attributes of the function description, which define the output type. Make sure the output is an accurate function output and in the correct type. Return None if you can't apply the function to the input or if the output is optional and the correct output is None."
         self.default_generation_length = generation_token_limit
         self.current_generators = {}
+        self.token_counts = {}
 
     def __call__(self,
                  args,
@@ -114,7 +110,7 @@ class LanguageModelManager(object):
             choice (str): The generated response
 
         """
-        system_message = model.system_message if model.system_message else self.system_message
+        system_message = model.system_message
         return self.api_provider[model.provider].generate(model, system_message, prompt, **llm_parameters)
 
 
@@ -152,14 +148,19 @@ class LanguageModelManager(object):
                 raise ValueError(
                     "The input content and align statements combined are too long, please shorten it. The maximum currently allowed token limit is 32000")
 
-    def suitable_for_finetuning_token_check(self, args, kwargs, f, distillation_token_count):
+    def suitable_for_finetuning_token_check(self, args, kwargs, f, distilled_model: BaseModelConfig):
         """
         Check if the inputs are suitable for finetuning, i.e are below the finetuning token count
         """
         # check if finetunable
         finetuning_prompt = f"Function: {f}\n---\nInputs:\nArgs: {args}\nKwargs: {kwargs}\nOutput:"
         input_prompt_token_count = approximate_token_count(finetuning_prompt)
-        suitable_for_finetune = input_prompt_token_count + self.instruction_token_count + self.system_message_token_count < distillation_token_count
+        if distilled_model.system_message_token_count < 0:
+            distilled_model.system_message_token_count = approximate_token_count(distilled_model.system_message)
+        if distilled_model.instruction_token_count < 0:
+            distilled_model.instruction_token_count = approximate_token_count(distilled_model.instructions)
+
+        suitable_for_finetune = input_prompt_token_count + distilled_model.instruction_token_count + distilled_model.system_message_token_count < distilled_model.context_length
         return suitable_for_finetune, input_prompt_token_count
 
     def construct_prompt(self, f, args, kwargs, examples, model):
@@ -184,7 +185,7 @@ class LanguageModelManager(object):
         else:
             example_input = ""
 
-        instruction_prompt = model.instructions if model.instructions else self.instruction
+        instruction_prompt = model.instructions
         content = f"{instruction_prompt}\nFunction: {f}\n{example_input}---\n{model.parsing_helper_tokens['start_token']}Inputs:\nArgs: {args}\nKwargs: {kwargs}\nOutput:"
         return content
 
@@ -229,7 +230,7 @@ class LanguageModelManager(object):
         end_token_addition = ""
         if model.parsing_helper_tokens["end_token"]:
             end_token_addition = f"Make sure to add the {model.parsing_helper_tokens['end_token']} token at the end of the output."
-        prompt = f"{self.repair_instruction}{end_token_addition}\nFUNCTION DESCRIPTION: {f}\n{successful_examples}---{model.parsing_helper_tokens['start_token']}Inputs:\nArgs: {args}\nKwargs: {kwargs}\nFAILED EXAMPLES: {failed_examples}Correct output:"
+        prompt = f"{model.repair_instruction}{end_token_addition}\nFUNCTION DESCRIPTION: {f}\n{successful_examples}---{model.parsing_helper_tokens['start_token']}Inputs:\nArgs: {args}\nKwargs: {kwargs}\nFAILED EXAMPLES: {failed_examples}Correct output:"
         return prompt
 
     def choose_model_from_tokens(self, models, input_token_count, nr_of_examples=0):
@@ -248,19 +249,15 @@ class LanguageModelManager(object):
         for model in models:
             # check if input token count is less than the context length
             # If the model config has custom messages, then use those, otherwise use the default ones
-            if model.system_message is not None:
-                system_message_token_count = approximate_token_count(model.system_message)
-            else:
-                system_message_token_count = self.system_message_token_count
-            if model.instructions is not None:
-                instructions_token_count = approximate_token_count(model.instructions)
-            else:
-                instructions_token_count = self.instruction_token_count
+            if model.system_message_token_count < 0:
+                model.system_message_token_count = approximate_token_count(model.system_message)
+            if model.instruction_token_count < 0:
+                model.instruction_token_count = approximate_token_count(model.instructions)
             if model.parsing_helper_tokens["start_token"]:
                 input_token_count += 2*nr_of_examples
             if model.parsing_helper_tokens["end_token"]:
                 input_token_count += 2*nr_of_examples
-            total_token_count = input_token_count + instructions_token_count + system_message_token_count
+            total_token_count = input_token_count + model.instruction_token_count + model.system_message_token_count
             if total_token_count < model.context_length:
                 return model
         return None
