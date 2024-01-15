@@ -10,7 +10,7 @@ from tanuki.models.finetune_job import FinetuneJob
 import random
 import string
 from tanuki.language_models.llm_configs.abc_base_config import BaseModelConfig
-
+from tanuki.constants import OPENAI_PROVIDER, LLAMA_BEDROCK_PROVIDER
 
 def dummy_func(input: str) -> List[str]:
     """
@@ -69,12 +69,12 @@ def test_default_config():
 
 def test_update_config_full():
     config = FunctionConfig()
-    json = {"distilled_model": {"model_name": "test_ft_1", "context_length": 8192, "provider": "openai"},
+    json = {"distilled_model": {"model_name": "test_ft_1", "context_length": 8192, "provider": OPENAI_PROVIDER},
             "current_model_stats": {"trained_on_datapoints": 11, "running_faults": [12,1]},
             "last_training_run": {"trained_on_datapoints": 12},
             "current_training_run": {"asd": 8},
-            "teacher_models": [{"model_name": "gpt-88", "context_length": 221, "provider": "openai"},
-                               {"model_name": "gpt-4-3222k", "context_length": 991, "provider": "openai"}],
+            "teacher_models": [{"model_name": "gpt-88", "context_length": 221, "provider": OPENAI_PROVIDER},
+                               {"model_name": "gpt-4-3222k", "context_length": 991, "provider": OPENAI_PROVIDER}],
             "nr_of_training_runs": 15}
     config.load_from_dict(json)
     assert config.distilled_model.model_name == "test_ft_1"
@@ -99,7 +99,7 @@ def test_update_config_various():
             "last_training_run": {"trained_on_datapoints": 12},
             "current_training_run": {"asd": 8},
             "teacher_models": [{"model_name": "gpt-88", "context_length": 221, "provider": "definitely_new"},
-                               {"model_name": "gpt-4-3222k", "context_length": 991, "provider": "llama_bedrock"}],
+                               {"model_name": "gpt-4-3222k", "context_length": 991, "provider": LLAMA_BEDROCK_PROVIDER}],
             "nr_of_training_runs": 15}
     config.load_from_dict(json)
     assert config.distilled_model.model_name == "test_ft_1"
@@ -113,7 +113,7 @@ def test_update_config_various():
     assert config.teacher_models[1].model_name == "gpt-4-3222k"
     assert config.teacher_models[1].context_length == 991
     assert isinstance(config.teacher_models[1], LlamaBedrockConfig)
-    assert config.teacher_models[1].provider == "llama_bedrock"
+    assert config.teacher_models[1].provider == LLAMA_BEDROCK_PROVIDER
 
 
 def test_update_config_teachers():
@@ -123,7 +123,7 @@ def test_update_config_teachers():
             "last_training_run": {"trained_on_datapoints": 12},
             "current_training_run": {"asd": 8},
             "teacher_models": [{"model_name": "gpt-88", "context_length": 221, "provider": "definitely_new"},
-                               {"model_name": "gpt-4-3222k", "context_length": 991, "provider": "llama_bedrock"}],
+                               {"model_name": "gpt-4-3222k", "context_length": 991, "provider": LLAMA_BEDROCK_PROVIDER}],
             "nr_of_training_runs": 15}
     config.load_from_dict(json)
     teacher_models_1 = config.teacher_models
@@ -133,7 +133,7 @@ def test_update_config_teachers():
     teacher_models_2 = config.teacher_models
     assert teacher_models_1 == teacher_models_2
 
-    json["teacher_models"] = [{"model_name": "gpt-2k", "context_length": 9912, "provider": "openai"}]
+    json["teacher_models"] = [{"model_name": "gpt-2k", "context_length": 9912, "provider": OPENAI_PROVIDER}]
     config.load_from_dict(json)
     teacher_models_3 = config.teacher_models
     assert len(teacher_models_3) == 1
@@ -151,7 +151,7 @@ def test_update_config_from_string():
             "last_training_run": {"trained_on_datapoints": 12},
             "current_training_run": {"asd": 8},
             "teacher_models": [{"model_name": "gpt-88", "context_length": 221, "provider": "definitely_new"},
-                               {"model_name": "gpt-4-3222k", "context_length": 991, "provider": "llama_bedrock"}],
+                               {"model_name": "gpt-4-3222k", "context_length": 991, "provider": LLAMA_BEDROCK_PROVIDER}],
             "nr_of_training_runs": 15}
     config.load_from_dict(json)
     assert config.distilled_model.model_name == ""
@@ -168,11 +168,11 @@ def test_update_config_from_string():
     config.load_from_dict(json)
     assert len(config.teacher_models) == 2
     assert config.teacher_models[0].model_name == "gpt-4-32k"
-    assert config.teacher_models[0].provider == "openai"
+    assert config.teacher_models[0].provider == OPENAI_PROVIDER
     assert isinstance(config.teacher_models[0], OpenAIConfig)
     assert config.teacher_models[0].context_length == 32768
     assert config.teacher_models[1].model_name == "meta.llama2-70b-chat-v1"
-    assert config.teacher_models[1].provider == "llama_bedrock"
+    assert config.teacher_models[1].provider == LLAMA_BEDROCK_PROVIDER
     assert isinstance(config.teacher_models[1], LlamaBedrockConfig)
     assert config.teacher_models[1].context_length == 4096
 
@@ -207,7 +207,7 @@ def test_update_finetune_config():
     # check that the config is not updated if the finetune fails
     config.current_training_run = {"trained_on_datapoints": 1100}
     failed_finetune_response = FinetuneJob(id = "aas", status = "failed", 
-                                           fine_tuned_model=BaseModelConfig(model_name = "ayyoo-finetune", provider = "openai", context_length = 32768))
+                                           fine_tuned_model=BaseModelConfig(model_name = "ayyoo-finetune", provider = OPENAI_PROVIDER, context_length = 32768))
     config.update_with_finetuned_response(failed_finetune_response)
     assert config.distilled_model.model_name == "ayyoo-finetune"
     assert isinstance(config.distilled_model, OpenAIConfig)
