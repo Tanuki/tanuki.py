@@ -26,7 +26,7 @@ class EmbeddingModelManager(object):
 
         # loggings
         if function_hash not in self.current_generators:
-            logging.info(f"Generating embeddings with {model.model_name}")
+            logging.info(f"Generating function embeddings with {model.model_name}")
             self.current_generators[function_hash] = model.model_name
         elif self.current_generators[function_hash] != model.model_name:
             logging.info(f"Switching embeddings generation from {self.current_generators[function_hash]} to {model.model_name}")
