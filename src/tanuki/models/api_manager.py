@@ -1,6 +1,6 @@
 import json
 from typing import Any, Dict
-from tanuki.constants import OPENAI_PROVIDER, LLAMA_BEDROCK_PROVIDER, TITAN_BEDROCK_PROVIDER
+from tanuki.constants import OPENAI_PROVIDER, LLAMA_BEDROCK_PROVIDER, TITAN_BEDROCK_PROVIDER, HF_PROVIDER
 
 
 class APIManager(object):
@@ -42,14 +42,21 @@ class APIManager(object):
                 self.api_providers[provider] = LLama_Bedrock_API()
             except ImportError:
                 raise Exception(f"You need to install the Tanuki aws_bedrock package to use the llama_bedrock api provider."\
-                                 "Please install it as pip install tanuki.py[aws_bedrock]")
+                                 " Please install it as pip install tanuki.py[aws_bedrock]")
         elif provider == TITAN_BEDROCK_PROVIDER:
             try:
                 from tanuki.language_models.titan_bedrock_api import Titan_Bedrock_API
                 self.api_providers[provider] = Titan_Bedrock_API()
             except ImportError:
                 raise Exception(f"You need to install the Tanuki aws_bedrock package to use the titan_bedrock api provider."\
-                                 "Please install it as pip install tanuki.py[aws_bedrock]")
+                                 " Please install it as pip install tanuki.py[aws_bedrock]")
+        elif provider == HF_PROVIDER:
+            try:
+                from tanuki.language_models.hf_transformers_api import HF_Transformers_API
+                self.api_providers[provider] = HF_Transformers_API()
+            except ImportError:
+                raise Exception(f"You need to install the Tanuki huggingface transformers package to use the open source huggingface models."\
+                                 " Please install it as pip install tanuki.py[hf_transformers]")
         else:
             raise Exception(f"Model provider {provider} is currently not supported."\
                               "If you have integrated a new provider, please add it to the api manager in the APIManager object "\

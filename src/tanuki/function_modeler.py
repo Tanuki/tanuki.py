@@ -7,7 +7,7 @@ from typing import List, Tuple, Dict
 import openai
 
 from tanuki.constants import EXAMPLE_ELEMENT_LIMIT, PATCHES, SYMBOLIC_ALIGNMENTS, POSITIVE_EMBEDDABLE_ALIGNMENTS, \
-    NEGATIVE_EMBEDDABLE_ALIGNMENTS, OPENAI_PROVIDER
+    NEGATIVE_EMBEDDABLE_ALIGNMENTS, OPENAI_PROVIDER, HF_PROVIDER
 from tanuki.models.function_type import FunctionType
 from tanuki.language_models.llm_configs import DEFAULT_GENERATIVE_MODELS, DEFAULT_EMBEDDING_MODELS
 from tanuki.language_models.llm_configs.abc_base_config import BaseModelConfig
@@ -52,7 +52,8 @@ class FunctionModeler(object):
     def _configure_teacher_models(self,
                                     teacher_models: list[str, BaseModelConfig],
                                     func_hash: str,
-                                    task_type: str):
+                                    task_type: str,
+                                    model_generation_code: dict):
         """
         Add custom teacher models to the function config
         First this is added to the teacher_models_override dict, which is used to override the teacher models
@@ -77,6 +78,10 @@ class FunctionModeler(object):
             # currently ban all non-openai models from finetuning because it doesnt make sense 
             if model_config.provider != OPENAI_PROVIDER and func_hash not in self.check_finetune_blacklist:
                 self.check_finetune_blacklist.append(func_hash)
+
+            if model_config.provider == HF_PROVIDER :
+                model_config.generator_code = model_generation_code
+                self.teacher_models_override[func_hash].append(model_config)
 
     def _get_datasets(self):
         """

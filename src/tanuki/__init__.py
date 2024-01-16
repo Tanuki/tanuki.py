@@ -77,7 +77,7 @@ function_modeler = FunctionModeler(data_worker=logger, api_provider=api_provider
 language_modeler = LanguageModelManager(function_modeler, api_provider=api_provider)
 embedding_modeler = EmbeddingModelManager(function_modeler, api_provider=api_provider)
 telemetry_enabled: bool = True
-
+validator = Validator()
 
 @staticmethod
 def _load_alignments(func_hash: str):
@@ -271,7 +271,6 @@ def patch(patchable_func=None,
     def wrap(test_func):
         @wraps(test_func)
         def wrapper(*args, **kwargs) -> Union[Embedding, Any]:
-            validator = Validator()
             function_description: FunctionDescription = Register.load_function_description(test_func)
 
             # If the function is expected to return an embedding, we choose the embedding API, rather than an LLM.
@@ -290,6 +289,8 @@ def patch(patchable_func=None,
 
         _anonymous_usage(logger=logger.name)
         function_description = Register.load_function_description(test_func)
+        # make gen code done more smarter and at other place
+        generation_code = validator.create_generation_code(function_description.output_type_hint)
         func_hash = function_description.__hash__()
         # Configure the function modeler using incoming parameters
         function_modeler.environment_id = environment_id
@@ -303,7 +304,8 @@ def patch(patchable_func=None,
         if len(teacher_models) > 0:
             function_modeler._configure_teacher_models(teacher_models,
                                                         func_hash,
-                                                        task_type)
+                                                        task_type,
+                                                        generation_code)
         _load_alignments(func_hash)
 
         wrapper._is_alignable = True

@@ -6,7 +6,7 @@ from tanuki.language_models.llm_api_abc import LLM_API
 from tanuki.models.function_description import FunctionDescription
 from tanuki.models.function_example import FunctionExample
 from tanuki.models.language_model_output import LanguageModelOutput
-from tanuki.utils import approximate_token_count
+from tanuki.utils import approximate_token_count, get_string_represntation, prepare_object_for_saving
 from tanuki.validator import Validator
 from tanuki.models.api_manager import APIManager
 from tanuki.language_models.llm_configs.abc_base_config import BaseModelConfig
@@ -67,6 +67,9 @@ class LanguageModelManager(object):
         return instantiated
 
     def _parse_choice(self, output):
+        # if its not a string, the type has already been parsed
+        if not isinstance(output.generated_response, str):
+            return output.generated_response
         try:
             # json load
             choice_parsed = json.loads(output.generated_response)
@@ -135,7 +138,7 @@ class LanguageModelManager(object):
             aligns = self.function_modeler.get_symbolic_alignments(function_description.__hash__(), max=16)
             examples = [f"Inputs:\nArgs: {align['args']}\nKwargs: {align['kwargs']}\nOutput: {align['output']}" for align in
                  aligns]
-            
+            examples = self.create_examples(aligns)
             examples_token_count = sum([approximate_token_count(example) for example in examples])
             generation_tokens = llm_parameters.get("max_new_tokens", self.default_generation_length)
             model = self.choose_model_from_tokens(teacher_models,
@@ -147,7 +150,22 @@ class LanguageModelManager(object):
             else:
                 raise ValueError(
                     "The input content and align statements combined are too long, please shorten it. The maximum currently allowed token limit is 32000")
-
+    
+    def create_examples(self, aligns):
+        """
+        Create examples given the aligns
+        """
+        final_examples = []
+        for align in aligns:
+            # create a json dumped examples
+            args = get_string_represntation(align["args"])
+            kwargs = get_string_represntation(align["kwargs"])
+            output = get_string_represntation(align["output"])
+            final_examples.append(f"Inputs:\nArgs: {args}\nKwargs: {kwargs}\nOutput: {output}")
+        #examples = [f"Inputs:\nArgs: {align['args']}\nKwargs: {align['kwargs']}\nOutput: {align['output']}" for align in
+        #         aligns]
+        return final_examples
+    
     def suitable_for_finetuning_token_check(self, args, kwargs, f, distilled_model: BaseModelConfig):
         """
         Check if the inputs are suitable for finetuning, i.e are below the finetuning token count
@@ -186,7 +204,17 @@ class LanguageModelManager(object):
             example_input = ""
 
         instruction_prompt = model.instructions
-        content = f"{instruction_prompt}\nFunction: {f}\n{example_input}---\n{model.parsing_helper_tokens['start_token']}Inputs:\nArgs: {args}\nKwargs: {kwargs}\nOutput:"
+        prompt_template = model.prompt_template
+        # make args and kwargs same representation as loaded examples
+        args = get_string_represntation(prepare_object_for_saving(args))
+        kwargs = get_string_represntation(prepare_object_for_saving(kwargs))
+
+        content = prompt_template.format(instruction_prompt=instruction_prompt,
+                                            f=f,
+                                            example_input=example_input,
+                                            start_parsing_helper_token=model.parsing_helper_tokens["start_token"],
+                                            args=args,
+                                            kwargs=kwargs)
         return content
 
     def repair_generate(self, args, kwargs, f, failed_outputs_list, aligns, models, llm_parameters):
@@ -248,16 +276,17 @@ class LanguageModelManager(object):
 
         for model in models:
             # check if input token count is less than the context length
-            # If the model config has custom messages, then use those, otherwise use the default ones
             if model.system_message_token_count < 0:
                 model.system_message_token_count = approximate_token_count(model.system_message)
             if model.instruction_token_count < 0:
                 model.instruction_token_count = approximate_token_count(model.instructions)
+            if model.prompt_template_token_count < 0:
+                model.prompt_template_token_count = int(approximate_token_count(model.prompt_template) - (6*1.33 + 12))
             if model.parsing_helper_tokens["start_token"]:
                 input_token_count += 2*nr_of_examples
             if model.parsing_helper_tokens["end_token"]:
                 input_token_count += 2*nr_of_examples
-            total_token_count = input_token_count + model.instruction_token_count + model.system_message_token_count
+            total_token_count = input_token_count + model.instruction_token_count + model.system_message_token_count + model.prompt_template_token_count
             if total_token_count < model.context_length:
                 return model
         return None

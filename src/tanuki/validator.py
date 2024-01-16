@@ -117,7 +117,7 @@ class Validator:
 
         # Handle tuples
         if origin == tuple:
-            if not isinstance(value, tuple) or (args and len(value) != len(args)):
+            if (not isinstance(value, tuple) and not isinstance(value, list)): #or (args and len(value) != len(args)):
                 return False
             return all(self.check_type(v, t) for v, t in zip(value, args))
 
@@ -137,7 +137,7 @@ class Validator:
 
         # Handle sets
         if origin == set:
-            if not isinstance(value, set):
+            if not isinstance(value, set) and not isinstance(value, list):
                 return False
             item_type = args[0] if args else Any
             return all(self.check_type(v, item_type) for v in value)
@@ -488,19 +488,28 @@ class Validator:
 
                     # If there are no subscripted types, assume Any
                     if not item_types:
-                        item_types = (Any,) * len(data)
+                        item_types = (Any,)
 
                     for i, item in enumerate(data):
                         # For each item, validate and instantiate it
-                        instantiated_item = self.instantiate(item, item_types[i])
-                        instantiated_items.append(instantiated_item)
+                        for item_type in item_types:
+                            successful = False
+                            try:
+                                instantiated_item = self.instantiate(item, item_type)
+                                # If the instantiated item does not match the expected type, raise an exception
+                                if item_type is not typing.Any and not isinstance(instantiated_item, item_type):
+                                    raise TypeError(
+                                        f"Item {i} of type {type(item).__name__} does not match expected type {item_type.__name__}.")
 
-                        # If the instantiated item does not match the expected type, raise an exception
-                        _type = item_types[i]
-                        if not isinstance(instantiated_item, _type):
+                                successful = True
+                                break
+                            except ValueError:
+                                continue
+                        if not successful:
                             raise TypeError(
-                                f"Item {i} of type {type(item).__name__} does not match expected type {item_types[i].__name__}.")
-
+                                f"Item of type {type(item).__name__} does not match expected type {item_types[0].__name__}.")
+                        #instantiated_item = self.instantiate(item, item_types[i])
+                        instantiated_items.append(instantiated_item)
                     # Convert the list of instantiated items to a tuple
                     instantiated_tuple = tuple(instantiated_items)
                     # If target_type is a subclass of tuple, return an instance of target_type
@@ -511,23 +520,33 @@ class Validator:
 
                 # Handle sets
                 if self._is_set_like(target_type) or (isinstance(origin, type) and issubclass(origin, set)):
-                    base, item_type = self._find_generic_base_and_args(target_type)
+                    base, item_types = self._find_generic_base_and_args(target_type)
 
-                    if not item_type:
-                        item_type = Any
+                    # If there are no subscripted types, assume Any
+                    if not item_types:
+                        item_types = (Any,)
 
                     instantiated_items = set()
 
-                    for item in data:
+                    for i, item in enumerate(data):
                         # For each item, validate and instantiate it
-                        instantiated_item = self.instantiate(item, item_type[0])
-                        instantiated_items.add(instantiated_item)
+                        for item_type in item_types:
+                            successful = False
+                            try:
+                                instantiated_item = self.instantiate(item, item_type)
+                                # If the instantiated item does not match the expected type, raise an exception
+                                if item_type is not typing.Any and not isinstance(instantiated_item, item_type):
+                                    raise TypeError(
+                                        f"Item {i} of type {type(item).__name__} does not match expected type {item_type.__name__}.")
 
-                        # If the instantiated item does not match the expected type, raise an exception
-                        if not isinstance(instantiated_item, item_type[0]):
+                                successful = True
+                                break
+                            except ValueError:
+                                continue
+                        if not successful:
                             raise TypeError(
-                                f"Item of type {type(item).__name__} does not match expected type {item_type[0].__name__}.")
-
+                                f"Item of type {type(item).__name__} does not match expected type {item_types[0].__name__}.")
+                        instantiated_items.add(instantiated_item)
                     # If target_type is a subclass of set, return an instance of target_type
                     if self._is_subclass_of_generic(target_type, set):
                         return target_type(instantiated_items)
@@ -549,3 +568,64 @@ class Validator:
 
         # If none of the above, return the data as-is
         return data
+
+    def create_generation_code(self, type_definition: Any) -> dict:
+        """
+        Validate a value against a type definition.
+        Args:
+            value: Any object or primitive value
+            type_definition: The type definition to validate against
+        Returns:
+            Whether the value is valid for the type definition
+        """
+        schema = {}
+        # any
+        if type_definition is Any:
+            schema["type"] = "Any"
+            return schema
+
+        # int str float bool
+        if self.is_base_type(type_definition):
+            schema["type"] = type_definition.__name__
+            return schema
+
+        origin = get_origin(type_definition) or type_definition
+        args = get_args(type_definition)
+
+        if origin in [list, tuple, set]:
+            if origin == list:
+                schema["type"] = "list"
+            elif origin == tuple:
+                schema["type"] = "tuple"
+            elif origin == set:
+                schema["type"] = "set"
+            schema["properties"] = []
+            for arg in args:
+                schema["properties"].append(self.create_generation_code(arg))
+            return schema
+
+        if origin == Union:
+            schema["type"] = "Union"
+            schema["properties"] = []
+            for arg in args:
+                schema["properties"].append(self.create_generation_code(arg))
+            return schema
+
+        if origin == Literal:
+            str_args = [f"{arg}" if not isinstance(arg, str) else f"\'{arg}\'" for arg in args]
+            return {"type": "literal", "str_options": str_args, "original_options": args}
+
+        if origin == dict:
+            schema["type"] = "dict"
+            schema["properties"] = []
+            for arg in args:
+                schema["properties"].append(self.create_generation_code(arg))
+            return schema
+
+        if self.is_pydantic_model(origin):
+            schema["type"] = "pydantic_object"
+            schema["properties"] = {}
+            # get all arguments and their types from origin
+            for arg, arg_type in origin.__annotations__.items():
+                schema["properties"][arg] = self.create_generation_code(arg_type)
+            return schema

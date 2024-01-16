@@ -191,6 +191,12 @@ def _get_source_ipython(func) -> str:
     # If found, print the source code
     return source_code
 
+def get_string_represntation(input) -> str:
+    try:
+        return json.dumps(input)
+    except:
+        return str(input)
+
 
 def get_source(func) -> str:
     """

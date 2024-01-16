@@ -2,10 +2,11 @@ from tanuki.language_models.llm_configs.abc_base_config import BaseModelConfig
 from tanuki.language_models.llm_configs.openai_config import OpenAIConfig
 from tanuki.language_models.llm_configs.llama_config import LlamaBedrockConfig
 from tanuki.language_models.llm_configs.titan_config import TitanBedrockConfig
+from tanuki.language_models.llm_configs.hf_config import HFConfig
 from typing import Union
 from tanuki.language_models.llm_configs import DEFAULT_GENERATIVE_MODELS
 from tanuki.constants import DEFAULT_DISTILLED_MODEL_NAME, OPENAI_PROVIDER, LLAMA_BEDROCK_PROVIDER, \
-    DISTILLED_MODEL, TEACHER_MODEL, TITAN_BEDROCK_PROVIDER
+    DISTILLED_MODEL, TEACHER_MODEL, TITAN_BEDROCK_PROVIDER, HF_PROVIDER
 
 class ModelConfigFactory:
     @staticmethod
@@ -38,6 +39,8 @@ class ModelConfigFactory:
                 return LlamaBedrockConfig(**input_config)
             elif input_config["provider"] == TITAN_BEDROCK_PROVIDER:
                 return TitanBedrockConfig(**input_config)
+            elif input_config["provider"] == HF_PROVIDER:
+                return HFConfig(**input_config)
             else:
                 try:
                     return BaseModelConfig(**input_config)
