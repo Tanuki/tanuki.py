@@ -1,6 +1,6 @@
 from typing import List
 
-import openai
+import logging
 import time
 # import abstract base class
 from openai import OpenAI
@@ -12,12 +12,14 @@ from tanuki.models.embedding import Embedding
 from tanuki.language_models.embedding_api_abc import Embedding_API
 from tanuki.language_models.llm_api_abc import LLM_API
 import os
-
+from tanuki.language_models.llm_configs import DEFAULT_GENERATIVE_MODELS
+from tanuki.constants import DEFAULT_DISTILLED_MODEL_NAME
+from tanuki.language_models.llm_configs.openai_config import OpenAIConfig
 from tanuki.models.finetune_job import FinetuneJob
-
+import copy
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 import requests
-
+LLM_GENERATION_PARAMETERS = ["temperature", "top_p", "max_new_tokens", "frequency_penalty", "presence_penalty"]
 
 class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
     def __init__(self) -> None:
@@ -28,7 +30,7 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
 
         self.client = None
 
-    def embed(self, texts: List[str], model="text-similarity-babbage-001", **kwargs) -> List[Embedding]:
+    def embed(self, texts: List[str], model: OpenAIConfig, **kwargs) -> List[Embedding]:
         """
         Generate embeddings for the provided texts using the specified OpenAI model.
         Lightweight wrapper over the OpenAI client.
@@ -42,7 +44,7 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
         try:
             response: CreateEmbeddingResponse = self.client.embeddings.create(
                 input=texts,
-                model=model,
+                model=model.model_name,
                 **kwargs
             )
             assert response.object == "list"
@@ -58,19 +60,31 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
 
     def generate(self, model, system_message, prompt, **kwargs):
         """
-        The main generation function, given the args, kwargs, function_modeler, function description and model type, generate a response and check if the datapoint can be saved to the finetune dataset
+        The main generation function, given the args, kwargs, function_modeler, function description and model type, generate a response
+        Args
+            model (OpenAIConfig): The model to use for generation.
+            system_message (str): The system message to use for generation.
+            prompt (str): The prompt to use for generation.
+            kwargs (dict): Additional generation parameters.
         """
 
         self.check_api_key()
 
-        temperature = kwargs.get("temperature", 0)
+        temperature = kwargs.get("temperature", 0.1)
         top_p = kwargs.get("top_p", 1)
         frequency_penalty = kwargs.get("frequency_penalty", 0)
         presence_penalty = kwargs.get("presence_penalty", 0)
+        max_new_tokens = kwargs.get("max_new_tokens")
+        # check if there are any generation parameters that are not supported
+        unsupported_params = [param for param in kwargs.keys() if param not in LLM_GENERATION_PARAMETERS]
+        if len(unsupported_params) > 0:
+            # log warning
+            logging.warning(f"Unused generation parameters sent as input: {unsupported_params}."\
+                             f"For OpenAI, only the following parameters are supported: {LLM_GENERATION_PARAMETERS}")
         params = {
-            "model": model,
+            "model": model.model_name,
             "temperature": temperature,
-            "max_tokens": 512,
+            "max_tokens": max_new_tokens,
             "top_p": top_p,
             "frequency_penalty": frequency_penalty,
             "presence_penalty": presence_penalty,
@@ -124,7 +138,9 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
         response = self.client.fine_tuning.jobs.list(limit=limit)
         jobs = []
         for job in response.data:
-            jobs.append(FinetuneJob(job.id, job.status, job.fine_tuned_model))
+            model_config = copy.deepcopy(DEFAULT_GENERATIVE_MODELS[DEFAULT_DISTILLED_MODEL_NAME])
+            model_config.model_name = job.fine_tuned_model
+            jobs.append(FinetuneJob(job.id, job.status, model_config))
 
         return jobs
 
@@ -155,10 +171,10 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
 
     def check_api_key(self):
         # check if api key is not none
-        if self.api_key is None:
+        if not self.api_key:
             # try to get the api key from the environment, maybe it has been set later
             self.api_key = os.getenv("OPENAI_API_KEY")
-            if self.api_key is None:
+            if not self.api_key:
                 raise ValueError("OpenAI API key is not set")
 
         if not self.client:

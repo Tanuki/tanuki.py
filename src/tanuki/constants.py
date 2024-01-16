@@ -27,3 +27,17 @@ FALSE_POSITIVE_RATE = 0.01
 # The name of the library
 LIB_NAME = "tanuki"
 ENVVAR = "TANUKI_LOG_DIR"
+
+# default models
+DEFAULT_TEACHER_MODEL_NAMES = ["gpt-4", "gpt-4-32k", ]
+DEFAULT_DISTILLED_MODEL_NAME = "gpt-3.5-finetune"
+DEFAULT_EMBEDDING_MODEL_NAME = "ada-002"
+
+# provider names
+OPENAI_PROVIDER = "openai"
+LLAMA_BEDROCK_PROVIDER = "llama_bedrock"
+TITAN_BEDROCK_PROVIDER = "aws_titan_bedrock"
+
+# model type strings
+TEACHER_MODEL = "teacher"
+DISTILLED_MODEL = "distillation"

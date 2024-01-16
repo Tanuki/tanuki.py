@@ -7,6 +7,7 @@ from tanuki.constants import EXPECTED_ITEMS, FALSE_POSITIVE_RATE, ALIGN_FILE_EXT
     POSITIVE_FILE_EXTENSION, NEGATIVE_FILE_EXTENSION, PATCH_FILE_EXTENSION
 from tanuki.persistence.filter.bloom_interface import IBloomFilterPersistence
 from tanuki.trackers.dataset_worker import DatasetWorker
+from tanuki.models.function_config import FunctionConfig
 
 # PATCH_FILE_EXTENSION_TYPE = Literal[".patches"]
 # ALIGN_FILE_EXTENSION_TYPE = Literal[".alignments"]
@@ -39,14 +40,7 @@ class ABCBufferedLogger(DatasetWorker):
         self.bloom_filter = self.create_bloom_filter()
         self.load_bloom_filter()
 
-        self.default_function_config = {"distilled_model": "",
-                                        "current_model_stats": {
-                                            "trained_on_datapoints": 0,
-                                            "running_faults": []},
-                                        "last_training_run": {"trained_on_datapoints": 0},
-                                        "current_training_run": {},
-                                        "teacher_models": ["gpt-4", "gpt-4-32k"],  # currently supported teacher models
-                                        "nr_of_training_runs": 0}
+        self.default_function_config = FunctionConfig()
 
     @abstractmethod
     def get_bloom_filter_persistence(self) -> IBloomFilterPersistence:
@@ -294,9 +288,12 @@ class ABCBufferedLogger(DatasetWorker):
             if not self.does_object_exist(config_path):
                 function_config = self.default_function_config
                 default = True
-                self.write_json(config_path, function_config)
+                func_config_dict = function_config.to_dict()
+                # remove teacher_models from the config 
+                func_config_dict.pop("teacher_models")
+                self.write_json(config_path, func_config_dict)
             else:
-                function_config = self.read_json(config_path)
+                function_config = FunctionConfig().load_from_dict(self.read_json(config_path))
 
         except Exception as e:
             function_config = self.default_function_config
@@ -310,7 +307,10 @@ class ABCBufferedLogger(DatasetWorker):
         log_file_path = self.get_patch_location_for_function(func_hash)
         config_path = f"{log_file_path}.json"
         try:
-            self.write_json(config_path, config_to_be_saved)
+            func_config_dict = config_to_be_saved.to_dict()
+            # remove teacher_models from the config 
+            func_config_dict.pop("teacher_models")
+            self.write_json(config_path, func_config_dict)
         except Exception as e:
             pass
 

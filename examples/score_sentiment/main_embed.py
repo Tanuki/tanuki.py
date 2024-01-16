@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 load_dotenv()
 import tanuki
 import numpy as np
-
+from tanuki.models.embedding import Embedding
 
 @tanuki.patch
 def score_sentiment(input: str) -> Embedding[np.ndarray]:

@@ -7,7 +7,10 @@ from typing import List, Tuple, Dict
 import openai
 
 from tanuki.constants import EXAMPLE_ELEMENT_LIMIT, PATCHES, SYMBOLIC_ALIGNMENTS, POSITIVE_EMBEDDABLE_ALIGNMENTS, \
-    NEGATIVE_EMBEDDABLE_ALIGNMENTS
+    NEGATIVE_EMBEDDABLE_ALIGNMENTS, OPENAI_PROVIDER
+from tanuki.models.function_type import FunctionType
+from tanuki.language_models.llm_configs import DEFAULT_GENERATIVE_MODELS, DEFAULT_EMBEDDING_MODELS
+from tanuki.language_models.llm_configs.abc_base_config import BaseModelConfig
 from tanuki.language_models.llm_finetune_api_abc import LLM_Finetune_API
 from tanuki.models.finetune_job import FinetuneJob
 from tanuki.models.function_description import FunctionDescription
@@ -15,8 +18,8 @@ from tanuki.models.function_example import FunctionExample
 from tanuki.trackers.dataset_worker import DatasetWorker
 from tanuki.utils import approximate_token_count, prepare_object_for_saving, encode_int, decode_int
 import copy
-
-
+from tanuki.models.function_config import FunctionConfig
+from tanuki.models.api_manager import APIManager
 class FunctionModeler(object):
     """
     This class manages the registered function models and their datasets
@@ -24,8 +27,8 @@ class FunctionModeler(object):
     """
 
     def __init__(self, data_worker: DatasetWorker,
+                 api_provider: APIManager,
                  environment_id=0,
-                 api_providers: Dict[str, LLM_Finetune_API] = None
                  ) -> None:
         self.function_configs = {}
         self.data_worker = data_worker
@@ -37,13 +40,43 @@ class FunctionModeler(object):
         self.check_finetune_blacklist = []
         self.execute_finetune_blacklist = []
         self.store_data_blacklist = []
-        self.api_providers = api_providers
+        self.api_provider = api_provider
+        self.teacher_models_override = {}
 
     def _get_dataset_info(self, dataset_type, func_hash, type="length"):
         """
         Get the dataset size for a function hash
         """
         return self.data_worker.load_dataset(dataset_type, func_hash, return_type=type)
+    
+    def _configure_teacher_models(self,
+                                    teacher_models: list[str, BaseModelConfig],
+                                    func_hash: str,
+                                    task_type: str):
+        """
+        Add custom teacher models to the function config
+        First this is added to the teacher_models_override dict, which is used to override the teacher models
+        Args:
+            teacher_models: A list of teacher models to use for the function hash
+            func_hash: The function hash to add the teacher models to
+        """
+        if func_hash not in self.teacher_models_override:
+                self.teacher_models_override[func_hash] = []
+        if task_type == FunctionType.EMBEDDABLE:
+            preconfigured_models = DEFAULT_EMBEDDING_MODELS
+        elif task_type == FunctionType.SYMBOLIC:
+            preconfigured_models = DEFAULT_GENERATIVE_MODELS
+        for model in teacher_models:
+            if isinstance(model, str):
+                if model not in preconfigured_models:
+                    raise Exception(f"Teacher model {model} not supported by default. Please include it in the list in extended config format")
+                model_config = preconfigured_models[model]
+            elif isinstance(model, BaseModelConfig):
+                model_config = model
+            self.teacher_models_override[func_hash].append(model_config)
+            # currently ban all non-openai models from finetuning because it doesnt make sense 
+            if model_config.provider != OPENAI_PROVIDER and func_hash not in self.check_finetune_blacklist:
+                self.check_finetune_blacklist.append(func_hash)
 
     def _get_datasets(self):
         """
@@ -271,26 +304,29 @@ class FunctionModeler(object):
         """
         config, default = self.data_worker.load_function_config(func_hash)
         if default and func_hash not in self.check_finetune_blacklist:
-            finetuned, finetune_config = self._check_for_finetunes(function_description)
+            finetune_provider = config.distilled_model.provider
+            finetuned, finetune_config = self._check_for_finetunes(function_description, finetune_provider)
             if finetuned:
                 config = finetune_config
+        # update teachers if not default
+        if func_hash in self.teacher_models_override:
+            config.teacher_models = self.teacher_models_override[func_hash]
         self.function_configs[func_hash] = config
         return config
 
-    def _check_for_finetunes(self, function_description: FunctionDescription) -> Tuple[bool, Dict]:
-        # This here should be discussed, what's the bestd way to do it
+    def _check_for_finetunes(self, function_description: FunctionDescription, finetune_provider : str) -> Tuple[bool, Dict]:
         # hash the function_hash into 16 characters (to embed it into the name of OpenAI finetunes, for later retrieval)
 
         finetune_hash = function_description.__hash__(purpose="finetune") + encode_int(self.environment_id)
         # List 10 fine-tuning jobs
-        finetunes: List[FinetuneJob] = self.api_providers["openai"].list_finetuned(limit=1000)
+        finetunes: List[FinetuneJob] = self.api_provider[finetune_provider].list_finetuned(limit=1000)
 
         # Check if the function_hash is in the fine-tuning jobs
         # the finetunes are in chronological order starting from newest
         # So this gets the latest finetune
         for finetune in finetunes:
             # check if the finetune hash is in the fine-tuned model name
-            if finetune.status == "succeeded" and finetune_hash in finetune.fine_tuned_model:
+            if finetune.status == "succeeded" and finetune_hash in finetune.fine_tuned_model.model_name:
                 try:
                     config = self._construct_config_from_finetune(finetune_hash, finetune)
                     # save the config
@@ -301,12 +337,21 @@ class FunctionModeler(object):
 
         return False, {}
 
-    def _construct_config_from_finetune(self, finetune_hash, finetune: FinetuneJob):
+    def _construct_config_from_finetune(self, finetune_hash: str, finetune: FinetuneJob):
+        """
+        Construct a valid function config from a finetune job
+
+        Args:
+            finetune_hash: The hash of the function
+            finetune: The finetune job
+        Returns:
+            config: The function config
+        """
         model = finetune.fine_tuned_model
         # get the ending location of finetune hash in the model name
-        finetune_hash_end = model.find(finetune_hash) + len(finetune_hash)
+        finetune_hash_end = model.model_name.find(finetune_hash) + len(finetune_hash)
         # get the next character after the finetune hash
-        next_char = model[finetune_hash_end]
+        next_char = model.model_name[finetune_hash_end]
         # get the number of training runs
         nr_of_training_runs = decode_int(next_char) + 1
         nr_of_training_points = (2 ** (nr_of_training_runs - 1)) * 200
@@ -317,8 +362,9 @@ class FunctionModeler(object):
                 "running_faults": []},
             "last_training_run": {"trained_on_datapoints": nr_of_training_points},
             "current_training_run": {},
-            "teacher_models": ["gpt-4", "gpt-4-32k"],  # currently supported teacher models
+            "teacher_models": [],  # default teacher models, will be overwritten if needed
             "nr_of_training_runs": nr_of_training_runs}
+        config = FunctionConfig().load_from_dict(config)
 
         return config
 
@@ -332,16 +378,7 @@ class FunctionModeler(object):
         else:
             func_config = self.load_function_config(func_hash, function_description)
 
-        # for backwards compatibility
-        if "distilled_model" not in func_config:
-            if func_config["current_model"] in func_config["teacher_models"]:
-                distilled_model = ""
-            else:
-                distilled_model = func_config["current_model"]
-        else:
-            distilled_model = func_config["distilled_model"]
-
-        return distilled_model, func_config["teacher_models"]
+        return func_config.distilled_model, func_config.teacher_models
 
     def _update_datapoint_config(self, repaired, func_hash):
         """
@@ -355,18 +392,18 @@ class FunctionModeler(object):
         """
         try:
             if repaired:
-                self.function_configs[func_hash]["current_model_stats"]["running_faults"].append(1)
+                self.function_configs[func_hash].current_model_stats["running_faults"].append(1)
             else:
-                self.function_configs[func_hash]["current_model_stats"]["running_faults"].append(0)
+                self.function_configs[func_hash].current_model_stats["running_faults"].append(0)
             # take the last 100 datapoints
-            self.function_configs[func_hash]["current_model_stats"]["running_faults"] = \
-                self.function_configs[func_hash]["current_model_stats"]["running_faults"][-100:]
+            self.function_configs[func_hash].current_model_stats["running_faults"] = \
+                self.function_configs[func_hash].current_model_stats["running_faults"][-100:]
 
             # check if the last 10 datapoints are 50% faulty, this is the switch condition
-            if sum(self.function_configs[func_hash]["current_model_stats"]["running_faults"][-10:]) / 10 > 0.5:
-                self.function_configs[func_hash]["distilled_model"] = ""
-                self.function_configs[func_hash]["current_model_stats"]["trained_on_datapoints"] = 0
-                self.function_configs[func_hash]["current_model_stats"]["running_faults"] = []
+            if sum(self.function_configs[func_hash].current_model_stats["running_faults"][-10:]) / 10 > 0.5:
+                self.function_configs[func_hash].distilled_model.model_name = ""
+                self.function_configs[func_hash].current_model_stats["trained_on_datapoints"] = 0
+                self.function_configs[func_hash].current_model_stats["running_faults"] = []
             self._update_config_file(func_hash)
 
         except Exception as e:
@@ -385,7 +422,7 @@ class FunctionModeler(object):
         """
         try:
             # check if already finetuning
-            if "job_id" in self.function_configs[func_hash]["current_training_run"]:
+            if "job_id" in self.function_configs[func_hash].current_training_run:
                 # check for job status
                 self._check_finetuning_status(func_hash)
             else:
@@ -404,7 +441,7 @@ class FunctionModeler(object):
         if func_hash not in self.function_configs:
             return False
 
-        training_threshold = (2 ** self.function_configs[func_hash]["nr_of_training_runs"]) * 200
+        training_threshold = (2 ** self.function_configs[func_hash].nr_of_training_runs) * 200
 
         align_dataset_size = self.dataset_sizes[SYMBOLIC_ALIGNMENTS][func_hash] if func_hash in self.dataset_sizes[
             SYMBOLIC_ALIGNMENTS] else 0
@@ -477,7 +514,7 @@ class FunctionModeler(object):
 
         # create the finetune hash
         finetune_hash = function_description.__hash__(purpose="finetune")
-        nr_of_training_runs = self.function_configs[func_hash]["nr_of_training_runs"]
+        nr_of_training_runs = self.function_configs[func_hash].nr_of_training_runs
         finetune_hash += encode_int(self.environment_id)
         finetune_hash += encode_int(nr_of_training_runs)
 
@@ -489,11 +526,12 @@ class FunctionModeler(object):
 
         # Use the stream as a file
         try:
-            finetuning_response: FinetuneJob = self.api_providers["openai"].finetune(file=temp_file, suffix=finetune_hash)
+            finetune_provider = self.function_configs[func_hash].distilled_model.provider
+            finetuning_response: FinetuneJob = self.api_provider[finetune_provider].finetune(file=temp_file, suffix=finetune_hash)
         except Exception as e:
             return
 
-        self.function_configs[func_hash]["current_training_run"] = {"job_id": finetuning_response.id,
+        self.function_configs[func_hash].current_training_run = {"job_id": finetuning_response.id,
                                                                     "trained_on_datapoints": total_dataset_size,
                                                                     "last_checked": datetime.datetime.now().strftime(
                                                                         "%Y-%m-%d %H:%M:%S")}
@@ -510,35 +548,25 @@ class FunctionModeler(object):
         If the job is finished, update the config file to reflect the new model
         """
 
-        job_id = self.function_configs[func_hash]["current_training_run"]["job_id"]
-        last_checked = self.function_configs[func_hash]["current_training_run"]["last_checked"]
+        job_id = self.function_configs[func_hash].current_training_run["job_id"]
+        last_checked = self.function_configs[func_hash].current_training_run["last_checked"]
         # check if last checked was more than 30 mins ago
         if (datetime.datetime.now() - datetime.datetime.strptime(last_checked,
-                                                                 "%Y-%m-%d %H:%M:%S")).total_seconds() > 1800:
-            response = self.api_providers["openai"].get_finetuned(job_id)
-            self.function_configs[func_hash]["current_training_run"]["last_checked"] = datetime.datetime.now().strftime(
+                                                                 "%Y-%m-%d %H:%M:%S")).total_seconds() > 1:
+            finetune_provider = self.function_configs[func_hash].distilled_model.provider
+            response = self.api_provider[finetune_provider].get_finetuned(job_id)
+            self.function_configs[func_hash].current_training_run["last_checked"] = datetime.datetime.now().strftime(
                 "%Y-%m-%d %H:%M:%S")
             if response.status == "succeeded" or response.status == "failed":
-                self._update_finetune_config(response, func_hash, response.status)
+                self._update_finetune_config(response, func_hash)
             else:
                 self._update_config_file(func_hash)
 
-    def _update_finetune_config(self, response: FinetuneJob, func_hash, status):
+    def _update_finetune_config(self, response: FinetuneJob, func_hash):
         """
         Update the config file to reflect the new model and switch the current model to the finetuned model
         """
-        if status == "failed":
-            self.function_configs[func_hash]["current_training_run"] = {}
-        else:
-            self.function_configs[func_hash]["distilled_model"] = response.fine_tuned_model
-            self.function_configs[func_hash]["last_training_run"] = self.function_configs[func_hash][
-                "current_training_run"]
-            self.function_configs[func_hash]["current_model_stats"] = {
-                "trained_on_datapoints": self.function_configs[func_hash]["current_training_run"][
-                    "trained_on_datapoints"],
-                "running_faults": []}
-            self.function_configs[func_hash]["nr_of_training_runs"] += 1
-            self.function_configs[func_hash]["current_training_run"] = {}
+        self.function_configs[func_hash].update_with_finetuned_response(response)
         try:
             self._update_config_file(func_hash)
         except Exception as e:
