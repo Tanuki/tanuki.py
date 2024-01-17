@@ -77,6 +77,8 @@ class FunctionModeler(object):
             # currently ban all non-openai models from finetuning because it doesnt make sense 
             if model_config.provider != OPENAI_PROVIDER and func_hash not in self.check_finetune_blacklist:
                 self.check_finetune_blacklist.append(func_hash)
+            if model_config.provider != OPENAI_PROVIDER and func_hash not in self.execute_finetune_blacklist:
+                self.execute_finetune_blacklist.append(func_hash)
 
     def _get_datasets(self):
         """
