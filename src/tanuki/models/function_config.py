@@ -44,7 +44,7 @@ class FunctionConfig(BaseModel):
         self.last_training_run = json_dict["last_training_run"]
         self.current_training_run = json_dict["current_training_run"]
         self.nr_of_training_runs = json_dict["nr_of_training_runs"]
-        if len(json_dict["teacher_models"]) > 0:
+        if "teacher_models" in json_dict and len(json_dict["teacher_models"]) > 0:
             self.teacher_models = [config_factory.create_config(teacher_model, TEACHER_MODEL) for teacher_model in json_dict["teacher_models"]]
         return self
     
