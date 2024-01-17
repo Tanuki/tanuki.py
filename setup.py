@@ -30,6 +30,10 @@ setup(
             "botocore==1.33.1",
             # Add any additional dependencies for the optional feature here
         ],
+        'hf_transformers': [
+            "transformers==4.35.2",
+            # Add any additional dependencies for the optional feature here
+        ],
     },
     classifiers=[
         'Development Status :: 3 - Alpha',
