@@ -138,15 +138,16 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
         response = self.client.fine_tuning.jobs.list(limit=limit)
         jobs = []
         for job in response.data:
-            model_config = copy.deepcopy(DEFAULT_GENERATIVE_MODELS[DEFAULT_DISTILLED_MODEL_NAME])
-            model_config.model_name = job.fine_tuned_model
-            jobs.append(FinetuneJob(job.id, job.status, model_config))
+            finetune_job = self.create_finetune_job(job)
+            jobs.append(finetune_job)
 
         return jobs
 
-    def get_finetuned(self, job_id):
+    def get_finetuned(self, job_id) -> FinetuneJob:
         self.check_api_key()
-        return self.client.fine_tuning.jobs.retrieve(job_id)
+        response = self.client.fine_tuning.jobs.retrieve(job_id)
+        finetune_job = self.create_finetune_job(response)
+        return finetune_job
 
     def finetune(self, file, suffix, **kwargs) -> FinetuneJob:
         self.check_api_key()
@@ -164,12 +165,15 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
                                                                       suffix=suffix)
         except Exception as e:
             return
-        finetuned_model_config = copy.deepcopy(DEFAULT_GENERATIVE_MODELS[DEFAULT_DISTILLED_MODEL_NAME])
-        finetuned_model_config.model_name = finetuning_response.fine_tuned_model
-        finetune_job = FinetuneJob(finetuning_response.id, finetuning_response.status, finetuned_model_config)
-
+        finetune_job = self.create_finetune_job(finetuning_response)
         return finetune_job
 
+    def create_finetune_job(self, response: FineTuningJob) -> FinetuneJob:
+        finetuned_model_config = copy.deepcopy(DEFAULT_GENERATIVE_MODELS[DEFAULT_DISTILLED_MODEL_NAME])
+        finetuned_model_config.model_name = response.fine_tuned_model
+        finetune_job = FinetuneJob(response.id, response.status, finetuned_model_config)
+        return finetune_job
+    
     def check_api_key(self):
         # check if api key is not none
         if not self.api_key:
