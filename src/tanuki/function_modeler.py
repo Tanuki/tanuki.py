@@ -2,7 +2,7 @@ import ast
 import datetime
 import io
 import json
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Union
 
 import openai
 
@@ -50,7 +50,7 @@ class FunctionModeler(object):
         return self.data_worker.load_dataset(dataset_type, func_hash, return_type=type)
     
     def _configure_teacher_models(self,
-                                    teacher_models: list[str, BaseModelConfig],
+                                    teacher_models: List[Union[str, BaseModelConfig]],
                                     func_hash: str,
                                     task_type: str):
         """
