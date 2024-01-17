@@ -65,6 +65,12 @@ def func_default_openai(input: str) -> Optional[Literal['Good', 'Bad']]:
     """
 
 
+@tanuki.patch
+def func_default(input: str) -> Optional[Literal['Good', 'Bad']]:
+    """
+    Determine if the input is positive or negative sentiment
+    """
+
 @tanuki.patch(teacher_models=[LlamaBedrockConfig(model_name = "llama778", context_length = 1)])
 def func_full_llama_bedrock(input: str) -> Optional[Literal['Good', 'Bad']]:
     """
@@ -180,3 +186,24 @@ def test_teacher_model_override_error():
         assert False
     except:
         assert True
+
+
+def test_finetuning():
+    func_default_description = Register.load_function_description(func_default)
+    func_default_openai_description = Register.load_function_description(func_default_openai)
+    func_full_llama_bedrock_description = Register.load_function_description(func_full_llama_bedrock)
+    func_mixed_description = Register.load_function_description(func_mixed)
+    func_default_hash = func_default_description.__hash__()
+    func_default_openai_hash = func_default_openai_description.__hash__()
+    func_full_llama_bedrock_hash = func_full_llama_bedrock_description.__hash__()
+    func_mixed_hash = func_mixed_description.__hash__()
+
+    func_modeler = tanuki.function_modeler
+    assert func_default_hash not in func_modeler.check_finetune_blacklist
+    assert func_default_hash not in func_modeler.execute_finetune_blacklist
+    assert func_default_openai_hash not in func_modeler.check_finetune_blacklist
+    assert func_default_openai_hash not in func_modeler.execute_finetune_blacklist
+    assert func_full_llama_bedrock_hash in func_modeler.check_finetune_blacklist
+    assert func_full_llama_bedrock_hash in func_modeler.execute_finetune_blacklist
+    assert func_mixed_hash in func_modeler.check_finetune_blacklist
+    assert func_mixed_hash in func_modeler.execute_finetune_blacklist

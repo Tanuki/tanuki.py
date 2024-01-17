@@ -125,7 +125,7 @@ class LanguageModelManager(object):
         distilled_model, teacher_models = self.function_modeler.get_models(function_description)
         is_distilled_model = distilled_model.model_name != ""
         suitable_for_distillation, input_prompt_token_count = self.suitable_for_finetuning_token_check(args, kwargs, f,
-                                                                                                       distilled_model.context_length)
+                                                                                                       distilled_model)
         # no examples needed, using a finetuned model. Dont save to finetune dataset
         if is_distilled_model and suitable_for_distillation:
             prompt = self.construct_prompt(f, args, kwargs, [], distilled_model)

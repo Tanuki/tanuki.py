@@ -2,7 +2,7 @@ import ast
 import datetime
 import io
 import json
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Union
 
 import openai
 
@@ -50,7 +50,7 @@ class FunctionModeler(object):
         return self.data_worker.load_dataset(dataset_type, func_hash, return_type=type)
     
     def _configure_teacher_models(self,
-                                    teacher_models: list[str, BaseModelConfig],
+                                    teacher_models: List[Union[str, BaseModelConfig]],
                                     func_hash: str,
                                     task_type: str):
         """
@@ -77,6 +77,8 @@ class FunctionModeler(object):
             # currently ban all non-openai models from finetuning because it doesnt make sense 
             if model_config.provider != OPENAI_PROVIDER and func_hash not in self.check_finetune_blacklist:
                 self.check_finetune_blacklist.append(func_hash)
+            if model_config.provider != OPENAI_PROVIDER and func_hash not in self.execute_finetune_blacklist:
+                self.execute_finetune_blacklist.append(func_hash)
 
     def _get_datasets(self):
         """
@@ -552,7 +554,7 @@ class FunctionModeler(object):
         last_checked = self.function_configs[func_hash].current_training_run["last_checked"]
         # check if last checked was more than 30 mins ago
         if (datetime.datetime.now() - datetime.datetime.strptime(last_checked,
-                                                                 "%Y-%m-%d %H:%M:%S")).total_seconds() > 1:
+                                                                 "%Y-%m-%d %H:%M:%S")).total_seconds() > 1800:
             finetune_provider = self.function_configs[func_hash].distilled_model.provider
             response = self.api_provider[finetune_provider].get_finetuned(job_id)
             self.function_configs[func_hash].current_training_run["last_checked"] = datetime.datetime.now().strftime(
