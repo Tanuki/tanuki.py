@@ -164,8 +164,9 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
                                                                       suffix=suffix)
         except Exception as e:
             return
-
-        finetune_job = FinetuneJob(finetuning_response.id, finetuning_response.status, finetuning_response.fine_tuned_model)
+        finetuned_model_config = copy.deepcopy(DEFAULT_GENERATIVE_MODELS[DEFAULT_DISTILLED_MODEL_NAME])
+        finetuned_model_config.model_name = finetuning_response.fine_tuned_model
+        finetune_job = FinetuneJob(finetuning_response.id, finetuning_response.status, finetuned_model_config)
 
         return finetune_job
 
