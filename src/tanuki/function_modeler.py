@@ -554,7 +554,7 @@ class FunctionModeler(object):
         last_checked = self.function_configs[func_hash].current_training_run["last_checked"]
         # check if last checked was more than 30 mins ago
         if (datetime.datetime.now() - datetime.datetime.strptime(last_checked,
-                                                                 "%Y-%m-%d %H:%M:%S")).total_seconds() > 1:
+                                                                 "%Y-%m-%d %H:%M:%S")).total_seconds() > 1800:
             finetune_provider = self.function_configs[func_hash].distilled_model.provider
             response = self.api_provider[finetune_provider].get_finetuned(job_id)
             self.function_configs[func_hash].current_training_run["last_checked"] = datetime.datetime.now().strftime(
