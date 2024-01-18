@@ -1,11 +1,7 @@
-import os
-from typing import List
-
-import openai
 from dotenv import load_dotenv
 load_dotenv()
 import tanuki
-from typing import Any
+
 @tanuki.patch
 def extract_stock_winners_best(input: str) -> set[str]:
     """

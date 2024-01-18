@@ -1,7 +1,4 @@
-import os
 from typing import List
-
-import openai
 from dotenv import load_dotenv
 load_dotenv()
 import tanuki
