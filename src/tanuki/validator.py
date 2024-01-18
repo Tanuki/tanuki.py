@@ -119,7 +119,8 @@ class Validator:
         if origin == tuple:
             if (not isinstance(value, tuple) and not isinstance(value, list)): #or (args and len(value) != len(args)):
                 return False
-            return all(self.check_type(v, t) for v, t in zip(value, args))
+            item_type = args[0] if args else Any
+            return all(self.check_type(v, item_type) for v in value)
 
         # Handle lists
         if origin == list:
