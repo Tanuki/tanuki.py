@@ -136,8 +136,6 @@ class LanguageModelManager(object):
 
         else:
             aligns = self.function_modeler.get_symbolic_alignments(function_description.__hash__(), max=16)
-            examples = [f"Inputs:\nArgs: {align['args']}\nKwargs: {align['kwargs']}\nOutput: {align['output']}" for align in
-                 aligns]
             examples = self.create_examples(aligns)
             examples_token_count = sum([approximate_token_count(example) for example in examples])
             generation_tokens = llm_parameters.get("max_new_tokens", self.default_generation_length)
@@ -153,7 +151,7 @@ class LanguageModelManager(object):
     
     def create_examples(self, aligns):
         """
-        Create examples given the aligns
+        Create json decodable examples given the aligns
         """
         final_examples = []
         for align in aligns:

@@ -11,7 +11,7 @@ DEFAULT_GENERATIVE_MODELS = {
             "anthropic.claude-v2:1": ClaudeConfig(model_name = "anthropic.claude-v2:1", context_length = 200000),
             "llama_70b_chat_aws": LlamaBedrockConfig(model_name = "meta.llama2-70b-chat-v1", context_length = 4096),
             "llama_13b_chat_aws": LlamaBedrockConfig(model_name = "meta.llama2-13b-chat-v1", context_length = 4096),
-            "example_pythia_160" : HFConfig(model_name = "EleutherAI/pythia-160m",
+            "pythia_160" : HFConfig(model_name = "EleutherAI/pythia-160m",
                                             context_length = 2048,
                                             chat_template="{user_prompt}",
                                             model_kwargs={"device_map": "auto"}),
