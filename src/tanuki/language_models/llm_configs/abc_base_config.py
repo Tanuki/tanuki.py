@@ -1,5 +1,5 @@
 import abc 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel#, ConfigDict
 from typing import Optional
 
 class BaseModelConfig(abc.ABC, BaseModel):
@@ -16,9 +16,9 @@ class BaseModelConfig(abc.ABC, BaseModel):
     instructions : Optional[str] -- the instructions for the model
     parsing_helper_tokens : Optional[dict] -- the parsing helper tokens for the model
     """
-    model_config = ConfigDict(
-            protected_namespaces=()
-        )
+    #model_config = ConfigDict(
+    #        protected_namespaces=()
+    #    )
     model_name: str
     provider: str
     context_length: int
