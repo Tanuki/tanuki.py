@@ -417,7 +417,7 @@ class Validator:
                         return target_type.model_validate(data)
                     except AttributeError as e:
                         # backwards compatibility with pydantic < 2
-                        return target_type.parse_obj(**data)
+                        return target_type.parse_obj(data)
 
 
                 # For general classes, attempt instantiation
