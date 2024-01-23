@@ -175,6 +175,8 @@ class Validator:
         if self.is_pydantic_model(origin):
             try:
                 #temp_model = create_model('TempModel', **value)
+                if isinstance(value, origin):
+                    return True
                 #return isinstance(temp_model, origin)
                 # check if value is dict
                 if not isinstance(value, dict):
@@ -480,6 +482,8 @@ class Validator:
                     if self._is_subclass_of_generic(target_type, list) and not self._is_generic(target_type):
                         return target_type(instantiated_items)
 
+                    return instantiated_items
+            
                 # Handle tuples
                 if self._is_tuple_like(target_type) or (isinstance(origin, type) and issubclass(origin, tuple)):
                     base, item_types = self._find_generic_base_and_args(target_type)
