@@ -144,6 +144,9 @@ def test_validate_dataclasses():
         age: int
         height: float
         is_cool: bool
+        favourite_numbers: List[int]
+        even_more_favourite_numbers: tuple[int, ...]
+        favourite_dict: Dict[str, int]
 
         def __eq__(self, other):
             return self.dict() == other.dict()
@@ -151,8 +154,15 @@ def test_validate_dataclasses():
         def __hash__(self):
             return hash(str(self.__dict__))
 
-    person = Person('John', 20, 1.8, True)
-    person = {'name': 'John', 'age': 20, 'height': 1.8, 'is_cool': True}
+    person = {
+        "name": "John",
+        "age": 20,
+        "height": 1.8,
+        "is_cool": True,
+        "favourite_numbers": [1, 2, 3],
+        "even_more_favourite_numbers": (1, 2, 3),
+        "favourite_dict": {"a": 1, "b": 2},
+    }
     assert validator.check_type(person, Person)
     assert not validator.check_type(person, str)
 
@@ -198,6 +208,10 @@ def test_validate_pydantic():
         age: int
         height: float
         is_cool: bool
+        favourite_numbers: List[int]
+        even_more_favourite_numbers: tuple[int, ...]
+        favourite_dict: Dict[str, int]
+
 
         def __eq__(self, other):
             return self.model_dump() == other.model_dump()
@@ -205,8 +219,15 @@ def test_validate_pydantic():
         def __hash__(self):
             return hash(str(self.model_dump()))
 
-    person = Person(name='John', age=20, height=1.8, is_cool=True)
-    person = {'name': 'John', 'age': 20, 'height': 1.8, 'is_cool': True}
+    person = {
+        "name": "John",
+        "age": 20,
+        "height": 1.8,
+        "is_cool": True,
+        "favourite_numbers": [1, 2, 3],
+        "even_more_favourite_numbers": (1, 2, 3),
+        "favourite_dict": {"a": 1, "b": 2},
+    }
     assert validator.check_type(person, Person)
     assert not validator.check_type(person, str)
 
@@ -246,10 +267,10 @@ def test_validate_pydantic():
 
 if __name__ == "__main__":
     test_validate_pydantic()
-    test_validate_dataclasses()
-    test_validate_literal_types()
-    test_validate_collection_list_types()
-    test_validate_collection_dict_types()
-    test_validate_type_annotations()
-    test_validate_complex_types()
-    test_validate_base_types()
+    #test_validate_dataclasses()
+    #test_validate_literal_types()
+    #test_validate_collection_list_types()
+    #test_validate_collection_dict_types()
+    #test_validate_type_annotations()
+    #test_validate_complex_types()
+    #test_validate_base_types()
