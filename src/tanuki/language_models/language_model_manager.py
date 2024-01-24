@@ -83,17 +83,21 @@ class LanguageModelManager(object):
         The main generation function, given the args, kwargs, function description and model type, generate a response and check if the datapoint can be saved to the finetune dataset
         """
 
+        func_hash = function_description.__hash__()
         prompt, model, save_to_finetune, is_distilled_model = self.get_generation_case(args, kwargs,
                                                                                        function_description,
-                                                                                       llm_parameters)
-        func_hash = function_description.__hash__()
+                                                                                       llm_parameters, 
+                                                                                       func_hash)
         # loggings
-        if func_hash not in self.current_generators:
-            logging.info(f"Generating function outputs with {model.model_name}")
-            self.current_generators[func_hash] = model.model_name
-        elif self.current_generators[func_hash] != model.model_name:
-            logging.info(f"Switching output generation from {self.current_generators[func_hash]} to {model.model_name}")
-            self.current_generators[func_hash] = model.model_name
+        current_generator = self.current_generators.get(func_hash, None)
+        if current_generator:
+            generator_model = current_generator["model"]
+            if generator_model == "":
+                logging.info(f"Found {len(current_generator['examples'])} align statements for {function_description.name}. Generating function outputs with {model.model_name}.")
+                self.current_generators[func_hash]["model"] = model.model_name
+            elif generator_model != model.model_name:
+                logging.info(f"Switching output generation from {generator_model} to {model.model_name} for funcion {function_description.name}.")
+                self.current_generators[func_hash]["model"] = model.model_name
 
         choice = self._synthesise_answer(prompt, model, llm_parameters)
         output = LanguageModelOutput(choice, save_to_finetune, is_distilled_model)
@@ -114,7 +118,7 @@ class LanguageModelManager(object):
         return self.api_provider[model.provider].generate(model, system_message, prompt, **llm_parameters)
 
 
-    def get_generation_case(self, args, kwargs, function_description, llm_parameters):
+    def get_generation_case(self, args, kwargs, function_description, llm_parameters, func_hash):
         """
         Get the generation case with the correct prompt and model
         First get the current model, then if distilled model, do zero-shot prompt and return False as suitable_for_finetune
@@ -136,6 +140,9 @@ class LanguageModelManager(object):
             examples = [f"Inputs:\nArgs: {align['args']}\nKwargs: {align['kwargs']}\nOutput: {align['output']}" for align in
                  aligns]
             
+            if func_hash not in self.current_generators:
+                self.current_generators[func_hash] = {"model": "", "examples": examples}
+
             examples_token_count = sum([approximate_token_count(example) for example in examples])
             generation_tokens = llm_parameters.get("max_new_tokens", self.default_generation_length)
             model = self.choose_model_from_tokens(teacher_models,

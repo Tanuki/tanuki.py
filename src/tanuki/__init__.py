@@ -294,10 +294,13 @@ def patch(patchable_func=None,
         # Configure the function modeler using incoming parameters
         function_modeler.environment_id = environment_id
         if ignore_finetuning:
+            logging.info(f"The flag for ignoring finetuning has been set True for {test_func.__name__}. No model distillation will be performed.")
             function_modeler.execute_finetune_blacklist.append(func_hash)
         if ignore_finetune_fetching:
+            logging.info(f"The flag for ignoring searching for finetuned models has been set True for {test_func.__name__}. No already finetuned models will be looked for.")
             function_modeler.check_finetune_blacklist.append(func_hash)
         if ignore_data_storage:
+            logging.info(f"The flag for ignoring data storage has been set True for {test_func.__name__}. No data will be read or saved and model distillation will not be performed.")
             function_modeler.store_data_blacklist.append(func_hash)
         task_type = function_description.type
         if len(teacher_models) > 0:
