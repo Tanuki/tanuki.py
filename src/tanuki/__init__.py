@@ -71,7 +71,6 @@ logging.addLevelName(PATCH_LEVEL_NUM, "PATCH")
 logging.basicConfig(level=ALIGN_LEVEL_NUM)
 logger = logger_factory(__name__)
 
-
 api_provider = APIManager()
 function_modeler = FunctionModeler(data_worker=logger, api_provider=api_provider)
 language_modeler = LanguageModelManager(function_modeler, api_provider=api_provider)
@@ -79,11 +78,10 @@ embedding_modeler = EmbeddingModelManager(function_modeler, api_provider=api_pro
 telemetry_enabled: bool = True
 
 
-@staticmethod
 def _load_alignments(func_hash: str):
     function_modeler.load_symbolic_align_statements(func_hash)
 
-@staticmethod
+
 def _anonymous_usage(*args, **kwargs):
     """
     Post anonymously to the usage server so we know what configs are commonly used in the project.
@@ -96,7 +94,7 @@ def _anonymous_usage(*args, **kwargs):
     except:
         pass
 
-@staticmethod
+
 def align(test_func):
     """
     Decorator to align a function.
@@ -174,10 +172,10 @@ def align(test_func):
                     equivalent_mocks = mock_positives_list
                     negative_mocks = list(mock_negatives.values())
                     function_modeler.save_embeddable_align_statements(hashed_description,
-                                                                             args,
-                                                                             kwargs,
-                                                                             equivalent_mocks,
-                                                                             negative_mocks)
+                                                                      args,
+                                                                      kwargs,
+                                                                      equivalent_mocks,
+                                                                      negative_mocks)
                     return mocked_embedding
                 else:
                     # If we are aligning a function that returns an object
@@ -196,19 +194,18 @@ def align(test_func):
                     key = get_key(args, kwargs)
                     mocked_behaviour = mock_behaviors.get(key, None)
                     function_modeler.save_symbolic_align_statements(hashed_description, args, kwargs,
-                                                                           mocked_behaviour)
+                                                                    mocked_behaviour)
                     return mocked_behaviour
 
             return mock_func
 
-
         # Identify all functions that need to be patched based on mock_behaviors
         if instance:
-            function_names_to_patch = Register.function_names_to_patch(instance)#, type=FunctionType.SYMBOLIC)
+            function_names_to_patch = Register.function_names_to_patch(instance)  # , type=FunctionType.SYMBOLIC)
             functions_descriptions = [Register.load_function_description_from_name(instance, func_name)
                                       for func_name in function_names_to_patch]
         else:
-            function_names_to_patch = Register.function_names_to_patch()#type=FunctionType.SYMBOLIC)
+            function_names_to_patch = Register.function_names_to_patch()  # type=FunctionType.SYMBOLIC)
             functions_descriptions = [Register.load_function_description_from_name(func_name)
                                       for func_name in function_names_to_patch]
 
@@ -239,20 +236,20 @@ def align(test_func):
 
     return wrapper
 
-@staticmethod
+
 def generate_from_embedding_model_manager(function_description):
     choice_parsed = []
     instantiated = function_description.output_type_hint(choice_parsed)
     return instantiated
 
-@staticmethod
+
 def patch(patchable_func=None,
           environment_id: int = 0,
           ignore_finetune_fetching: bool = False,
           ignore_finetuning: bool = False,
           ignore_data_storage: bool = False,
-          teacher_models : list = [],
-          generation_params : dict = {}
+          teacher_models: list = [],
+          generation_params: dict = {}
           ):
     """
     The main decorator for patching a function.
@@ -280,10 +277,10 @@ def patch(patchable_func=None,
                 instantiated: Embedding = embedding_modeler(args, function_description, kwargs)
             else:
                 # If the function is expected to return a choice, we choose the LLM API.
-                instantiated: Any = language_modeler(args, 
-                                                     function_description, 
-                                                     kwargs, 
-                                                     validator, 
+                instantiated: Any = language_modeler(args,
+                                                     function_description,
+                                                     kwargs,
+                                                     validator,
                                                      generation_params)
 
             return instantiated  # test_func(*args, **kwargs)
@@ -302,8 +299,8 @@ def patch(patchable_func=None,
         task_type = function_description.type
         if len(teacher_models) > 0:
             function_modeler._configure_teacher_models(teacher_models,
-                                                        func_hash,
-                                                        task_type)
+                                                       func_hash,
+                                                       task_type)
         _load_alignments(func_hash)
 
         wrapper._is_alignable = True
