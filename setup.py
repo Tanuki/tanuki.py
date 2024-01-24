@@ -18,7 +18,7 @@ setup(
     install_requires=[
         "appdirs~=1.4.4",
         "openai==1.3.5",
-        "numpy~=1.26.1",
+        "numpy>=1.26.1",
         "python-dotenv==1.0.0",
         "bitarray==2.8.2",
         "pydantic>1.0.0",
