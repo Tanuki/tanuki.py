@@ -413,7 +413,12 @@ class Validator:
                     for attr, attr_type in target_type.__annotations__.items():
                         if attr in data:
                             data[attr] = self.instantiate(data[attr], attr_type)
-                    return target_type.model_validate(data)
+                    try:
+                        return target_type.model_validate(data)
+                    except AttributeError as e:
+                        # backwards compatibility with pydantic < 2
+                        return target_type.parse_obj(data)
+
 
                 # For general classes, attempt instantiation
                 try:

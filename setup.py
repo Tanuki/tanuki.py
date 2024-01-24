@@ -21,7 +21,7 @@ setup(
         "numpy~=1.26.1",
         "python-dotenv==1.0.0",
         "bitarray==2.8.2",
-        "pydantic==2.4.2",
+        "pydantic>1.0.0",
         "requests~=2.31.0"
     ],
     extras_require={
