@@ -54,8 +54,12 @@ class FunctionConfig(BaseModel):
         Returns:
             The dict
         """
-        return self.model_dump()
-    
+        try:
+            config_dictionary = self.model_dump()
+        except AttributeError as e:
+            config_dictionary = self.dict()
+
+        return config_dictionary
     def update_with_finetuned_response(self, response):
         """
         Update the function config with the finetuned response
