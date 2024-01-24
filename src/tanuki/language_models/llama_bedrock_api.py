@@ -56,4 +56,4 @@ class LLama_Bedrock_API(Bedrock_API):
             # remove the end token from the choice
             choice = choice.split(model.parsing_helper_tokens["end_token"])[0]
 
-        return choice
+        return choice.strip()
