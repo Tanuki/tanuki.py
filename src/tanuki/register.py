@@ -1,6 +1,6 @@
 import inspect
-from typing import get_type_hints, Literal, get_origin, Tuple, Callable, Optional, Dict
-
+from typing import get_type_hints, Literal, get_origin, Tuple, Callable, Optional, Dict, Union
+import json
 from tanuki.models.embedding import Embedding
 from tanuki.models.function_description import FunctionDescription
 from tanuki.models.function_type import FunctionType
@@ -147,14 +147,39 @@ class Register:
         #     output_class_definition = get_class_definition(output_type_hint)
         output_class_definition = None
         function_type = FunctionType.SYMBOLIC
-        if inspect.isclass(output_type_hint):
-            # Check if the base class of the output type hint is Embedding
-            base_class = get_origin(output_type_hint) or output_type_hint
-            if issubclass(base_class, Embedding):
-                output_class_definition = None
-                function_type = FunctionType.EMBEDDABLE
-            else:
-                output_class_definition = get_class_definition(output_type_hint)
+        # check if the output type hint is a class or a subclass of a Union
+        if inspect.isclass(output_type_hint) or (hasattr(output_type_hint, "__origin__") and
+                                                 output_type_hint.__origin__ == Union):
+            if (hasattr(output_type_hint, "__origin__") and output_type_hint.__origin__ == Union): # it's a union
+                # get all the types in the union
+                union_types = output_type_hint.__args__
+                output_type_descriptions = {}
+                for output_type in union_types:
+                    # check if it is a class Nonetype
+                    if output_type is type(None):
+                        output_type_descriptions["NoneType"] = "None"
+                    elif inspect.isclass(output_type):
+                        # Check if the base class of the output type hint is Embedding
+                        base_class = get_origin(output_type) or output_type
+                        if issubclass(base_class, Embedding):
+                            output_class_definition = None
+                            function_type = FunctionType.EMBEDDABLE
+                            break
+                        else:
+                            class_type_description = get_class_definition(output_type)
+                            if isinstance(class_type_description,str):
+                                class_type_description = class_type_description.replace('"', "'") # less horrible prompt formatting when dump to json
+                            output_type_descriptions[output_type.__name__] = class_type_description
+                output_class_definition = f"Union of following classes {json.dumps(output_type_descriptions)}"
+
+            else: # it's a class
+                # Check if the base class of the output type hint is Embedding
+                base_class = get_origin(output_type_hint) or output_type_hint
+                if issubclass(base_class, Embedding):
+                    output_class_definition = None
+                    function_type = FunctionType.EMBEDDABLE
+                else:
+                    output_class_definition = get_class_definition(output_type_hint)
 
         return FunctionDescription(
             name=func_object.__name__,
