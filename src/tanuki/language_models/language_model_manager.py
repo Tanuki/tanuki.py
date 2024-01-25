@@ -28,7 +28,7 @@ class LanguageModelManager(object):
         self.api_provider = api_provider
         self.function_modeler = function_modeler
         self.default_generation_length = generation_token_limit
-        self.current_generators = {}
+        self.initialized_functions = {}
         self.token_counts = {}
 
     def __call__(self,
@@ -89,19 +89,18 @@ class LanguageModelManager(object):
                                                                                        llm_parameters, 
                                                                                        func_hash)
         # loggings
-        current_generator = self.current_generators.get(func_hash, None)
-        if current_generator:
-            generator_model = current_generator["model"]
+        current_function_setup = self.initialized_functions.get(func_hash, None) # getting the current function setup - model and align statements
+        if current_function_setup:
+            generator_model = current_function_setup["model"]
             if is_distilled_model:
                 logging.info(f"Generating function outputs for {function_description.name} with a finetuned model: {model.model_name}.")
-                self.current_generators[func_hash]["model"] = model.model_name
+                self.initialized_functions[func_hash]["model"] = model.model_name
             elif generator_model == "":
-                logging.info(f"Found {len(current_generator['examples'])} align statements for {function_description.name}. Generating function outputs with {model.model_name}.")
-                self.current_generators[func_hash]["model"] = model.model_name
-                self.current_generators[func_hash]["model"] = model.model_name
+                logging.info(f"Found {len(current_function_setup['examples'])} align statements for {function_description.name}. Generating function outputs with {model.model_name}.")
+                self.initialized_functions[func_hash]["model"] = model.model_name
             elif generator_model != model.model_name:
                 logging.info(f"Switching output generation from {generator_model} to {model.model_name} for function {function_description.name}.")
-                self.current_generators[func_hash]["model"] = model.model_name
+                self.initialized_functions[func_hash]["model"] = model.model_name
 
         choice = self._synthesise_answer(prompt, model, llm_parameters)
         output = LanguageModelOutput(choice, save_to_finetune, is_distilled_model)
@@ -134,8 +133,9 @@ class LanguageModelManager(object):
         is_distilled_model = distilled_model.model_name != ""
         suitable_for_distillation, input_prompt_token_count = self.suitable_for_finetuning_token_check(args, kwargs, f,
                                                                                                        distilled_model)
-        if func_hash not in self.current_generators:
-                self.current_generators[func_hash] = {"model": "", "examples": examples}
+        if func_hash not in self.initialized_functions:
+            # initialise the initialized_functions dict
+            self.initialized_functions[func_hash] = {"model": "", "examples": []}
         # no examples needed, using a finetuned model. Dont save to finetune dataset
         if is_distilled_model and suitable_for_distillation:
             prompt = self.construct_prompt(f, args, kwargs, [], distilled_model)
@@ -146,6 +146,8 @@ class LanguageModelManager(object):
             examples = [f"Inputs:\nArgs: {align['args']}\nKwargs: {align['kwargs']}\nOutput: {align['output']}" for align in
                  aligns]
             
+            # update the examples in the initialized_functions dict
+            self.initialized_functions[func_hash]["examples"] = examples
 
             examples_token_count = sum([approximate_token_count(example) for example in examples])
             generation_tokens = llm_parameters.get("max_new_tokens", self.default_generation_length)

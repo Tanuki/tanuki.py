@@ -12,7 +12,7 @@ class EmbeddingModelManager(object):
     def __init__(self, function_modeler, api_provider: APIManager):
         self.function_modeler = function_modeler
         self.api_provider = api_provider
-        self.current_generators = {}
+        self.initialized_functions = {}
 
     def get_embedding_case(self, args, function_description: FunctionDescription, kwargs, examples=None):
         # example_input = f"Examples:{examples}\n" if examples else ""
@@ -25,12 +25,12 @@ class EmbeddingModelManager(object):
         
 
         # loggings
-        if function_hash not in self.current_generators:
-            logging.info(f"Generating function embeddings with {model.model_name}")
-            self.current_generators[function_hash] = model.model_name
-        elif self.current_generators[function_hash] != model.model_name:
-            logging.info(f"Switching embeddings generation from {self.current_generators[function_hash]} to {model.model_name}")
-            self.current_generators[function_hash] = model.model_name
+        if function_hash not in self.initialized_functions:
+            logging.info(f"Generating  function embeddings for {function_description.name} with {model.model_name}")
+            self.initialized_functions[function_hash] = model.model_name
+        elif self.initialized_functions[function_hash] != model.model_name:
+            logging.info(f"Switching embeddings generation for {function_description.name} from {self.initialized_functions[function_hash]} to {model.model_name}")
+            self.initialized_functions[function_hash] = model.model_name
         
         return content, model
 
