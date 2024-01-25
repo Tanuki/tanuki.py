@@ -9,7 +9,7 @@ import logging
 from tanuki.constants import EXAMPLE_ELEMENT_LIMIT, PATCHES, SYMBOLIC_ALIGNMENTS, POSITIVE_EMBEDDABLE_ALIGNMENTS, \
     NEGATIVE_EMBEDDABLE_ALIGNMENTS, OPENAI_PROVIDER
 from tanuki.models.function_type import FunctionType
-from tanuki.language_models.llm_configs import DEFAULT_GENERATIVE_MODELS, DEFAULT_EMBEDDING_MODELS
+from tanuki.language_models.llm_configs import DEFAULT_TEACHER_MODELS, DEFAULT_EMBEDDING_MODELS
 from tanuki.language_models.llm_configs.abc_base_config import BaseModelConfig
 from tanuki.language_models.llm_finetune_api_abc import LLM_Finetune_API
 from tanuki.models.finetune_job import FinetuneJob
@@ -66,7 +66,7 @@ class FunctionModeler(object):
         if task_type == FunctionType.EMBEDDABLE:
             preconfigured_models = DEFAULT_EMBEDDING_MODELS
         elif task_type == FunctionType.SYMBOLIC:
-            preconfigured_models = DEFAULT_GENERATIVE_MODELS
+            preconfigured_models = DEFAULT_TEACHER_MODELS
         for model in teacher_models:
             if isinstance(model, str):
                 if model not in preconfigured_models:

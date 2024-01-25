@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Dict, List
 from tanuki.language_models.llm_configs.abc_base_config import BaseModelConfig
-from tanuki.language_models.llm_configs import DEFAULT_GENERATIVE_MODELS
+from tanuki.language_models.llm_configs import DEFAULT_TEACHER_MODELS, DEFAULT_STUDENT_MODELS
 from tanuki.constants import DEFAULT_TEACHER_MODEL_NAMES, DEFAULT_DISTILLED_MODEL_NAME, \
                             DISTILLED_MODEL, TEACHER_MODEL
 from tanuki.language_models.llm_configs.model_config_factory import ModelConfigFactory
@@ -22,13 +22,13 @@ class FunctionConfig(BaseModel):
     nr_of_training_runs : int -- the number of training runs
     
     """
-    distilled_model: BaseModelConfig = DEFAULT_GENERATIVE_MODELS[DEFAULT_DISTILLED_MODEL_NAME]
+    distilled_model: BaseModelConfig = DEFAULT_STUDENT_MODELS[DEFAULT_DISTILLED_MODEL_NAME]
     current_model_stats : Dict = {
         "trained_on_datapoints": 0,
         "running_faults": []}
     last_training_run : Dict =  {"trained_on_datapoints": 0}
     current_training_run : Dict =  {}
-    teacher_models : List[BaseModelConfig] =  [DEFAULT_GENERATIVE_MODELS[teacher_model_name] for teacher_model_name in DEFAULT_TEACHER_MODEL_NAMES]
+    teacher_models : List[BaseModelConfig] =  [DEFAULT_TEACHER_MODELS[teacher_model_name] for teacher_model_name in DEFAULT_TEACHER_MODEL_NAMES]
     nr_of_training_runs : int = 0
 
     def load_from_dict(self, json_dict):

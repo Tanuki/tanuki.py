@@ -92,11 +92,12 @@ class LanguageModelManager(object):
         current_generator = self.current_generators.get(func_hash, None)
         if current_generator:
             generator_model = current_generator["model"]
-            if generator_model == "":
+            if is_distilled_model:
+                logging.info(f"Generating function outputs for {function_description.name} with a finetuned model: {model.model_name}.")
+                self.current_generators[func_hash]["model"] = model.model_name
+            elif generator_model == "":
                 logging.info(f"Found {len(current_generator['examples'])} align statements for {function_description.name}. Generating function outputs with {model.model_name}.")
                 self.current_generators[func_hash]["model"] = model.model_name
-            elif generator_model == "finetuned_model_placeholder":
-                logging.info(f"Generating function outputs with for {function_description.name} finetuned model {model.model_name}.")
                 self.current_generators[func_hash]["model"] = model.model_name
             elif generator_model != model.model_name:
                 logging.info(f"Switching output generation from {generator_model} to {model.model_name} for function {function_description.name}.")
@@ -133,11 +134,11 @@ class LanguageModelManager(object):
         is_distilled_model = distilled_model.model_name != ""
         suitable_for_distillation, input_prompt_token_count = self.suitable_for_finetuning_token_check(args, kwargs, f,
                                                                                                        distilled_model)
+        if func_hash not in self.current_generators:
+                self.current_generators[func_hash] = {"model": "", "examples": examples}
         # no examples needed, using a finetuned model. Dont save to finetune dataset
         if is_distilled_model and suitable_for_distillation:
             prompt = self.construct_prompt(f, args, kwargs, [], distilled_model)
-            if func_hash not in self.current_generators:
-                self.current_generators[func_hash] = {"model": "finetuned_model_placeholder", "examples": []}
             return prompt, distilled_model, suitable_for_distillation, True
 
         else:
@@ -145,8 +146,6 @@ class LanguageModelManager(object):
             examples = [f"Inputs:\nArgs: {align['args']}\nKwargs: {align['kwargs']}\nOutput: {align['output']}" for align in
                  aligns]
             
-            if func_hash not in self.current_generators:
-                self.current_generators[func_hash] = {"model": "", "examples": examples}
 
             examples_token_count = sum([approximate_token_count(example) for example in examples])
             generation_tokens = llm_parameters.get("max_new_tokens", self.default_generation_length)
