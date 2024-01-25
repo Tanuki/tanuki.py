@@ -579,7 +579,7 @@ class FunctionModeler(object):
         Update the config file to reflect the new model and switch the current model to the finetuned model
         """
         self.function_configs[func_hash].update_with_finetuned_response(response)
-        logging.info(f"Finetuning for {function_description.name} using {self.function_configs[func_hash].distilled_model.provider} finished with status {response.status}")
+        logging.info(f"Finetuning for {function_description.name} using {self.function_configs[func_hash].distilled_model.provider} finished with status: {response.status}")
         try:
             self._update_config_file(func_hash)
         except Exception as e:

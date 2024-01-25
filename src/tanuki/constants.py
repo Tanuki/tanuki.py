@@ -30,7 +30,7 @@ ENVVAR = "TANUKI_LOG_DIR"
 
 # default models
 DEFAULT_TEACHER_MODEL_NAMES = ["gpt-4", "gpt-4-32k", ]
-DEFAULT_DISTILLED_MODEL_NAME = "gpt-3.5-finetune"
+DEFAULT_DISTILLED_MODEL_NAME = "gpt-3.5-turbo-1106-finetune"
 DEFAULT_EMBEDDING_MODEL_NAME = "ada-002"
 
 # provider names
