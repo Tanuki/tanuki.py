@@ -28,7 +28,7 @@ class LanguageModelManager(object):
         self.api_provider = api_provider
         self.function_modeler = function_modeler
         self.default_generation_length = generation_token_limit
-        self.current_generators = {}
+        self.initialized_functions = {}
         self.token_counts = {}
 
     def __call__(self,
@@ -83,17 +83,24 @@ class LanguageModelManager(object):
         The main generation function, given the args, kwargs, function description and model type, generate a response and check if the datapoint can be saved to the finetune dataset
         """
 
+        func_hash = function_description.__hash__()
         prompt, model, save_to_finetune, is_distilled_model = self.get_generation_case(args, kwargs,
                                                                                        function_description,
-                                                                                       llm_parameters)
-        func_hash = function_description.__hash__()
+                                                                                       llm_parameters, 
+                                                                                       func_hash)
         # loggings
-        if func_hash not in self.current_generators:
-            logging.info(f"Generating function outputs with {model.model_name}")
-            self.current_generators[func_hash] = model.model_name
-        elif self.current_generators[func_hash] != model.model_name:
-            logging.info(f"Switching output generation from {self.current_generators[func_hash]} to {model.model_name}")
-            self.current_generators[func_hash] = model.model_name
+        current_function_setup = self.initialized_functions.get(func_hash, None) # getting the current function setup - model and align statements
+        if current_function_setup:
+            generator_model = current_function_setup["model"]
+            if is_distilled_model:
+                logging.info(f"Generating function outputs for {function_description.name} with a finetuned model: {model.model_name}.")
+                self.initialized_functions[func_hash]["model"] = model.model_name
+            elif generator_model == "":
+                logging.info(f"Found {len(current_function_setup['examples'])} align statements for {function_description.name}. Generating function outputs with {model.model_name}.")
+                self.initialized_functions[func_hash]["model"] = model.model_name
+            elif generator_model != model.model_name:
+                logging.info(f"Switching output generation from {generator_model} to {model.model_name} for function {function_description.name}.")
+                self.initialized_functions[func_hash]["model"] = model.model_name
 
         choice = self._synthesise_answer(prompt, model, llm_parameters)
         output = LanguageModelOutput(choice, save_to_finetune, is_distilled_model)
@@ -114,7 +121,7 @@ class LanguageModelManager(object):
         return self.api_provider[model.provider].generate(model, system_message, prompt, **llm_parameters)
 
 
-    def get_generation_case(self, args, kwargs, function_description, llm_parameters):
+    def get_generation_case(self, args, kwargs, function_description, llm_parameters, func_hash):
         """
         Get the generation case with the correct prompt and model
         First get the current model, then if distilled model, do zero-shot prompt and return False as suitable_for_finetune
@@ -126,6 +133,9 @@ class LanguageModelManager(object):
         is_distilled_model = distilled_model.model_name != ""
         suitable_for_distillation, input_prompt_token_count = self.suitable_for_finetuning_token_check(args, kwargs, f,
                                                                                                        distilled_model)
+        if func_hash not in self.initialized_functions:
+            # initialise the initialized_functions dict
+            self.initialized_functions[func_hash] = {"model": "", "examples": []}
         # no examples needed, using a finetuned model. Dont save to finetune dataset
         if is_distilled_model and suitable_for_distillation:
             prompt = self.construct_prompt(f, args, kwargs, [], distilled_model)
@@ -136,13 +146,18 @@ class LanguageModelManager(object):
             examples = [f"Inputs:\nArgs: {align['args']}\nKwargs: {align['kwargs']}\nOutput: {align['output']}" for align in
                  aligns]
             
+            # update the examples in the initialized_functions dict
+            self.initialized_functions[func_hash]["examples"] = examples
+
             examples_token_count = sum([approximate_token_count(example) for example in examples])
             generation_tokens = llm_parameters.get("max_new_tokens", self.default_generation_length)
             model = self.choose_model_from_tokens(teacher_models,
                                                   examples_token_count + input_prompt_token_count + generation_tokens,
                                                   len(examples))
             if model:
-                prompt = self.construct_prompt(f, args, kwargs, examples, model)
+                examples_with_parsing_tokens = [f"Inputs:\nArgs: {align['args']}\nKwargs: {align['kwargs']}\nOutput:{model.parsing_helper_tokens['start_token']}{align['output']}{model.parsing_helper_tokens['end_token']}" for align in
+                 aligns]
+                prompt = self.construct_prompt(f, args, kwargs, examples_with_parsing_tokens, model)
                 return prompt, model, suitable_for_distillation, False
             else:
                 raise ValueError(
@@ -179,14 +194,14 @@ class LanguageModelManager(object):
         """
         if examples:
             final_examples = "\n".join(
-                    [f"{model.parsing_helper_tokens['start_token']}{align}{model.parsing_helper_tokens['end_token']}" for align in
+                    [f"{align}" for align in
                      examples])
             example_input = f"Examples:{final_examples}\n"
         else:
             example_input = ""
 
         instruction_prompt = model.instructions
-        content = f"{instruction_prompt}\nFunction: {f}\n{example_input}---\n{model.parsing_helper_tokens['start_token']}Inputs:\nArgs: {args}\nKwargs: {kwargs}\nOutput:"
+        content = f"{instruction_prompt}\nFunction: {f}\n{example_input}---\nInputs:\nArgs: {args}\nKwargs: {kwargs}\nOutput:{model.parsing_helper_tokens['start_token']}"
         return content
 
     def repair_generate(self, args, kwargs, f, failed_outputs_list, aligns, models, llm_parameters):

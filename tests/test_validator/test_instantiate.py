@@ -15,6 +15,10 @@ def test_instantiate_pydantic():
         age: int
         height: float
         is_cool: bool
+        favourite_numbers: List[int]
+        even_more_favourite_numbers: tuple[int, ...]
+        favourite_dict: Dict[str, int]
+
 
         def __eq__(self, other):
             return self.model_dump() == other.model_dump()
@@ -27,10 +31,20 @@ def test_instantiate_pydantic():
         "name": "John",
         "age": 20,
         "height": 1.8,
-        "is_cool": True
+        "is_cool": True,
+        "favourite_numbers": [1, 2, 3],
+        "even_more_favourite_numbers": (1, 2, 3),
+        "favourite_dict": {"a": 1, "b": 2},
     }
     person_obj = validator.instantiate(person, Person)
     assert isinstance(person_obj, Person)
+    # test lists
+    list_pydantic = [person, person]
+    person_obj = validator.instantiate(list_pydantic, List[Person])
+    assert isinstance(person_obj, list)
+    assert isinstance(person_obj[0], Person)
+    assert isinstance(person_obj[1], Person)
+    assert len(person_obj) == 2
 
     # Nested data classes or Pydantic models.
     @dataclass
@@ -76,8 +90,10 @@ def test_primitives():
     assert validator.instantiate("1.0", str) != 1.0
     assert validator.instantiate("true", str) != True
     assert validator.instantiate({}, dict) == {}
+    assert validator.instantiate({"asd": 2, "bb": "ad"}, dict) == {"asd": 2, "bb": "ad"}
     assert validator.instantiate([], list) == []
     assert validator.instantiate((), tuple) == ()
+    assert validator.instantiate((1,2), tuple) == (1, 2)
     assert validator.instantiate(set(), frozenset) == set()
     assert validator.instantiate((), frozenset) == ()
     assert validator.instantiate((), set) == ()
@@ -231,4 +247,4 @@ if __name__ == "__main__":
     test_instantiate_dataclass()
     test_primitives()
     test_generics()
-    test_extended_generics()
+    test_extended_generics(Validator())

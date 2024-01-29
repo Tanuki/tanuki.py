@@ -4,12 +4,12 @@ import io
 import json
 from typing import List, Tuple, Dict, Union
 
-import openai
+import logging
 
 from tanuki.constants import EXAMPLE_ELEMENT_LIMIT, PATCHES, SYMBOLIC_ALIGNMENTS, POSITIVE_EMBEDDABLE_ALIGNMENTS, \
     NEGATIVE_EMBEDDABLE_ALIGNMENTS, OPENAI_PROVIDER
 from tanuki.models.function_type import FunctionType
-from tanuki.language_models.llm_configs import DEFAULT_GENERATIVE_MODELS, DEFAULT_EMBEDDING_MODELS
+from tanuki.language_models.llm_configs import DEFAULT_TEACHER_MODELS, DEFAULT_EMBEDDING_MODELS
 from tanuki.language_models.llm_configs.abc_base_config import BaseModelConfig
 from tanuki.language_models.llm_finetune_api_abc import LLM_Finetune_API
 from tanuki.models.finetune_job import FinetuneJob
@@ -42,6 +42,7 @@ class FunctionModeler(object):
         self.store_data_blacklist = []
         self.api_provider = api_provider
         self.teacher_models_override = {}
+        self.startup_logging_checker = {}
 
     def _get_dataset_info(self, dataset_type, func_hash, type="length"):
         """
@@ -65,7 +66,7 @@ class FunctionModeler(object):
         if task_type == FunctionType.EMBEDDABLE:
             preconfigured_models = DEFAULT_EMBEDDING_MODELS
         elif task_type == FunctionType.SYMBOLIC:
-            preconfigured_models = DEFAULT_GENERATIVE_MODELS
+            preconfigured_models = DEFAULT_TEACHER_MODELS
         for model in teacher_models:
             if isinstance(model, str):
                 if model not in preconfigured_models:
@@ -318,7 +319,7 @@ class FunctionModeler(object):
 
     def _check_for_finetunes(self, function_description: FunctionDescription, finetune_provider : str) -> Tuple[bool, Dict]:
         # hash the function_hash into 16 characters (to embed it into the name of OpenAI finetunes, for later retrieval)
-
+        logging.info(f"Checking for finetunes for {function_description.name} using {finetune_provider}")
         finetune_hash = function_description.__hash__(purpose="finetune") + encode_int(self.environment_id)
         # List 10 fine-tuning jobs
         finetunes: List[FinetuneJob] = self.api_provider[finetune_provider].list_finetuned(limit=1000)
@@ -333,10 +334,12 @@ class FunctionModeler(object):
                     config = self._construct_config_from_finetune(finetune_hash, finetune)
                     # save the config
                     self.data_worker.update_function_config(function_description.__hash__(), config)
+                    logging.info(f"Found finetuned model for {function_description.name} [{config.distilled_model.model_name}]")
                     return True, config
                 except:
+                    logging.info(f"Found finetuned model for {function_description.name} [{finetune.fine_tuned_model.model_name}] but could not load it")
                     return False, {}
-
+        logging.info(f"No finetuned model found for {function_description.name}")
         return False, {}
 
     def _construct_config_from_finetune(self, finetune_hash: str, finetune: FinetuneJob):
@@ -426,16 +429,16 @@ class FunctionModeler(object):
             # check if already finetuning
             if "job_id" in self.function_configs[func_hash].current_training_run:
                 # check for job status
-                self._check_finetuning_status(func_hash)
+                self._check_finetuning_status(func_hash, function_description)
             else:
                 # check for finetuning condition
-                if self._check_finetuning_condition(func_hash):
+                if self._check_finetuning_condition(func_hash, function_description):
                     self._execute_finetuning(function_description, func_hash)
         except Exception as e:
             print(e)
             print("Error checking for finetuning")
 
-    def _check_finetuning_condition(self, func_hash):
+    def _check_finetuning_condition(self, func_hash, function_description):
         """
         Check if the finetuning condition is met
         Currently finetuning condition is dependent on the number of symbolic datapoints since last finetuning
@@ -453,6 +456,11 @@ class FunctionModeler(object):
             # if havent read in the patch dataset size, read it in
             patch_dataset_size = self._get_dataset_info(PATCHES, func_hash, type="length")
             self.dataset_sizes[PATCHES][func_hash] = patch_dataset_size
+        if func_hash not in self.startup_logging_checker:
+            logging.info(f"Function {function_description.name} [{align_dataset_size} aligns | {patch_dataset_size} runs] will be finetuned from"\
+                         f" {self.function_configs[func_hash].teacher_models[0].model_name} using {self.function_configs[func_hash].distilled_model.provider} in "\
+                             f"{training_threshold-(patch_dataset_size + align_dataset_size)} runs")
+            self.startup_logging_checker[func_hash] = True
 
         return (patch_dataset_size + align_dataset_size) > training_threshold
 
@@ -529,8 +537,10 @@ class FunctionModeler(object):
         # Use the stream as a file
         try:
             finetune_provider = self.function_configs[func_hash].distilled_model.provider
+            logging.info(f"Starting finetuning for {function_description.name} using {finetune_provider}")
             finetuning_response: FinetuneJob = self.api_provider[finetune_provider].finetune(file=temp_file, suffix=finetune_hash)
         except Exception as e:
+            logging.info(f"Could not start finetuning for {function_description.name} using {finetune_provider}. Error: {e}")
             return
 
         self.function_configs[func_hash].current_training_run = {"job_id": finetuning_response.id,
@@ -544,7 +554,7 @@ class FunctionModeler(object):
             print(e)
             print("Could not update config file to register a finetuning run")
 
-    def _check_finetuning_status(self, func_hash):
+    def _check_finetuning_status(self, func_hash, function_description):
         """
         Check the status of the current finetuning job
         If the job is finished, update the config file to reflect the new model
@@ -560,18 +570,18 @@ class FunctionModeler(object):
             self.function_configs[func_hash].current_training_run["last_checked"] = datetime.datetime.now().strftime(
                 "%Y-%m-%d %H:%M:%S")
             if response.status == "succeeded" or response.status == "failed":
-                self._update_finetune_config(response, func_hash)
+                self._update_finetune_config(response, func_hash, function_description)
             else:
                 self._update_config_file(func_hash)
 
-    def _update_finetune_config(self, response: FinetuneJob, func_hash):
+    def _update_finetune_config(self, response: FinetuneJob, func_hash, function_description):
         """
         Update the config file to reflect the new model and switch the current model to the finetuned model
         """
         self.function_configs[func_hash].update_with_finetuned_response(response)
+        logging.info(f"Finetuning for {function_description.name} using {self.function_configs[func_hash].distilled_model.provider} finished with status: {response.status}")
         try:
             self._update_config_file(func_hash)
         except Exception as e:
-            print(e)
-            print("Could not update config file after a successful finetuning run")
+            logging.info(f"Could not update the function configuration file with the finetuned model for {function_description.name}. Error: {e}")
             pass

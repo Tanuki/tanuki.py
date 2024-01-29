@@ -36,7 +36,8 @@ def test_token_counter_finetunable():
     prompt, distilled_model, suitable_for_distillation, is_distilled_model = lang_model.get_generation_case(args, 
                                                                                                             kwargs, 
                                                                                                             function_description,
-                                                                                                            {})
+                                                                                                            {},
+                                                                                                            "")
     assert suitable_for_distillation
     assert is_distilled_model
     assert distilled_model.model_name == "test_ft_1"
@@ -54,7 +55,8 @@ def test_token_counter_non_finetunable_1():
     prompt, distilled_model, suitable_for_distillation, is_distilled_model = lang_model.get_generation_case(args, 
                                                                                                             kwargs, 
                                                                                                             function_description,
-                                                                                                            {})
+                                                                                                            {},
+                                                                                                            "")
     assert not suitable_for_distillation
     assert not is_distilled_model
     assert distilled_model.model_name == "gpt-4"
@@ -72,7 +74,8 @@ def test_token_counter_non_finetunable_2():
     prompt, distilled_model, suitable_for_distillation, is_distilled_model = lang_model.get_generation_case(args, 
                                                                                                             kwargs, 
                                                                                                             function_description,
-                                                                                                            {})
+                                                                                                            {},
+                                                                                                            "")
     assert not suitable_for_distillation
     assert not is_distilled_model
     assert distilled_model.model_name == "gpt-4-32k"
@@ -92,7 +95,8 @@ def test_error_raise():
         prompt, distilled_model, suitable_for_distillation, is_distilled_model = lang_model.get_generation_case(args, 
                                                                                                             kwargs, 
                                                                                                             function_description,
-                                                                                                            {})
+                                                                                                            {},
+                                                                                                            "")
     except ValueError:
         error = True
     assert error

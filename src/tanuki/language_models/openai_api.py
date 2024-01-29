@@ -12,7 +12,7 @@ from tanuki.models.embedding import Embedding
 from tanuki.language_models.embedding_api_abc import Embedding_API
 from tanuki.language_models.llm_api_abc import LLM_API
 import os
-from tanuki.language_models.llm_configs import DEFAULT_GENERATIVE_MODELS
+from tanuki.language_models.llm_configs import DEFAULT_STUDENT_MODELS
 from tanuki.constants import DEFAULT_DISTILLED_MODEL_NAME
 from tanuki.language_models.llm_configs.openai_config import OpenAIConfig
 from tanuki.models.finetune_job import FinetuneJob
@@ -130,7 +130,14 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
 
         if not choice:
             raise Exception("OpenAI API failed to generate a response")
-
+        
+        if model.parsing_helper_tokens["end_token"]:
+            # remove the end token from the choice
+            choice = choice.split(model.parsing_helper_tokens["end_token"])[0]
+            # check if starting token is in choice
+            if model.parsing_helper_tokens["start_token"] in choice:
+                # remove the starting token from the choice
+                choice = choice.split(model.parsing_helper_tokens["start_token"])[-1]
         return choice
 
     def list_finetuned(self, limit=100, **kwargs) -> List[FinetuneJob]:
@@ -152,24 +159,18 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
     def finetune(self, file, suffix, **kwargs) -> FinetuneJob:
         self.check_api_key()
         # Use the stream as a file
-        try:
-            response = self.client.files.create(file=file, purpose='fine-tune')
-        except Exception as e:
-            return
+        response = self.client.files.create(file=file, purpose='fine-tune')
 
         training_file_id = response.id
         # submit the finetuning job
-        try:
-            finetuning_response: FineTuningJob = self.client.fine_tuning.jobs.create(training_file=training_file_id,
-                                                                      model="gpt-3.5-turbo",
+        finetuning_response: FineTuningJob = self.client.fine_tuning.jobs.create(training_file=training_file_id,
+                                                                      model=DEFAULT_DISTILLED_MODEL_NAME,
                                                                       suffix=suffix)
-        except Exception as e:
-            return
         finetune_job = self.create_finetune_job(finetuning_response)
         return finetune_job
 
     def create_finetune_job(self, response: FineTuningJob) -> FinetuneJob:
-        finetuned_model_config = copy.deepcopy(DEFAULT_GENERATIVE_MODELS[DEFAULT_DISTILLED_MODEL_NAME])
+        finetuned_model_config = copy.deepcopy(DEFAULT_STUDENT_MODELS[DEFAULT_DISTILLED_MODEL_NAME])
         finetuned_model_config.model_name = response.fine_tuned_model
         finetune_job = FinetuneJob(response.id, response.status, finetuned_model_config)
         return finetune_job
