@@ -164,7 +164,7 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
         training_file_id = response.id
         # submit the finetuning job
         finetuning_response: FineTuningJob = self.client.fine_tuning.jobs.create(training_file=training_file_id,
-                                                                      model="gpt-3.5-turbo-1106",
+                                                                      model=DEFAULT_DISTILLED_MODEL_NAME,
                                                                       suffix=suffix)
         finetune_job = self.create_finetune_job(finetuning_response)
         return finetune_job
