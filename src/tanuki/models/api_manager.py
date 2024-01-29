@@ -1,6 +1,6 @@
 import json
 from typing import Any, Dict
-from tanuki.constants import OPENAI_PROVIDER, LLAMA_BEDROCK_PROVIDER, TITAN_BEDROCK_PROVIDER
+from tanuki.constants import OPENAI_PROVIDER, LLAMA_BEDROCK_PROVIDER, TITAN_BEDROCK_PROVIDER, TOGETHER_AI_PROVIDER
 
 
 class APIManager(object):
@@ -47,6 +47,13 @@ class APIManager(object):
             try:
                 from tanuki.language_models.titan_bedrock_api import Titan_Bedrock_API
                 self.api_providers[provider] = Titan_Bedrock_API()
+            except ImportError:
+                raise Exception(f"You need to install the Tanuki aws_bedrock package to use the titan_bedrock api provider."\
+                                 "Please install it as pip install tanuki.py[aws_bedrock]")
+        elif provider == TOGETHER_AI_PROVIDER:
+            try:
+                from tanuki.language_models.togetherai_api import TogetherAI_API
+                self.api_providers[provider] = TogetherAI_API()
             except ImportError:
                 raise Exception(f"You need to install the Tanuki aws_bedrock package to use the titan_bedrock api provider."\
                                  "Please install it as pip install tanuki.py[aws_bedrock]")

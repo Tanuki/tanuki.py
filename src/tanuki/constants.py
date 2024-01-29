@@ -37,6 +37,7 @@ DEFAULT_EMBEDDING_MODEL_NAME = "ada-002"
 OPENAI_PROVIDER = "openai"
 LLAMA_BEDROCK_PROVIDER = "llama_bedrock"
 TITAN_BEDROCK_PROVIDER = "aws_titan_bedrock"
+TOGETHER_AI_PROVIDER = "together_ai"
 
 # model type strings
 TEACHER_MODEL = "teacher"
