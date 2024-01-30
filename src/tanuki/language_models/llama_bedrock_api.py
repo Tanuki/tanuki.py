@@ -43,6 +43,8 @@ class LLama_Bedrock_API(Bedrock_API):
             raise Exception("Chat prompt is not defined for this model"\
                             "Please define it in the model config")
         final_prompt = chat_prompt.format(system_message=system_message, user_prompt=prompt)
+        if model.parsing_helper_tokens["start_token"]:
+            final_prompt += model.parsing_helper_tokens["start_token"]
         body = json.dumps({
             "prompt": final_prompt,
             "max_gen_len": max_tokens_to_sample,
