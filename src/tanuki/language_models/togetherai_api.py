@@ -51,7 +51,6 @@ class TogetherAI_API(LLM_API):
         frequency_penalty = kwargs.get("frequency_penalty", 0)
         presence_penalty = kwargs.get("presence_penalty", 0)
         max_new_tokens = kwargs.get("max_new_tokens")
-        stop_words = list(self.model_configs[model.model_name]['stop_words'])
         # check if there are any generation parameters that are not supported
         unsupported_params = [param for param in kwargs.keys() if param not in LLM_GENERATION_PARAMETERS]
         if len(unsupported_params) > 0:
@@ -64,18 +63,19 @@ class TogetherAI_API(LLM_API):
             "max_tokens": max_new_tokens,
             "top_p": top_p,
             "frequency_penalty": frequency_penalty,
-            "presence_penalty": presence_penalty,
-            "stop": stop_words,
+            "presence_penalty": presence_penalty
         }
+        if "stop" in self.model_configs[model.model_name]:
+            params["stop"] = list(self.model_configs[model.model_name]["stop"])
         if model.parsing_helper_tokens["end_token"]:
             params["stop"] = model.parsing_helper_tokens["end_token"]
         chat_prompt = model.chat_template
         if chat_prompt is None:
             try:
-                prompt_format = str(self.model_configs[model.model_name]['chat_template'])
-                final_prompt = prompt_format.format(prompt=prompt)
+                prompt_format = str(self.model_configs[model.model_name]['prompt_format'])
+                final_prompt = prompt_format.format(system_message=system_message, prompt=prompt)
             except:
-                logging.warning("Chat prompt is not defined for this model"\
+                logging.warning("Chat prompt is not defined for this model. "\
                                 "Please define it in the model config. Using default chat prompt")
                 chat_prompt = "[INST]{system_message}[/INST]\n{user_prompt}"
                 final_prompt = chat_prompt.format(system_message=system_message, user_prompt=prompt)
