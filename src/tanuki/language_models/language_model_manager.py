@@ -201,7 +201,7 @@ class LanguageModelManager(object):
             example_input = ""
 
         instruction_prompt = model.instructions
-        content = f"{instruction_prompt}\nFunction: {f}\n{example_input}---\nInputs:\nArgs: {args}\nKwargs: {kwargs}\nOutput:{model.parsing_helper_tokens['start_token']}"
+        content = f"{instruction_prompt}\nFunction: {f}\n{example_input}---\nInputs:\nArgs: {args}\nKwargs: {kwargs}\nOutput:"
         return content
 
     def repair_generate(self, args, kwargs, f, failed_outputs_list, aligns, models, llm_parameters):
