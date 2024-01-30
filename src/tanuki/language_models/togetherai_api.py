@@ -17,7 +17,7 @@ from tanuki.constants import DEFAULT_DISTILLED_MODEL_NAME
 from tanuki.language_models.llm_configs.openai_config import OpenAIConfig
 from tanuki.models.finetune_job import FinetuneJob
 import copy
-
+import together
 
 TOGETHER_AI_URL = "https://api.together.xyz/inference"
 import requests
@@ -29,7 +29,7 @@ class TogetherAI_API(LLM_API):
         super().__init__()
 
         self.api_key = os.environ.get("TOGETHER_API_KEY")
-
+        self.model_configs = {}
         self.client = None
 
 
@@ -44,12 +44,14 @@ class TogetherAI_API(LLM_API):
         """
 
         self.check_api_key()
-
+        if model.model_name not in self.model_configs:
+            self.model_configs[model.model_name] = together.Models.info(model.model_name)['config']
         temperature = kwargs.get("temperature", 0.1)
         top_p = kwargs.get("top_p", 1)
         frequency_penalty = kwargs.get("frequency_penalty", 0)
         presence_penalty = kwargs.get("presence_penalty", 0)
         max_new_tokens = kwargs.get("max_new_tokens")
+        stop_words = list(self.model_configs[model.model_name]['stop_words'])
         # check if there are any generation parameters that are not supported
         unsupported_params = [param for param in kwargs.keys() if param not in LLM_GENERATION_PARAMETERS]
         if len(unsupported_params) > 0:
@@ -63,18 +65,25 @@ class TogetherAI_API(LLM_API):
             "top_p": top_p,
             "frequency_penalty": frequency_penalty,
             "presence_penalty": presence_penalty,
+            "stop": stop_words,
         }
-        messages = [
-            {
-                "role": "system",
-                "content": system_message
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-        params["messages"] = messages
+        if model.parsing_helper_tokens["end_token"]:
+            params["stop"] = model.parsing_helper_tokens["end_token"]
+        chat_prompt = model.chat_template
+        if chat_prompt is None:
+            try:
+                prompt_format = str(self.model_configs[model.model_name]['chat_template'])
+                final_prompt = prompt_format.format(prompt=prompt)
+            except:
+                logging.warning("Chat prompt is not defined for this model"\
+                                "Please define it in the model config. Using default chat prompt")
+                chat_prompt = "[INST]{system_message}[/INST]\n{user_prompt}"
+                final_prompt = chat_prompt.format(system_message=system_message, user_prompt=prompt)
+        else:
+            final_prompt = chat_prompt.format(system_message=system_message, user_prompt=prompt)
+        if model.parsing_helper_tokens["start_token"]:
+            final_prompt += model.parsing_helper_tokens["start_token"]
+        params["prompt"] = final_prompt
 
         counter = 0
         choice = None
