@@ -1,22 +1,8 @@
-from typing import List
-
 import logging
 import time
 # import abstract base class
-from openai import OpenAI
-from openai.types import CreateEmbeddingResponse
-from openai.types.fine_tuning import FineTuningJob
-
-from tanuki.language_models.llm_finetune_api_abc import LLM_Finetune_API
-from tanuki.models.embedding import Embedding
-from tanuki.language_models.embedding_api_abc import Embedding_API
 from tanuki.language_models.llm_api_abc import LLM_API
 import os
-from tanuki.language_models.llm_configs import DEFAULT_STUDENT_MODELS
-from tanuki.constants import DEFAULT_DISTILLED_MODEL_NAME
-from tanuki.language_models.llm_configs.openai_config import OpenAIConfig
-from tanuki.models.finetune_job import FinetuneJob
-import copy
 import together
 
 TOGETHER_AI_URL = "https://api.together.xyz/inference"
@@ -30,7 +16,6 @@ class TogetherAI_API(LLM_API):
 
         self.api_key = os.environ.get("TOGETHER_API_KEY")
         self.model_configs = {}
-        self.client = None
 
 
     def generate(self, model, system_message, prompt, **kwargs):
@@ -130,7 +115,4 @@ class TogetherAI_API(LLM_API):
             # try to get the api key from the environment, maybe it has been set later
             self.api_key = os.getenv("TOGETHER_API_KEY")
             if not self.api_key:
-                raise ValueError("OpenAI API key is not set")
-
-        if not self.client:
-            self.client = OpenAI(api_key=self.api_key)
+                raise ValueError("TogetherAI API key is not set")

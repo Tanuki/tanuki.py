@@ -31,7 +31,7 @@ DEFAULT_TEACHER_MODELS = {
                                             context_length = 32768),
             "Yi-34B-Chat": TogetherAIConfig(model_name = "zero-one-ai/Yi-34B-Chat",
                                             context_length = 4096),
-            "Mistral-7B": TogetherAIConfig(model_name = "mistralai/Mistral-7B-Instruct-v0.2",
+            "Mistral-7B-Instruct-v0.2": TogetherAIConfig(model_name = "mistralai/Mistral-7B-Instruct-v0.2",
                                             context_length = 32768),
         }
 
