@@ -25,6 +25,14 @@ DEFAULT_TEACHER_MODELS = {
                                             context_length = 4096),
             "llama13b-togetherai": TogetherAIConfig(model_name = "togethercomputer/llama-2-13b-chat",
                                             context_length = 4096),
+            "openchat-3.5": TogetherAIConfig(model_name = "openchat/openchat-3.5-1210",
+                                            context_length = 8192),
+            "Mixtral-8x7B-DPO": TogetherAIConfig(model_name = "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
+                                            context_length = 32768),
+            "Yi-34B-Chat": TogetherAIConfig(model_name = "zero-one-ai/Yi-34B-Chat",
+                                            context_length = 4096),
+            "Mistral-7B": TogetherAIConfig(model_name = "mistralai/Mistral-7B-Instruct-v0.2",
+                                            context_length = 32768),
         }
 
 DEFAULT_STUDENT_MODELS = {
