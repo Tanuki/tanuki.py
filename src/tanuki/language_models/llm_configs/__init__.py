@@ -33,8 +33,6 @@ DEFAULT_TEACHER_MODELS = {
                                             context_length = 4096),
             "Mistral-7B-Instruct-v0.2": TogetherAIConfig(model_name = "mistralai/Mistral-7B-Instruct-v0.2",
                                             context_length = 32768),
-            "Zephyr-7B-ß": TogetherAIConfig(model_name = "HuggingFaceH4/zephyr-7b-beta",
-                                            context_length = 32768),
         }
 
 DEFAULT_STUDENT_MODELS = {
