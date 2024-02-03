@@ -31,6 +31,12 @@ setup(
             # Add any additional dependencies for the optional feature here
         ],
     },
+    extras_require={
+        'together_ai': [
+            "together==0.2.11",
+            # Add any additional dependencies for the optional feature here
+        ],
+    }
     classifiers=[
         'Development Status :: 3 - Alpha',
         # Chose either "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package

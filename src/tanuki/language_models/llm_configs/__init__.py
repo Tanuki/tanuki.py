@@ -2,6 +2,7 @@ from tanuki.language_models.llm_configs.openai_config import OpenAIConfig
 from tanuki.language_models.llm_configs.claude_config import ClaudeConfig
 from tanuki.language_models.llm_configs.llama_config import LlamaBedrockConfig
 from tanuki.language_models.llm_configs.titan_config import TitanBedrockConfig
+from tanuki.language_models.llm_configs.togetherai_config import TogetherAIConfig
 DEFAULT_TEACHER_MODELS = {
             "gpt-4-1106-preview": OpenAIConfig(model_name = "gpt-4-1106-preview", context_length = 128000),
             "gpt-4": OpenAIConfig(model_name = "gpt-4", context_length = 8192),
@@ -17,6 +18,21 @@ DEFAULT_TEACHER_MODELS = {
             "anthropic.claude-v2:1": ClaudeConfig(model_name = "anthropic.claude-v2:1", context_length = 200000),
             "llama_70b_chat_aws": LlamaBedrockConfig(model_name = "meta.llama2-70b-chat-v1", context_length = 4096),
             "llama_13b_chat_aws": LlamaBedrockConfig(model_name = "meta.llama2-13b-chat-v1", context_length = 4096),
+            "Mixtral-8x7B": TogetherAIConfig(model_name = "mistralai/Mixtral-8x7B-Instruct-v0.1",
+                                            chat_template = "{user_prompt}", # for some reason this worked better than using their own supplied chat template
+                                            context_length = 32768),
+            "OpenHermes-2p5-Mistral": TogetherAIConfig(model_name = "teknium/OpenHermes-2p5-Mistral-7B",
+                                            context_length = 4096),
+            "llama13b-togetherai": TogetherAIConfig(model_name = "togethercomputer/llama-2-13b-chat",
+                                            context_length = 4096),
+            "openchat-3.5": TogetherAIConfig(model_name = "openchat/openchat-3.5-1210",
+                                            context_length = 8192),
+            "Mixtral-8x7B-DPO": TogetherAIConfig(model_name = "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
+                                            context_length = 32768),
+            "Yi-34B-Chat": TogetherAIConfig(model_name = "zero-one-ai/Yi-34B-Chat",
+                                            context_length = 4096),
+            "Mistral-7B-Instruct-v0.2": TogetherAIConfig(model_name = "mistralai/Mistral-7B-Instruct-v0.2",
+                                            context_length = 32768),
         }
 
 DEFAULT_STUDENT_MODELS = {

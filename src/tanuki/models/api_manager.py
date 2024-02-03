@@ -1,6 +1,6 @@
 import json
 from typing import Any, Dict
-from tanuki.constants import OPENAI_PROVIDER, LLAMA_BEDROCK_PROVIDER, TITAN_BEDROCK_PROVIDER
+from tanuki.constants import OPENAI_PROVIDER, LLAMA_BEDROCK_PROVIDER, TITAN_BEDROCK_PROVIDER, TOGETHER_AI_PROVIDER
 
 
 class APIManager(object):
@@ -50,6 +50,13 @@ class APIManager(object):
             except ImportError:
                 raise Exception(f"You need to install the Tanuki aws_bedrock package to use the titan_bedrock api provider."\
                                  "Please install it as pip install tanuki.py[aws_bedrock]")
+        elif provider == TOGETHER_AI_PROVIDER:
+            try:
+                from tanuki.language_models.togetherai_api import TogetherAI_API
+                self.api_providers[provider] = TogetherAI_API()
+            except ImportError:
+                raise Exception(f"You need to install the Tanuki together_ai package to use the together ai api provider."\
+                                 "Please install it as pip install tanuki.py[together_ai]")
         else:
             raise Exception(f"Model provider {provider} is currently not supported."\
                               "If you have integrated a new provider, please add it to the api manager in the APIManager object "\

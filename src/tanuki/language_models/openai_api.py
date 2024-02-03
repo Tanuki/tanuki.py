@@ -89,6 +89,8 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
             "frequency_penalty": frequency_penalty,
             "presence_penalty": presence_penalty,
         }
+        if model.parsing_helper_tokens["start_token"]:
+            prompt += model.parsing_helper_tokens["start_token"]
         messages = [
             {
                 "role": "system",
