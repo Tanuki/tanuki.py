@@ -88,6 +88,8 @@ class AssertionVisitor(ast.NodeVisitor):
                 return value
         elif isinstance(node, ast.Call):
             return self.extract_output(node)
+        elif isinstance(node, ast.Constant):
+            return node.value
         else:
             # This is a simplification; you might want to add more types
             raise NotImplementedError(f"Node type {type(node)} not supported")
@@ -254,8 +256,9 @@ class AssertionVisitor(ast.NodeVisitor):
                 else:
                     value = value()
             elif value is None:
-                # If evaluation returns None, fall back to scope
-                value = current_scope.get(arg.id, None)
+                if not isinstance(arg, ast.Constant):
+                    # If evaluation returns None, fall back to scope
+                    value = current_scope.get(arg.id, None)
             args.append(value)
 
         # Extract keyword arguments
