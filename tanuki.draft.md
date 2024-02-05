@@ -1,4 +1,4 @@
-# Tanuki v0.1.4 - Easily build LLM-powered apps that get cheaper and faster over time.
+# Tanuki v0.2.0 - Easily build LLM-powered apps that get cheaper and faster over time.
 
 ![Discord](https://img.shields.io/discord/1168948553222197248)
 
