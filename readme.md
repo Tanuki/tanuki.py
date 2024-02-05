@@ -2,6 +2,7 @@
 Easily build LLM-powered apps that get cheaper and faster over time.
 
 Join us on [Discord](https://discord.gg/uUzX5DYctk)
+
 ---
 
 ## Contents
