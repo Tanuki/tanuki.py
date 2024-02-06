@@ -12,7 +12,7 @@ class Or(list):
     pass
 
 
-class AssertionVisitor(ast.NodeVisitor):
+class StaticAssertionVisitor(ast.NodeVisitor):
     def __init__(self,
                  scope: Optional[dict] = None,
                  patch_symbolic_funcs: Dict[str, Callable] = {},

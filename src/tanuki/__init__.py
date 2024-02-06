@@ -1,4 +1,5 @@
 import ast
+import importlib
 import inspect
 import json
 import logging
@@ -9,9 +10,13 @@ from functools import wraps
 from typing import Optional, Union, Any
 from unittest.mock import patch as mock_patch
 
+import astor as astor
 import requests
+
+import tanuki
 from tanuki.models.api_manager import APIManager
-from tanuki.assertion_visitor import AssertionVisitor
+from tanuki.runtime_assertion_visitor import RuntimeAssertionVisitor
+from tanuki.static_assertion_visitor import StaticAssertionVisitor
 from tanuki.function_modeler import FunctionModeler
 from tanuki.language_models.embedding_model_manager import EmbeddingModelManager
 from tanuki.language_models.language_model_manager import LanguageModelManager
@@ -52,6 +57,12 @@ def _log_align(self, func_hash, *args, **kws):
         except IOError as e:
             self.error(f"Failed to write to log file: {e}")
 
+class DisableRuntimeAlign:
+    def __enter__(self):
+        globals()[DISABLE_RUNTIME_ALIGN] = True
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        globals()[DISABLE_RUNTIME_ALIGN] = False
 
 # Set up logging with custom logger
 def logger_factory(name):
@@ -78,6 +89,8 @@ language_modeler = LanguageModelManager(function_modeler, api_provider=api_provi
 embedding_modeler = EmbeddingModelManager(function_modeler, api_provider=api_provider)
 telemetry_enabled: bool = True
 
+DISABLE_RUNTIME_ALIGN = '__disable_runtime_align__'
+__disable_runtime_align__ = False
 
 @staticmethod
 def _load_alignments(func_hash: str):
@@ -96,8 +109,155 @@ def _anonymous_usage(*args, **kwargs):
     except:
         pass
 
+
 @staticmethod
 def align(test_func):
+    """
+    Decorator to align a function.
+
+    This version modifies the AST to replace assert statements with runtime
+    register calls, then compiles and executes the modified function.
+    """
+
+    def get_instance_from_args(args):
+        # Check if there are any arguments
+        if args:
+            first_arg = args[0]
+
+            # Check if the first argument is named "self" or "cls" (or any other specific name)
+            if isinstance(first_arg, ast.Name) and first_arg.id in ("self", "cls"):
+                instance = first_arg
+                args = args[1:]  # Remove the first argument
+            else:
+                instance = None
+        else:
+            instance = None
+
+        return instance, args
+
+    def register(func_name, *args, expected_output, positive=False, instance=None, **kwargs):
+        if instance:
+            function_names_to_patch = Register.function_names_to_patch(instance)  # , type=FunctionType.SYMBOLIC)
+            functions_descriptions = [Register.load_function_description_from_name(instance, func_name)
+                                      for func_name in function_names_to_patch]
+        else:
+            function_names_to_patch = Register.function_names_to_patch()  # type=FunctionType.SYMBOLIC)
+            functions_descriptions = [Register.load_function_description_from_name(func_name)
+                                      for func_name in function_names_to_patch]
+
+        for desc, fn_name in zip(functions_descriptions, function_names_to_patch):
+            if fn_name == func_name:
+                hashed_description = desc.__hash__()
+                if desc.type == FunctionType.EMBEDDABLE:
+                    if positive:
+                        # Implement logic for handling positive (equality) assertions
+                        positive_pairs = []
+                        logger.log(ALIGN_LEVEL_NUM, f"Registering positive embedding pairs for {fn_name}: {positive_pairs}")
+                        function_modeler.save_embeddable_align_statements(hashed_description, args, kwargs, positive_pairs=positive_pairs)
+                    else:
+                        negative_pairs = []
+                        logger.info(f"Registering negative embedding pairs for {fn_name}: {negative_pairs}")
+                        function_modeler.save_embeddable_align_statements(hashed_description, args, kwargs, negative_pairs=negative_pairs)
+                elif desc.type == FunctionType.SYMBOLIC:
+                    if positive:
+                        logger.info(f"Registering symbolic align for {fn_name}{args}{dict(**kwargs)}: {expected_output}")
+                        print(f"Registering symbolic align for {fn_name}{args}{dict(**kwargs)}: {expected_output}")
+                        function_modeler.save_symbolic_align_statements(hashed_description, args, kwargs, expected_output)
+                    else:
+                        raise NotImplementedError("Negative assertions for symbolic functions are not supported yet because most LLM providers dont offer a negative finetuning API")
+                break
+
+    def make_dynamic_call_with_namespace(namespace):
+        def dynamic_call(func_name, *args, __expected_output: any = None, __align_direction: bool = True, **kwargs):
+            if 'self' in globals():
+                # If 'self' is defined globally (unlikely in normal use),
+                # this will throw an error as this approach relies on runtime context
+                raise NameError("'self' found in globals; ambiguous context.")
+            try:
+                # Attempt to call as a method on an instance
+                instance = kwargs.pop('instance', None)
+                if instance is not None:
+                    method = getattr(instance, func_name)
+                    register(func_name, *args, **kwargs, positive=__align_direction, expected_output=__expected_output, instance=instance)
+                    return method(*args, **kwargs)
+            except AttributeError:
+                # 'instance' does not have the method; fall back to a function call
+                pass
+
+            _namespace = namespace
+            # Possibly we should register the module of the function being called too.
+            register(func_name, *args, **kwargs, positive=__align_direction, expected_output=__expected_output, instance=None)
+
+        return dynamic_call
+
+    @wraps(test_func)
+    def wrapper(*args, **kwargs):
+        # If the global variable is set, run the function without aligning. This is to prevent infinite recursion.
+        _globals = test_func.__globals__
+
+        if _globals.get(DISABLE_RUNTIME_ALIGN, False):
+            #_globals = globals()
+            _locals = locals().copy()
+            return test_func(*args, **kwargs)
+        else:
+            source = textwrap.dedent(inspect.getsource(test_func))
+            # Extract imports from the file where test_func is defined
+            #imported_modules = extract_file_imports(test_func)
+
+            tree = ast.parse(source)
+            _locals = locals().copy()
+
+            instance, args = get_instance_from_args(args)
+
+            # Registered functions to patch
+            patch_symbolic_funcs = Register.functions_to_patch(type=FunctionType.SYMBOLIC)
+            patch_embeddable_funcs = Register.functions_to_patch(type=FunctionType.EMBEDDABLE)
+
+            # Initialize the visitor with function_modeler
+            visitor = RuntimeAssertionVisitor(#function_modeler=function_modeler,
+                                              instance=instance,
+                                              patch_symbolic_funcs=patch_symbolic_funcs,
+                                              patch_embeddable_funcs=patch_embeddable_funcs)
+            tree = ast.parse(source)
+            modified_tree = visitor.visit(tree)
+
+            modified_tree = ast.fix_missing_locations(modified_tree)
+
+            # Dump the modified AST to string for debug purposes
+            dump = ast.dump(modified_tree, indent=2, include_attributes=True)
+            # Get the modified source code for debug purposes
+            source_code = astor.to_source(modified_tree)
+
+            # Compile the modified AST
+            try:
+                compiled_code = compile(modified_tree, filename="<ast>", mode="exec")
+            except Exception as e:
+                raise SyntaxError(f"Syntax error in modified code: {e}")
+
+            # Execute the compiled code in a new namespace to avoid overwriting
+            parent_module = inspect.getmodule(test_func).__dict__
+            namespace = {
+                DISABLE_RUNTIME_ALIGN: True,
+                'dynamic_call': make_dynamic_call_with_namespace(parent_module),
+                **parent_module
+            }
+
+            with DisableRuntimeAlign():
+                exec(compiled_code, namespace)
+
+            # Retrieve the modified function from the namespace and call it
+            modified_func_name = test_func.__name__
+            modified_func = namespace.get(modified_func_name)
+
+            if modified_func:
+                return modified_func(*args, **kwargs)
+            else:
+                raise RuntimeError("Modified function not found after AST modification.")
+    return wrapper
+
+
+@staticmethod
+def align_static(test_func):
     """
     Decorator to align a function.
 
@@ -119,9 +279,9 @@ def align(test_func):
 
         patch_symbolic_funcs = Register.functions_to_patch(type=FunctionType.SYMBOLIC)
         patch_embeddable_funcs = Register.functions_to_patch(type=FunctionType.EMBEDDABLE)
-        visitor = AssertionVisitor(_locals,
-                                   patch_symbolic_funcs=patch_symbolic_funcs,
-                                   patch_embeddable_funcs=patch_embeddable_funcs)
+        visitor = StaticAssertionVisitor(_locals,
+                                         patch_symbolic_funcs=patch_symbolic_funcs,
+                                         patch_embeddable_funcs=patch_embeddable_funcs)
         visitor.visit(tree)
 
         # Get the mocked behaviours from analyzing the AST of the aligned function
@@ -148,6 +308,7 @@ def align(test_func):
                 attributes['keys'] = list(result.keys())
 
             return attributes
+
 
         def create_mock_func(instance: Optional,
                              func_name: str,

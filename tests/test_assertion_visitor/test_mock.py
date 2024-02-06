@@ -7,7 +7,7 @@ from typing import Optional, List
 from pydantic import BaseModel
 
 import tanuki
-from tanuki.assertion_visitor import AssertionVisitor, Or
+from tanuki.static_assertion_visitor import StaticAssertionVisitor, Or
 
 
 def _parse(source):
@@ -22,7 +22,7 @@ def _parse(source):
 
     tree = ast.parse(source)
     _locals = locals()
-    visitor = AssertionVisitor(locals(), patch_symbolic_funcs={"create_todolist_item": create_todolist_item})
+    visitor = StaticAssertionVisitor(locals(), patch_symbolic_funcs={"create_todolist_item": create_todolist_item})
     visitor.visit(tree)
     return visitor.mocks
 

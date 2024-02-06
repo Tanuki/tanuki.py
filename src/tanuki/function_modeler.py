@@ -158,6 +158,7 @@ class FunctionModeler(object):
                 self.embeddable_align_buffer[function_hash] = bytearray()
             self.embeddable_align_buffer[function_hash].extend(str(example.__dict__).encode('utf-8') + b'\r\n')
 
+
     def save_symbolic_align_statements(self, function_hash, args, kwargs, output):
         """
         Save the align statements and add to the align buffer
