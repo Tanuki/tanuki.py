@@ -190,13 +190,52 @@ def align_respond():
                                                             response="Hi, thanks for reaching out. We are happy to hear that you are enjoying the product"
             
                                                             )
-                                                            
+
 ```
 
 ## Finetuning
+An advantage of using Tanuki in your workflow is the cost and latency benefits that will be provided as the number of datapoints increases. 
+
+Successful executions of your patched function suitable for finetuning will be persisted to a training dataset, which will be used to distil smaller models for each patched function. Model distillation and pseudo-labelling is a verified way how to cut down on model sizes and gain improvements in latency and memory footprints while incurring insignificant and minor cost to performance (https://arxiv.org/pdf/2305.02301.pdf, https://arxiv.org/pdf/2306.13649.pdf, https://arxiv.org/pdf/2311.00430.pdf, etc).
+
+Training smaller function-specific models and deploying them is handled by the Tanuki library, so the user will get the benefits without any additional MLOps or DataOps effort. Currently only OpenAI GPT style models are supported (Teacher - GPT4, Student GPT-3.5) 
+
+We tested out model distillation using Tanuki using OpenAI models on Squad2, Spider and IMDB Movie Reviews datasets. We finetuned the gpt-3.5-turbo model (student) using few-shot responses of gpt-4 (teacher) and our preliminary tests show that using less than 600 datapoints in the training data we were able to get gpt 3.5 turbo to perform essentialy equivalent (less than 1.5% of performance difference on held-out dev sets) to gpt4 while achieving up to 12 times lower cost and over 6 times lower latency (cost and latency reduction are very dependent on task specific characteristics like input-output token sizes and align statement token sizes). These tests show the potential in model-distillation in this form for intelligently cutting costs and lowering latency without sacrificing performance.<br><br>
+
+![Example distillation results](https://github.com/monkeypatch/tanuki.py/assets/113173969/2ac4c2fd-7ba6-4598-891d-6aa2c85827c9)
 
 ## Supported Model Providers
+We support OpenAI, TogetherAi and AWS Bedrock models. The default models are GPT-4 and GPT4-32K. To use custom models, a 'teacher_models' parameter needs to be specified in the `@tanuki.patch` operators as seen below. The full list of out-of-the-box models is in the table and the setup and how to use other models from the same provider can be seen in the sections below
+### All supported models
+table TBD
+### OpenAI models
+TBD
+### TogetherAI models
+TBD
+### AWS Bedrock models
+TBD
 
 ## RAG
+Support for getting embeddings for RAG use-cases have been implemented. The Open-AI ada-002 (default) and amazon.titan-embed-text-v1 (see [here](https://github.com/Tanuki/tanuki.py/tree/master/docs/aws_bedrock.md) how to configure to use) models are currently supported out of the box to get embeddings for input data. For embedding output the output typehint needs to be set as  `Embedding[np.ndarray]`. Currently adding align statements to steer embedding model behaviour is not implemented, but is on the roadmap. 
+
+
+## Example with OpenAI Ada model
+```python
+@tanuki.patch
+def score_sentiment(input: str) -> Embedding[np.ndarray]:
+    """
+    Scores the input between 0-10
+    """
+```
+
+## Example with AWS Titan model
+```python
+@tanuki.patch(teacher_models = ["aws_titan_embed_v1"])
+def score_sentiment(input: str) -> Embedding[np.ndarray]:
+    """
+    Scores the input between 0-10
+    """
+```
 
 ## Patterns and Examples
+TBD
