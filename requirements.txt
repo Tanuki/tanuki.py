@@ -5,3 +5,4 @@ python-dotenv==1.0.0
 bitarray==2.8.2
 pydantic
 requests~=2.31.0
+astor==0.8.1
