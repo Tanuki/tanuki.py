@@ -99,7 +99,8 @@ class RuntimeAssertionVisitor(ast.NodeTransformer):
         elif isinstance(node, ast.Constant):
             return node
         else:
-            raise NotImplementedError(f"Unsupported argument type: {type(node)}")
+            return node
+            #raise NotImplementedError(f"Unsupported argument type: {type(node)}")
 
     def create_register_call(self, assert_node, _align_direction: bool = True):
         # Extract the function call and the expected output from the assert statement

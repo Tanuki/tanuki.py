@@ -180,7 +180,6 @@ def align(test_func):
 
         return dynamic_call
 
-
     @wraps(test_func)
     def wrapper(*args, **kwargs):
         # If the global variable is set, run the function without aligning. This is to prevent infinite recursion.

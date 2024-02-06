@@ -48,6 +48,18 @@ def highlight_potential_risks(report: str) -> List[str]:
     :return:
     """
 
+@tanuki.patch
+def summarise_int(input: int) -> str:
+    """
+    Summarise the input
+    """
+
+@tanuki.align
+def list_align_int():
+    align_list = [(1, "This is number 1"), (2, "This is number 2")]
+    for ex in align_list:
+        assert summarise_int(ex[0]) == ex[1]
+
 @tanuki.align
 def read_risk_factors():
 
@@ -79,6 +91,7 @@ def read_risk_factors():
 
     assert highlight_potential_risks(example2) == output_2
 
+list_align_int()
 read_risk_factors()
 #
 # class TestSMS(unittest.TestCase):
