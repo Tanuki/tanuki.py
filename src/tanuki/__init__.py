@@ -119,6 +119,22 @@ def align(test_func):
     register calls, then compiles and executes the modified function.
     """
 
+    def get_instance_from_args(args):
+        # Check if there are any arguments
+        if args:
+            first_arg = args[0]
+
+            # Check if the first argument is named "self" or "cls" (or any other specific name)
+            if isinstance(first_arg, ast.Name) and first_arg.id in ("self", "cls"):
+                instance = first_arg
+                args = args[1:]  # Remove the first argument
+            else:
+                instance = None
+        else:
+            instance = None
+
+        return instance, args
+
     def register(func_name, *args, expected_output, positive=False, instance=None, **kwargs):
         if instance:
             function_names_to_patch = Register.function_names_to_patch(instance)  # , type=FunctionType.SYMBOLIC)
@@ -167,16 +183,10 @@ def align(test_func):
             except AttributeError:
                 # 'instance' does not have the method; fall back to a function call
                 pass
-            # Call as a standalone function
+
             _namespace = namespace
-            #func = _namespace.get(func_name)
-
+            # Possibly we should register the module of the function being called too.
             register(func_name, *args, **kwargs, positive=__align_direction, expected_output=__expected_output, instance=None)
-
-            #if func:
-            #    return func(*args, **kwargs)
-            #else:
-            #    raise NameError(f"Function '{func_name}' not found.")
 
         return dynamic_call
 
@@ -197,11 +207,7 @@ def align(test_func):
             tree = ast.parse(source)
             _locals = locals().copy()
 
-            if args:
-                instance = args[0]
-                args = args[1:]
-            else:
-                instance = None
+            instance, args = get_instance_from_args(args)
 
             # Registered functions to patch
             patch_symbolic_funcs = Register.functions_to_patch(type=FunctionType.SYMBOLIC)
