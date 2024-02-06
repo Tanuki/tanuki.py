@@ -19,7 +19,7 @@ To use Together AI models, firstly the Together AI extra package needs to be ins
 Set your Together AI API key using:
 
 ```
-export TOGETHER_API_KEY=sk-...
+export TOGETHER_API_KEY=...
 ```
 
 ## Examples
