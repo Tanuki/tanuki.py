@@ -233,7 +233,7 @@ Successful executions of your patched function suitable for finetuning will be p
 
 Training smaller function-specific models and deploying them is handled by the Tanuki library, so the user will get the benefits without any additional MLOps or DataOps effort. Note: Finetuning currently is available only from GPT-4 (teacher) to GPT-3.5 (Student), it is not yet implemented for AWS Bedrock and Together AI models
 
-We tested out model distillation using Tanuki using OpenAI models on Squad2, Spider and IMDB Movie Reviews datasets. We finetuned the gpt-3.5-turbo model (student) using few-shot responses of gpt-4 (teacher) and our preliminary tests show that using less than 600 datapoints in the training data we were able to get gpt 3.5 turbo to perform essentialy equivalent (less than 1.5% of performance difference on held-out dev sets) to gpt4 while achieving up to 12 times lower cost and over 6 times lower latency (cost and latency reduction are very dependent on task specific characteristics like input-output token sizes and align statement token sizes). These tests show the potential in model-distillation in this form for intelligently cutting costs and lowering latency without sacrificing performance.<br><br>
+We tested out model distillation using Tanuki using OpenAI models on Squad2, Spider and IMDB Movie Reviews datasets. We finetuned the GPT-3.5-turbo model (student) using few-shot responses of GPT-4 (teacher) and our preliminary tests show that using less than 600 datapoints in the training data we were able to get GPT-3.5 turbo to perform essentialy equivalent (less than 1.5% of performance difference on held-out dev sets) to GPT-4 while achieving up to 12 times lower cost and over 6 times lower latency (cost and latency reduction are very dependent on task specific characteristics like input-output token sizes and align statement token sizes). These tests show the potential in model-distillation in this form for intelligently cutting costs and lowering latency without sacrificing performance.<br><br>
 
 ![Example distillation results](https://github.com/monkeypatch/tanuki.py/assets/113173969/2ac4c2fd-7ba6-4598-891d-6aa2c85827c9)
 
@@ -315,7 +315,7 @@ Not necessarily. Currently the only way to improve the LLM performance is to hav
 Each output of the LLM will be programmatically instantiated into the output class ensuring the output will be of the correct type, just like your Python functions. If the output is incorrect and instantiating the correct output object fails, an automatic feedback repair loop kicks in to correct the mistake.
 <!-- TOC --><a name="how-reliable-are-the-typed-outputs"></a>
 #### How reliable are the typed outputs?
-For simpler-medium complexity classes GPT4 with align statements has been shown to be very reliable in outputting the correct type. Additionally we have implemented a repair loop with error feedback to “fix” incorrect outputs and add the correct output to the training dataset.
+For simpler-medium complexity classes GPT-4 with align statements has been shown to be very reliable in outputting the correct type. Additionally we have implemented a repair loop with error feedback to “fix” incorrect outputs and add the correct output to the training dataset.
 <!-- TOC --><a name="how-do-you-deal-with-hallucinations"></a>
 #### How do you deal with hallucinations?
 Hallucinations can’t be 100% removed from LLMs at the moment, if ever. However, by creating test functions decorated with `@tanuki.align`, you can use normal `assert` statements to align the model to behave in the way that you expect. Additionally, you can create types with Pydantic, which act as guardrails to prevent any nasty surprises and provide correct error handling.
@@ -324,7 +324,7 @@ Hallucinations can’t be 100% removed from LLMs at the moment, if ever. However
 By adding more align statements that cover a wider range of inputs, you can ensure that the model is less biased.
 <!-- TOC --><a name="will-distillation-impact-performance"></a>
 #### Will distillation impact performance?
-It depends. For tasks that are challenging for even the best models (e.g GPT4), distillation will reduce performance.
+It depends. For tasks that are challenging for even the best models (e.g GPT-4), distillation will reduce performance.
 However, distillation can be manually turned off in these cases. Additionally, if the distilled model frequently fails to generate correct outputs, the distilled model will be automatically turned off.
 
 <!-- TOC --><a name="what-is-this-not-suitable-for"></a>
