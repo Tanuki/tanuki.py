@@ -169,14 +169,14 @@ def align(test_func):
                 pass
             # Call as a standalone function
             _namespace = namespace
-            func = _namespace.get(func_name)
+            #func = _namespace.get(func_name)
 
             register(func_name, *args, **kwargs, positive=__align_direction, expected_output=__expected_output, instance=None)
 
-            if func:
-                return func(*args, **kwargs)
-            else:
-                raise NameError(f"Function '{func_name}' not found.")
+            #if func:
+            #    return func(*args, **kwargs)
+            #else:
+            #    raise NameError(f"Function '{func_name}' not found.")
 
         return dynamic_call
 
@@ -219,9 +219,9 @@ def align(test_func):
             modified_tree = ast.fix_missing_locations(modified_tree)
 
             # Dump the modified AST to string for debug purposes
-            #dump = ast.dump(modified_tree, indent=2, include_attributes=True)
+            dump = ast.dump(modified_tree, indent=2, include_attributes=True)
             # Get the modified source code for debug purposes
-            #source_code = astor.to_source(modified_tree)
+            source_code = astor.to_source(modified_tree)
 
             # Compile the modified AST
             try:
@@ -236,7 +236,6 @@ def align(test_func):
                 'dynamic_call': make_dynamic_call_with_namespace(parent_module),
                 **parent_module
             }
-
 
             with DisableRuntimeAlign():
                 exec(compiled_code, namespace)
