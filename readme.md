@@ -46,9 +46,10 @@ def test_some_function(example_typed_input: TypedInput,
 
 - **Easy and seamless integration** - Add LLM augmented functions to any workflow within seconds. Decorate a function stub with `@tanuki.patch` and optionally add type hints and docstrings to guide the execution. That’s it.
 - **Type aware** - Ensure that the outputs of the LLM adhere to the type constraints of the function (Python Base types, Pydantic classes, Literals, Generics etc) to guard against bugs or unexpected side-effects of using LLMs.
-- **RAG support** - Seamlessly get embedding outputs for downstream RAG (Retrieval Augmented Generation) implementations. Output embeddings can then be easily stored and used for relevant document retrieval to reduce cost & latency and improve performance on long-form content. 
 - **Aligned outputs** - LLMs are unreliable, which makes them difficult to use in place of classically programmed functions. Using simple assert statements in a function decorated with `@tanuki.align`, you can align the behaviour of your patched function to what you expect.
 - **Lower cost and latency** - Achieve up to 90% lower cost and 80% lower latency with increased usage. The package will take care of model training, MLOps and DataOps efforts to improve LLM capabilities through distillation.
+- **Wide model suppurt** - Supports a wide array of popular models (OpenAI, Amazon Bedrock, Together AI) 
+- **RAG support** - Seamlessly get embedding outputs for downstream RAG (Retrieval Augmented Generation) implementations. Output embeddings can then be easily stored and used for relevant document retrieval to reduce cost & latency and improve performance on long-form content. 
 - **Batteries included** - No remote dependencies other than OpenAI. 
 
 <!-- TOC --><a name="installation-and-getting-started"></a>
@@ -78,7 +79,7 @@ export OPENAI_API_KEY=sk-...
 To get started:
 1. Create a python function stub decorated with `@tanuki.patch` including type hints and a docstring.
 2. (Optional) Create another function decorated with `@tanuki.align` containing normal `assert` statements declaring the expected behaviour of your patched function with different inputs.
-
+3. (Optional) Configure the model you want to use the function for. By default GPT-4 is used but if you want to use any other models supported in our stack, then configure them in the  `@tanuki.patch` operator. You can find out exactly how to configure [Amazon Bedrock](https://github.com/Tanuki/tanuki.py/blob/master/docs/aws_bedrock.md) models and [Together AI](https://github.com/Tanuki/tanuki.py/blob/master/docs/together_ai.md) models in our docs.
 The patched function can now be called as normal in the rest of your code. 
 
 To add functional alignment, the functions annotated with `align` must also be called if:
@@ -230,7 +231,7 @@ An advantage of using Tanuki in your workflow is the cost and latency benefits t
 
 Successful executions of your patched function suitable for finetuning will be persisted to a training dataset, which will be used to distil smaller models for each patched function. Model distillation and pseudo-labelling is a verified way how to cut down on model sizes and gain improvements in latency and memory footprints while incurring insignificant and minor cost to performance (https://arxiv.org/pdf/2305.02301.pdf, https://arxiv.org/pdf/2306.13649.pdf, https://arxiv.org/pdf/2311.00430.pdf, etc).
 
-Training smaller function-specific models and deploying them is handled by the Tanuki library, so the user will get the benefits without any additional MLOps or DataOps effort. Currently only OpenAI GPT style models are supported (Teacher - GPT4, Student GPT-3.5) 
+Training smaller function-specific models and deploying them is handled by the Tanuki library, so the user will get the benefits without any additional MLOps or DataOps effort. Note: Finetuning currently is available only from GPT-4 (teacher) to GPT-3.5 (Student), it is not implemented for AWS Bedrock and TogetherAI models
 
 We tested out model distillation using Tanuki using OpenAI models on Squad2, Spider and IMDB Movie Reviews datasets. We finetuned the gpt-3.5-turbo model (student) using few-shot responses of gpt-4 (teacher) and our preliminary tests show that using less than 600 datapoints in the training data we were able to get gpt 3.5 turbo to perform essentialy equivalent (less than 1.5% of performance difference on held-out dev sets) to gpt4 while achieving up to 12 times lower cost and over 6 times lower latency (cost and latency reduction are very dependent on task specific characteristics like input-output token sizes and align statement token sizes). These tests show the potential in model-distillation in this form for intelligently cutting costs and lowering latency without sacrificing performance.<br><br>
 
