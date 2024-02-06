@@ -1,6 +1,6 @@
 from typing import Literal
 
-EXAMPLE_ELEMENT_LIMIT = 1000
+EXAMPLE_ELEMENT_LIMIT = 4000
 
 # These represent the file extensions for the symbolic patch and alignment datasets
 PATCHES = "patches"
