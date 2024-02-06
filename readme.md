@@ -48,7 +48,7 @@ def test_some_function(example_typed_input: TypedInput,
 - **Type aware** - Ensure that the outputs of the LLM adhere to the type constraints of the function (Python Base types, Pydantic classes, Literals, Generics etc) to guard against bugs or unexpected side-effects of using LLMs.
 - **Aligned outputs** - LLMs are unreliable, which makes them difficult to use in place of classically programmed functions. Using simple assert statements in a function decorated with `@tanuki.align`, you can align the behaviour of your patched function to what you expect.
 - **Lower cost and latency** - Achieve up to 90% lower cost and 80% lower latency with increased usage. The package will take care of model training, MLOps and DataOps efforts to improve LLM capabilities through distillation.
-- **Wide model suppurt** - Supports a wide array of popular models (OpenAI, Amazon Bedrock, Together AI) 
+- **Popular model support** - Tanuki supports a wide array of popular models (OpenAI, Amazon Bedrock, Together AI) to carry out the function execution 
 - **RAG support** - Seamlessly get embedding outputs for downstream RAG (Retrieval Augmented Generation) implementations. Output embeddings can then be easily stored and used for relevant document retrieval to reduce cost & latency and improve performance on long-form content. 
 - **Batteries included** - No remote dependencies other than OpenAI. 
 
