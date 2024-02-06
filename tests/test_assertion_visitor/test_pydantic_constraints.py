@@ -7,14 +7,14 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 
 import tanuki
-from tanuki.assertion_visitor import AssertionVisitor, Or
+from tanuki.static_assertion_visitor import StaticAssertionVisitor, Or
 
 
 def _parse(source, func):
     tree = ast.parse(source)
     _locals = locals()
 
-    visitor = AssertionVisitor(locals(), patch_symbolic_funcs={"analyze_article": func})
+    visitor = StaticAssertionVisitor(locals(), patch_symbolic_funcs={"analyze_article": func})
     visitor.visit(tree)
     return visitor.mocks
 
@@ -36,7 +36,7 @@ assert analyze_article(html_content, "nvidia") == ArticleSummary(
     tree = ast.parse(source)
     _locals = locals()
 
-    visitor = AssertionVisitor(locals(), patch_symbolic_funcs={"analyze_article": analyze_article})
+    visitor = StaticAssertionVisitor(locals(), patch_symbolic_funcs={"analyze_article": analyze_article})
     visitor.visit(tree)
 
     mocks = visitor.mocks
@@ -61,7 +61,7 @@ assert analyze_article(html_content, "nvidia") == ArticleSummary(
     tree = ast.parse(source)
     _locals = locals()
 
-    visitor = AssertionVisitor(locals(), patch_symbolic_funcs={"analyze_article": analyze_article})
+    visitor = StaticAssertionVisitor(locals(), patch_symbolic_funcs={"analyze_article": analyze_article})
     visitor.visit(tree)
 
     mocks = visitor.mocks
