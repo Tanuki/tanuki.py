@@ -7,13 +7,10 @@ To get started:
 export OPENAI_API_KEY=sk-...
 ```
 
-3. (Optional) Create another function decorated with `@tanuki.align` containing normal `assert` statements declaring the expected behaviour of your patched function with different inputs.
+3. (Optional) Create another function decorated with `@tanuki.align` containing normal `assert` statements declaring the expected behaviour of your patched function with different inputs. When executing the function, the function annotated with `align` must also be called
 4. (Optional) Configure the model you want to use the function for. By default GPT-4 is used but if you want to use any other models supported in our stack, then configure them in the  `@tanuki.patch` operator. You can find out exactly how to configure OpenAI, Amazon Bedrock and Together AI models in the [models](placeholder_url) section.
 The patched function can now be called as normal in the rest of your code. 
 
-To add functional alignment, the functions annotated with `align` must also be called if:
-- It is the first time calling the patched function (including any updates to the function signature, i.e docstring, input arguments, input type hints, naming or the output type hint)
-- You have made changes to your assert statements.
 
 Here is what the whole script for a a simple classification function would look like:
 
@@ -116,7 +113,9 @@ def align_classify_sentiment():
    
 @tanuki.align
 def align_score_sentiment():
-    assert score_sentiment("I like you") == 7
+    assert score_sentiment("I love you") == 10
+    assert score_sentiment("I hate you") == 0
+    assert score_sentiment("You're okay I guess") == 5
 ```
 
 By writing a test that encapsulates the expected behaviour of the tanuki-patched function, you declare the contract that the function must fulfill. This enables you to:
@@ -125,11 +124,9 @@ By writing a test that encapsulates the expected behaviour of the tanuki-patched
 2. **Capture Behavioural Nuances:** Make sure that the LLM respects the edge cases and nuances stipulated by your test.
 3. **Develop Iteratively:** Refine and update the behavior of the tanuki-patched function by declaring the desired behaviour as tests.
 
-Unlike traditional TDD, where the objective is to write code that passes the test, TDA flips the script: **tests do not fail**. Their existence and the form they take are sufficient for LLMs to align themselves with the expected behavior.
+TDA offers a lean yet robust methodology for grafting machine learning onto existing or new Python codebases. It combines the preventive virtues of TDD while addressing the specific challenges posed by the dynamism of LLMs. The align statements existence and the form they take are sufficient for LLMs to align themselves with the expected behavior.
 
-TDA offers a lean yet robust methodology for grafting machine learning onto existing or new Python codebases. It combines the preventive virtues of TDD while addressing the specific challenges posed by the dynamism of LLMs.
-
-You can also make complex align statements with pydantic objects
+It is easy to also make complex align statements with pydantic objects
 
 ```python
 class Tweet(BaseModel):
@@ -192,28 +189,96 @@ def align_respond():
                                                             )
 
 ```
+## Hosted offering
+TBD
 
 ## Finetuning
 An advantage of using Tanuki in your workflow is the cost and latency benefits that will be provided as the number of datapoints increases. 
 
 Successful executions of your patched function suitable for finetuning will be persisted to a training dataset, which will be used to distil smaller models for each patched function. Model distillation and pseudo-labelling is a verified way how to cut down on model sizes and gain improvements in latency and memory footprints while incurring insignificant and minor cost to performance (https://arxiv.org/pdf/2305.02301.pdf, https://arxiv.org/pdf/2306.13649.pdf, https://arxiv.org/pdf/2311.00430.pdf, etc).
 
-Training smaller function-specific models and deploying them is handled by the Tanuki library, so the user will get the benefits without any additional MLOps or DataOps effort. Currently only OpenAI GPT style models are supported (Teacher - GPT4, Student GPT-3.5) 
+Training smaller function-specific models and deploying them is handled by the Tanuki library, so the user will get the benefits without any additional MLOps or DataOps effort. Currently only OpenAI GPT style models are supported (Teacher - GPT4, Student GPT-3.5-turbo) 
 
-We tested out model distillation using Tanuki using OpenAI models on Squad2, Spider and IMDB Movie Reviews datasets. We finetuned the gpt-3.5-turbo model (student) using few-shot responses of gpt-4 (teacher) and our preliminary tests show that using less than 600 datapoints in the training data we were able to get gpt 3.5 turbo to perform essentialy equivalent (less than 1.5% of performance difference on held-out dev sets) to gpt4 while achieving up to 12 times lower cost and over 6 times lower latency (cost and latency reduction are very dependent on task specific characteristics like input-output token sizes and align statement token sizes). These tests show the potential in model-distillation in this form for intelligently cutting costs and lowering latency without sacrificing performance.<br><br>
+We ran Tanuki on some public datasets like Squad2, Spider and IMDB Movie Reviews. Using the default setting, our preliminary tests show that using less than 600 datapoints in the training data are enough to get gpt 3.5 turbo to perform essentialy equivalent (less than 1.5% of performance difference on held-out dev sets) to GPT-4 while achieving up to 12 times lower cost and over 6 times lower latency (cost and latency reduction are very dependent on task specific characteristics like input-output token sizes and align statement token sizes). These tests show the potential in model-distillation in this form for intelligently cutting costs and lowering latency without sacrificing performance.<br><br>
 
 ![Example distillation results](https://github.com/monkeypatch/tanuki.py/assets/113173969/2ac4c2fd-7ba6-4598-891d-6aa2c85827c9)
 
 ## Supported Model Providers
-We support OpenAI, TogetherAi and AWS Bedrock models. The default models are GPT-4 and GPT4-32K. To use custom models, a 'teacher_models' parameter needs to be specified in the `@tanuki.patch` operators as seen below. The full list of out-of-the-box models is in the table and the setup and how to use other models from the same provider can be seen in the sections below
+We support OpenAI, TogetherAi and AWS Bedrock models for inference and currently support only OpenAI models for finetuning. The default teacher models are GPT-4 and GPT4-32K. To use non-default supported models, a 'teacher_models' parameter needs to be specified in the `@tanuki.patch` operators as seen below in the respective model provider sections. The full list of out-of-the-box models is in the table and the setup and how to use other models from the same provider can be seen in the sections below
 ### All supported models
 table TBD
 ### OpenAI models
-TBD
+Openai models are the default teacher models. Without specifying the teacher models to be used, GPT-4 and GPT4-32K will be used to carry out the function on the inputs. 
+
+To set up OpenAI models, the API key needs to be set as 
+```
+export OPENAI_API_KEY=sk-...
+```
+To use supported non-default OpenAI models, specify the "model_handle" of the supported model in the teacher_models parameter in the `@tanuki.patch` decorator
+
+```python
+@tanuki.patch(teacher_models = ["gpt-4-turbo-0125"])
+def score_sentiment(input: str) -> Optional[Annotated[int, Field(gt=0, lt=10)]]:
+    """Scores the input between 0-10"""
+```
+
+To use non-supported  OpenAI models, create a OpenAIConfig object with the model parameters and specify it in in the teacher_models parameter in the `@tanuki.patch` decorator
+
+```python
+from tanuki.language_models.llm_configs.openai_config import OpenAIConfig
+model = OpenAIConfig(model_name = "gpt-3.5-turbo-0125", context_length = 16385 )
+@tanuki.patch(teacher_models = [model])
+def score_sentiment(input: str) -> Optional[Annotated[int, Field(gt=0, lt=10)]]:
+    """Scores the input between 0-10"""
+```
+
 ### TogetherAI models
-TBD
+If you're using the open-source library, to use Together AI models, firstly the Together AI extra package needs to be installed by `pip install tanuki.py[together_ai]`. When the package has been installed, a configuration flag for the teacher model needs to be sent to the `@tanuki.patch` decorator like shown below in examples
+
+First to set up the API key 
+```
+export TOGETHER_API_KEY=...
+```
+To use supported TogetherAI models, specify the "model_handle" of the supported in the teacher_models parameter in the `@tanuki.patch` decorator
+
+```python
+@tanuki.patch(teacher_models = ["Mixtral-8x7B"])
+def score_sentiment(input: str) -> Optional[Annotated[int, Field(gt=0, lt=10)]]:
+    """Scores the input between 0-10"""
+```
+
+To use non-supported TogetherAI models, create a TogetherAIConfig object with the model parameters and specify it in in the teacher_models parameter in the `@tanuki.patch` decorator
+
+```python
+from tanuki.language_models.llm_configs import TogetherAIConfig
+model = TogetherAIConfig(model_name = "Open-Orca/Mistral-7B-OpenOrca", context_length = 8192)
+
+@tanuki.patch(teacher_models = [model])
+def score_sentiment(input: str) -> Optional[Annotated[int, Field(gt=0, lt=10)]]:
+    """Scores the input between 0-10"""
+```
+
 ### AWS Bedrock models
-TBD
+If you're using the open-source library, to use AWS Bedrock models, firstly the AWS Bedrock extra package needs to be installed by `pip install tanuki.py[aws_bedrock]`. When the package has been installed, a configuration flag for the teacher model needs to be sent to the `@tanuki.patch` decorator like shown below in examples. Make sure the workspace is correctly authenticated with AWS. We currently support LLama2 chat models and Titan embedding models with AWS Bedrock . 
+
+To use supported AWS Bedrock generation models, specify the "model_handle" of the supported in the teacher_models parameter in the `@tanuki.patch` decorator
+
+```python
+@tanuki.patch(teacher_models = ["llama_70b_chat_aws"])
+def score_sentiment(input: str) -> Optional[Annotated[int, Field(gt=0, lt=10)]]:
+    """Scores the input between 0-10"""
+```
+
+Similarly to generation models, to use embedding models the model_handle needs to be specified in the teacher_models parameter in the `@tanuki.patch` decorator
+
+```python
+@tanuki.patch(teacher_models = ["aws_titan_embed_v1"])
+def example_function(input: TypedInput) -> Embedding[np.ndarray]:
+    """(Optional) Include the description of how your function will be used."""
+```
+
+As different model provider in the AWS Bedrock stack have different API request templates, then its more difficult to use and implement any non-supported AWS Bedrock models, that your account may have access to. 
+If you want to implement any additional AWS models, feel free to open an issue or implement it yourself and open a PR. To add a newly configured model, have a look at the [llm_configs](https://github.com/Tanuki/tanuki.py/tree/master/src/tanuki/language_models/llm_configs) folder to see how model configurations are addressed and to add a new model configuration, add it to the [default_models](https://github.com/Tanuki/tanuki.py/tree/master/src/tanuki/language_models/llm_configs/__init__.py). If the request template is the same as the LLama Bedrock request, then you just need to add the provider as `llama_bedrock` to the config (import LLAMA_BEDROCK_PROVIDER from the [constants file](https://github.com/Tanuki/tanuki.py/tree/master/src/tanuki/constants.py)), otherwise you need to also add a new API template (have a look at how the [llama_bedrock_api](https://github.com/Tanuki/tanuki.py/tree/master/src/tanuki/language_models/llama_bedrock_api.py) is implemented) and update the [api_manager](https://github.com/Tanuki/tanuki.py/tree/master/src/tanuki/models/api_manager.py) and the [constants file](https://github.com/Tanuki/tanuki.py/tree/master/src/tanuki/constants.py) with the new provider and api template. First try out the prompting configurations with a couple of examples to ensure the outputs are performing well!.
 
 ## RAG
 Support for getting embeddings for RAG use-cases have been implemented. The Open-AI ada-002 (default) and amazon.titan-embed-text-v1 (see [here](https://github.com/Tanuki/tanuki.py/tree/master/docs/aws_bedrock.md) how to configure to use) models are currently supported out of the box to get embeddings for input data. For embedding output the output typehint needs to be set as  `Embedding[np.ndarray]`. Currently adding align statements to steer embedding model behaviour is not implemented, but is on the roadmap. 
