@@ -46,9 +46,10 @@ def test_some_function(example_typed_input: TypedInput,
 
 - **Easy and seamless integration** - Add LLM augmented functions to any workflow within seconds. Decorate a function stub with `@tanuki.patch` and optionally add type hints and docstrings to guide the execution. That’s it.
 - **Type aware** - Ensure that the outputs of the LLM adhere to the type constraints of the function (Python Base types, Pydantic classes, Literals, Generics etc) to guard against bugs or unexpected side-effects of using LLMs.
-- **RAG support** - Seamlessly get embedding outputs for downstream RAG (Retrieval Augmented Generation) implementations. Output embeddings can then be easily stored and used for relevant document retrieval to reduce cost & latency and improve performance on long-form content. 
 - **Aligned outputs** - LLMs are unreliable, which makes them difficult to use in place of classically programmed functions. Using simple assert statements in a function decorated with `@tanuki.align`, you can align the behaviour of your patched function to what you expect.
 - **Lower cost and latency** - Achieve up to 90% lower cost and 80% lower latency with increased usage. The package will take care of model training, MLOps and DataOps efforts to improve LLM capabilities through distillation.
+- **Popular model support** - Tanuki supports a wide array of popular models (OpenAI, Amazon Bedrock, Together AI) to carry out the function execution 
+- **RAG support** - Seamlessly get embedding outputs for downstream RAG (Retrieval Augmented Generation) implementations. Output embeddings can then be easily stored and used for relevant document retrieval to reduce cost & latency and improve performance on long-form content. 
 - **Batteries included** - No remote dependencies other than OpenAI. 
 
 <!-- TOC --><a name="installation-and-getting-started"></a>
@@ -78,7 +79,7 @@ export OPENAI_API_KEY=sk-...
 To get started:
 1. Create a python function stub decorated with `@tanuki.patch` including type hints and a docstring.
 2. (Optional) Create another function decorated with `@tanuki.align` containing normal `assert` statements declaring the expected behaviour of your patched function with different inputs.
-
+3. (Optional) Configure the model you want to use the function for. By default GPT-4 is used but if you want to use any other models supported in our stack, then configure them in the  `@tanuki.patch` operator. You can find out exactly how to configure [Amazon Bedrock](https://github.com/Tanuki/tanuki.py/blob/master/docs/aws_bedrock.md) models and [Together AI](https://github.com/Tanuki/tanuki.py/blob/master/docs/together_ai.md) models in our docs.
 The patched function can now be called as normal in the rest of your code. 
 
 To add functional alignment, the functions annotated with `align` must also be called if:
@@ -230,9 +231,9 @@ An advantage of using Tanuki in your workflow is the cost and latency benefits t
 
 Successful executions of your patched function suitable for finetuning will be persisted to a training dataset, which will be used to distil smaller models for each patched function. Model distillation and pseudo-labelling is a verified way how to cut down on model sizes and gain improvements in latency and memory footprints while incurring insignificant and minor cost to performance (https://arxiv.org/pdf/2305.02301.pdf, https://arxiv.org/pdf/2306.13649.pdf, https://arxiv.org/pdf/2311.00430.pdf, etc).
 
-Training smaller function-specific models and deploying them is handled by the Tanuki library, so the user will get the benefits without any additional MLOps or DataOps effort. Currently only OpenAI GPT style models are supported (Teacher - GPT4, Student GPT-3.5) 
+Training smaller function-specific models and deploying them is handled by the Tanuki library, so the user will get the benefits without any additional MLOps or DataOps effort. Note: Finetuning currently is available only from GPT-4 (teacher) to GPT-3.5 (Student), it is not yet implemented for AWS Bedrock and Together AI models
 
-We tested out model distillation using Tanuki using OpenAI models on Squad2, Spider and IMDB Movie Reviews datasets. We finetuned the gpt-3.5-turbo model (student) using few-shot responses of gpt-4 (teacher) and our preliminary tests show that using less than 600 datapoints in the training data we were able to get gpt 3.5 turbo to perform essentialy equivalent (less than 1.5% of performance difference on held-out dev sets) to gpt4 while achieving up to 12 times lower cost and over 6 times lower latency (cost and latency reduction are very dependent on task specific characteristics like input-output token sizes and align statement token sizes). These tests show the potential in model-distillation in this form for intelligently cutting costs and lowering latency without sacrificing performance.<br><br>
+We tested out model distillation using Tanuki using OpenAI models on Squad2, Spider and IMDB Movie Reviews datasets. We finetuned the GPT-3.5-turbo model (student) using few-shot responses of GPT-4 (teacher) and our preliminary tests show that using less than 600 datapoints in the training data we were able to get GPT-3.5 turbo to perform essentialy equivalent (less than 1.5% of performance difference on held-out dev sets) to GPT-4 while achieving up to 12 times lower cost and over 6 times lower latency (cost and latency reduction are very dependent on task specific characteristics like input-output token sizes and align statement token sizes). These tests show the potential in model-distillation in this form for intelligently cutting costs and lowering latency without sacrificing performance.<br><br>
 
 ![Example distillation results](https://github.com/monkeypatch/tanuki.py/assets/113173969/2ac4c2fd-7ba6-4598-891d-6aa2c85827c9)
 
@@ -314,7 +315,7 @@ Not necessarily. Currently the only way to improve the LLM performance is to hav
 Each output of the LLM will be programmatically instantiated into the output class ensuring the output will be of the correct type, just like your Python functions. If the output is incorrect and instantiating the correct output object fails, an automatic feedback repair loop kicks in to correct the mistake.
 <!-- TOC --><a name="how-reliable-are-the-typed-outputs"></a>
 #### How reliable are the typed outputs?
-For simpler-medium complexity classes GPT4 with align statements has been shown to be very reliable in outputting the correct type. Additionally we have implemented a repair loop with error feedback to “fix” incorrect outputs and add the correct output to the training dataset.
+For simpler-medium complexity classes GPT-4 with align statements has been shown to be very reliable in outputting the correct type. Additionally we have implemented a repair loop with error feedback to “fix” incorrect outputs and add the correct output to the training dataset.
 <!-- TOC --><a name="how-do-you-deal-with-hallucinations"></a>
 #### How do you deal with hallucinations?
 Hallucinations can’t be 100% removed from LLMs at the moment, if ever. However, by creating test functions decorated with `@tanuki.align`, you can use normal `assert` statements to align the model to behave in the way that you expect. Additionally, you can create types with Pydantic, which act as guardrails to prevent any nasty surprises and provide correct error handling.
@@ -323,7 +324,7 @@ Hallucinations can’t be 100% removed from LLMs at the moment, if ever. However
 By adding more align statements that cover a wider range of inputs, you can ensure that the model is less biased.
 <!-- TOC --><a name="will-distillation-impact-performance"></a>
 #### Will distillation impact performance?
-It depends. For tasks that are challenging for even the best models (e.g GPT4), distillation will reduce performance.
+It depends. For tasks that are challenging for even the best models (e.g GPT-4), distillation will reduce performance.
 However, distillation can be manually turned off in these cases. Additionally, if the distilled model frequently fails to generate correct outputs, the distilled model will be automatically turned off.
 
 <!-- TOC --><a name="what-is-this-not-suitable-for"></a>

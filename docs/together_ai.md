@@ -14,6 +14,14 @@ To use Together AI models, firstly the Together AI extra package needs to be ins
 
 **NB** Currently model distillation is turned off for Together AI models. Model alignment, inference and saving datapoints to local datasets are still being carried out as expected.
 
+## Setup
+
+Set your Together AI API key using:
+
+```
+export TOGETHER_API_KEY=...
+```
+
 ## Examples
 
 ### Using the mistralai/Mixtral-8x7B-Instruct-v0.1
