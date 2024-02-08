@@ -12,7 +12,6 @@ from tanuki.models.embedding import Embedding
 from tanuki.language_models.embedding_api_abc import Embedding_API
 from tanuki.language_models.llm_api_abc import LLM_API
 import os
-from tanuki.language_models.llm_configs import DEFAULT_STUDENT_MODELS
 from tanuki.constants import DEFAULT_DISTILLED_MODEL_NAME
 from tanuki.language_models.llm_configs.openai_config import OpenAIConfig
 from tanuki.models.finetune_job import FinetuneJob
@@ -142,37 +141,39 @@ class OpenAI_API(LLM_API, Embedding_API, LLM_Finetune_API):
                 choice = choice.split(model.parsing_helper_tokens["start_token"])[-1]
         return choice
 
-    def list_finetuned(self, limit=100, **kwargs) -> List[FinetuneJob]:
+    def list_finetuned(self, model_config, limit=100, **kwargs) -> List[FinetuneJob]:
         self.check_api_key()
         response = self.client.fine_tuning.jobs.list(limit=limit)
         jobs = []
         for job in response.data:
-            finetune_job = self.create_finetune_job(job)
+            finetune_job = self.create_finetune_job(job, model_config)
             jobs.append(finetune_job)
 
         return jobs
 
-    def get_finetuned(self, job_id) -> FinetuneJob:
+    def get_finetuned(self, job_id, model_config: OpenAIConfig) -> FinetuneJob:
         self.check_api_key()
         response = self.client.fine_tuning.jobs.retrieve(job_id)
-        finetune_job = self.create_finetune_job(response)
+        finetune_job = self.create_finetune_job(response, model_config= model_config)
         return finetune_job
 
-    def finetune(self, file, suffix, **kwargs) -> FinetuneJob:
+    def finetune(self, file, suffix, model_config, **kwargs) -> FinetuneJob:
         self.check_api_key()
         # Use the stream as a file
         response = self.client.files.create(file=file, purpose='fine-tune')
 
         training_file_id = response.id
+        if not model_config.base_model_for_sft:
+            model_config.base_model_for_sft = DEFAULT_DISTILLED_MODEL_NAME
         # submit the finetuning job
         finetuning_response: FineTuningJob = self.client.fine_tuning.jobs.create(training_file=training_file_id,
-                                                                      model=DEFAULT_DISTILLED_MODEL_NAME,
+                                                                      model=model_config.base_model_for_sft,
                                                                       suffix=suffix)
-        finetune_job = self.create_finetune_job(finetuning_response)
+        finetune_job = self.create_finetune_job(finetuning_response, model_config)
         return finetune_job
 
-    def create_finetune_job(self, response: FineTuningJob) -> FinetuneJob:
-        finetuned_model_config = copy.deepcopy(DEFAULT_STUDENT_MODELS[DEFAULT_DISTILLED_MODEL_NAME])
+    def create_finetune_job(self, response: FineTuningJob, model_config: OpenAIConfig) -> FinetuneJob:
+        finetuned_model_config = copy.deepcopy(model_config)
         finetuned_model_config.model_name = response.fine_tuned_model
         finetune_job = FinetuneJob(response.id, response.status, finetuned_model_config)
         return finetune_job

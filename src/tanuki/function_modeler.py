@@ -9,7 +9,7 @@ import logging
 from tanuki.constants import EXAMPLE_ELEMENT_LIMIT, PATCHES, SYMBOLIC_ALIGNMENTS, POSITIVE_EMBEDDABLE_ALIGNMENTS, \
     NEGATIVE_EMBEDDABLE_ALIGNMENTS, OPENAI_PROVIDER
 from tanuki.models.function_type import FunctionType
-from tanuki.language_models.llm_configs import DEFAULT_TEACHER_MODELS, DEFAULT_EMBEDDING_MODELS
+from tanuki.language_models.llm_configs import DEFAULT_TEACHER_MODELS, DEFAULT_EMBEDDING_MODELS, DEFAULT_STUDENT_MODELS
 from tanuki.language_models.llm_configs.abc_base_config import BaseModelConfig
 from tanuki.language_models.llm_finetune_api_abc import LLM_Finetune_API
 from tanuki.models.finetune_job import FinetuneJob
@@ -42,6 +42,7 @@ class FunctionModeler(object):
         self.store_data_blacklist = []
         self.api_provider = api_provider
         self.teacher_models_override = {}
+        self.student_model_override = {}
         self.startup_logging_checker = {}
 
     def _get_dataset_info(self, dataset_type, func_hash, type="length"):
@@ -50,6 +51,26 @@ class FunctionModeler(object):
         """
         return self.data_worker.load_dataset(dataset_type, func_hash, return_type=type)
     
+    def _configure_function_models(self, teacher_models: List[Union[str, BaseModelConfig]],
+                                   student_model: str,
+                                    func_hash: str,
+                                    task_type: str):
+        """
+        Configure the function models
+        """
+        if teacher_models:
+            self._configure_teacher_models(teacher_models, func_hash, task_type)
+        if student_model:
+            self._configure_student_model(student_model, func_hash, task_type)
+
+        if teacher_models and not student_model:
+            for model_config in teacher_models:
+                # ban all non-openai models from finetuning if teacher is not openai and student is not specified because it doesnt make sense 
+                if model_config.provider != OPENAI_PROVIDER and func_hash not in self.check_finetune_blacklist:
+                    self.check_finetune_blacklist.append(func_hash)
+                if model_config.provider != OPENAI_PROVIDER and func_hash not in self.execute_finetune_blacklist:
+                    self.execute_finetune_blacklist.append(func_hash)
+
     def _configure_teacher_models(self,
                                     teacher_models: List[Union[str, BaseModelConfig]],
                                     func_hash: str,
@@ -75,12 +96,26 @@ class FunctionModeler(object):
             elif isinstance(model, BaseModelConfig):
                 model_config = model
             self.teacher_models_override[func_hash].append(model_config)
-            # currently ban all non-openai models from finetuning because it doesnt make sense 
-            if model_config.provider != OPENAI_PROVIDER and func_hash not in self.check_finetune_blacklist:
-                self.check_finetune_blacklist.append(func_hash)
-            if model_config.provider != OPENAI_PROVIDER and func_hash not in self.execute_finetune_blacklist:
-                self.execute_finetune_blacklist.append(func_hash)
 
+    def _configure_student_model(self,
+                                    student_model: str,
+                                    func_hash: str,
+                                    task_type: str):
+        """
+        Add custom student models to the function config
+        First this is added to the teacher_models_override dict, which is used to override the teacher models
+        Args:
+            teacher_models: A list of teacher models to use for the function hash
+            func_hash: The function hash to add the teacher models to
+        """
+        if task_type == FunctionType.EMBEDDABLE:
+            logging.info("Embeddable function type does not support student models")
+        preconfigured_models = DEFAULT_STUDENT_MODELS
+        if student_model not in preconfigured_models:
+            raise Exception(f"Student model {student_model} is currently not supported.")
+        model_config = preconfigured_models[student_model]
+        self.student_model_override[func_hash] = model_config
+    
     def _get_datasets(self):
         """
         Get the existing datasets from the data worker
@@ -307,9 +342,10 @@ class FunctionModeler(object):
         Load the config file for a function hash
         """
         config, default = self.data_worker.load_function_config(func_hash)
+        if func_hash in self.student_model_override and config.distilled_model.model_name == "":
+            config.distilled_model = self.student_model_override[func_hash]
         if default and func_hash not in self.check_finetune_blacklist:
-            finetune_provider = config.distilled_model.provider
-            finetuned, finetune_config = self._check_for_finetunes(function_description, finetune_provider)
+            finetuned, finetune_config = self._check_for_finetunes(function_description, config.distilled_model)
             if finetuned:
                 config = finetune_config
         # update teachers if not default
@@ -318,12 +354,12 @@ class FunctionModeler(object):
         self.function_configs[func_hash] = config
         return config
 
-    def _check_for_finetunes(self, function_description: FunctionDescription, finetune_provider : str) -> Tuple[bool, Dict]:
+    def _check_for_finetunes(self, function_description: FunctionDescription, model_config : BaseModelConfig) -> Tuple[bool, Dict]:
         # hash the function_hash into 16 characters (to embed it into the name of OpenAI finetunes, for later retrieval)
-        logging.info(f"Checking for finetunes for {function_description.name} using {finetune_provider}")
+        logging.info(f"Checking for finetunes for {function_description.name} using {model_config.provider}")
         finetune_hash = function_description.__hash__(purpose="finetune") + encode_int(self.environment_id)
         # List 10 fine-tuning jobs
-        finetunes: List[FinetuneJob] = self.api_provider[finetune_provider].list_finetuned(limit=1000)
+        finetunes: List[FinetuneJob] = self.api_provider[model_config.provider].list_finetuned(model_config, limit=1000)
 
         # Check if the function_hash is in the fine-tuning jobs
         # the finetunes are in chronological order starting from newest
@@ -539,7 +575,9 @@ class FunctionModeler(object):
         try:
             finetune_provider = self.function_configs[func_hash].distilled_model.provider
             logging.info(f"Starting finetuning for {function_description.name} using {finetune_provider}")
-            finetuning_response: FinetuneJob = self.api_provider[finetune_provider].finetune(file=temp_file, suffix=finetune_hash)
+            finetuning_response: FinetuneJob = self.api_provider[finetune_provider].finetune(file=temp_file,
+                                                                                             suffix=finetune_hash,
+                                                                                             model_config = self.function_configs[func_hash].distilled_model,)
         except Exception as e:
             logging.info(f"Could not start finetuning for {function_description.name} using {finetune_provider}. Error: {e}")
             return
@@ -567,7 +605,7 @@ class FunctionModeler(object):
         if (datetime.datetime.now() - datetime.datetime.strptime(last_checked,
                                                                  "%Y-%m-%d %H:%M:%S")).total_seconds() > 1800:
             finetune_provider = self.function_configs[func_hash].distilled_model.provider
-            response = self.api_provider[finetune_provider].get_finetuned(job_id)
+            response = self.api_provider[finetune_provider].get_finetuned(job_id, model_config = self.function_configs[func_hash].distilled_model)
             self.function_configs[func_hash].current_training_run["last_checked"] = datetime.datetime.now().strftime(
                 "%Y-%m-%d %H:%M:%S")
             if response.status == "succeeded" or response.status == "failed":
