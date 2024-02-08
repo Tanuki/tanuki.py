@@ -144,10 +144,10 @@ class Validator:
             return all(self.check_type(v, item_type) for v in value)
         
         # Handle datetime
-        if origin == datetime.datetime:
+        if origin in [datetime.datetime, datetime.date, datetime.time]:
             # try to instantiate datetime
             try:
-                obj = datetime.datetime(**value)
+                obj = origin(**value)
                 return True
             except:
                 return False
