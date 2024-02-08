@@ -1,6 +1,6 @@
 import json
 from typing import Any, Dict
-from tanuki.constants import OPENAI_PROVIDER, LLAMA_BEDROCK_PROVIDER, TITAN_BEDROCK_PROVIDER, TOGETHER_AI_PROVIDER
+from tanuki.constants import OPENAI_PROVIDER, LLAMA_BEDROCK_PROVIDER, TITAN_BEDROCK_PROVIDER, TOGETHER_AI_PROVIDER, ANYSCALE_PROVIDER
 
 
 class APIManager(object):
@@ -35,7 +35,15 @@ class APIManager(object):
                 from tanuki.language_models.openai_api import OpenAI_API
                 self.api_providers[provider] = OpenAI_API()
             except ImportError:
-                raise Exception(f"You need to install the Tanuki {provider} package to use the {provider} api provider")
+                raise Exception(f"You need to install the openai package to use the openai api provider."\
+                                "Please install it as pip install openai")
+        elif provider == ANYSCALE_PROVIDER:
+            try:
+                from tanuki.language_models.anyscale_api import Anyscale_API
+                self.api_providers[provider] = Anyscale_API()
+            except ImportError:
+                raise Exception(f"You need to install the openai package to use the anyscale api provider."\
+                                "Please install it as pip install openai")
         elif provider == LLAMA_BEDROCK_PROVIDER:
             try:
                 from tanuki.language_models.llama_bedrock_api import LLama_Bedrock_API
