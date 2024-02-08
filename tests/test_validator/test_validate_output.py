@@ -1,6 +1,4 @@
 from dataclasses import dataclass
-import sys
-sys.path.append("src")
 from pydantic import BaseModel
 
 from tanuki.validator import Validator
