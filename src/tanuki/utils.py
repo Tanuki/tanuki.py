@@ -149,9 +149,9 @@ def prepare_object_for_saving(input_object):
         return attributes
         # 
     # check if datetime for custom logic
-    elif isinstance(input_object, datetime.datetime):
+    elif isinstance(input_object, datetime.datetime) or isinstance(input_object, datetime.date) or isinstance(input_object, datetime.time):
         attrs = ['year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond', 'tzinfo']
-        attributes = {attr: getattr(input_object, attr, None) for attr in attrs}
+        attributes = {attr: getattr(input_object, attr, None) for attr in attrs if getattr(input_object, attr, None) is not None}
         return attributes
 
     return input_object
