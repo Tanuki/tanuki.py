@@ -41,7 +41,7 @@ DEFAULT_STUDENT_MODELS = {
             "Llama-2-7b-chat-hf": Anyscaleconfig(model_name = "", context_length = 3000, base_model_for_sft = "meta-llama/Llama-2-7b-chat-hf"),
             "Llama-2-13b-chat-hf": Anyscaleconfig(model_name = "", context_length = 3000, base_model_for_sft = "meta-llama/Llama-2-13b-chat-hf"),
             "Llama-2-70b-chat-hf": Anyscaleconfig(model_name = "", context_length = 3000, base_model_for_sft = "meta-llama/Llama-2-70b-chat-hf"),
-            "mistralai/Mistral-7B-Instruct-v0.1": Anyscaleconfig(model_name = "", context_length = 3000, base_model_for_sft = "mistralai/Mistral-7B-Instruct-v0.1"),
+            "Mistral-7B-Instruct-v0.1": Anyscaleconfig(model_name = "", context_length = 3000, base_model_for_sft = "mistralai/Mistral-7B-Instruct-v0.1"),
         }
 
 DEFAULT_EMBEDDING_MODELS = {
