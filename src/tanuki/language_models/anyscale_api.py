@@ -141,7 +141,8 @@ class Anyscale_API(LLM_API, LLM_Finetune_API):
         # submit the finetuning job
         finetuning_response: FineTuningJob = self.client.fine_tuning.jobs.create(training_file=training_file_id,
                                                                       model=model_config.base_model_for_sft,
-                                                                      suffix=suffix)
+                                                                      suffix=suffix,
+                                                                      hyperparameters = {"context_length": 4096})
         finetune_job = self.create_finetune_job(finetuning_response, model_config)
         return finetune_job
 
