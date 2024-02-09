@@ -64,7 +64,7 @@ class FunctionModeler(object):
             self._configure_student_model(student_model, func_hash, task_type)
 
         if teacher_models and not student_model:
-            for model_config in teacher_models:
+            for model_config in self.teacher_models_override[func_hash]:
                 # ban all non-openai models from finetuning if teacher is not openai and student is not specified because it doesnt make sense 
                 if model_config.provider != OPENAI_PROVIDER and func_hash not in self.check_finetune_blacklist:
                     self.check_finetune_blacklist.append(func_hash)
@@ -574,7 +574,7 @@ class FunctionModeler(object):
         # Use the stream as a file
         try:
             finetune_provider = self.function_configs[func_hash].distilled_model.provider
-            logging.info(f"Starting finetuning for {function_description.name} using {finetune_provider}")
+            logging.info(f"Starting finetuning for {function_description.name} using {finetune_provider} for {self.function_configs[func_hash].distilled_model.base_model_for_sft}")
             finetuning_response: FinetuneJob = self.api_provider[finetune_provider].finetune(file=temp_file,
                                                                                              suffix=finetune_hash,
                                                                                              model_config = self.function_configs[func_hash].distilled_model,)
@@ -618,7 +618,8 @@ class FunctionModeler(object):
         Update the config file to reflect the new model and switch the current model to the finetuned model
         """
         self.function_configs[func_hash].update_with_finetuned_response(response)
-        logging.info(f"Finetuning for {function_description.name} using {self.function_configs[func_hash].distilled_model.provider} finished with status: {response.status}")
+        logging.info(f"Finetuning for {function_description.name} using {self.function_configs[func_hash].distilled_model.provider} finished with status: {response.status}."\
+                     f" The id of the finetuned model is {response.fine_tuned_model.model_name}")
         try:
             self._update_config_file(func_hash)
         except Exception as e:
