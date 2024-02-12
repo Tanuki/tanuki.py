@@ -206,7 +206,45 @@ We ran Tanuki on some public datasets like Squad2, Spider and IMDB Movie Reviews
 ## Supported Model Providers
 We support OpenAI, TogetherAi and AWS Bedrock models for inference and currently support only OpenAI models for finetuning. The default teacher models are GPT-4 and GPT4-32K. To use non-default supported models, a 'teacher_models' parameter needs to be specified in the `@tanuki.patch` operators as seen below in the respective model provider sections. The full list of out-of-the-box models is in the table and the setup and how to use other models from the same provider can be seen in the sections below
 ### All supported models
-table TBD
+Supported teacher models for language generation
+
+| Model Name                                    |  Model Handle              | Provider              | Context length|
+| ----------------------------------------------| -------------------------- |-----------------------|-------------- |
+|GPT-4-1106-preview                             | gpt-4-1106-preview         | OpenAI                |128000         |
+|GPT-4                                          | gpt-4                      | OpenAI                |8192           |
+|GPT-4-32k                                      | gpt-4-32k                  | OpenAI                |32768          |
+|GPT-4-Turbo (latest)                           | gpt-4-turbo                | OpenAI                |128000         |
+|GPT-4-Turbo-0125                               | gpt-4-turbo-0125           | OpenAI                |128000         |
+|Meta llama2-70b-chat-v1                        | llama_70b_chat_aws         | AWS Bedrock           |4096           |
+|Meta llama2-13b-chat-v1                        | llama_13b_chat_aws         | AWS Bedrock           |4096           |
+|Mistralai Mixtral-8x7B-Instruct-v0.1           | Mixtral-8x7B               | TogetherAI            |32768          |
+|NousResearch Nous-Hermes-2-Mixtral-8x7B-DPO    | Mixtral-8x7B-DPO           | TogetherAI            |32768          |
+|Zero-one-ai Yi-34B-Chat                        | Yi-34B-Chat                | TogetherAI            |4096           |
+|Meta llama-2-13b-chat                          | llama13b-togetherai        | TogetherAI            |4096           |
+|MistralAI Mistral-7B-Instruct-v0.2             | Mistral-7B-Instruct-v0.2   | TogetherAI            |32768          |
+|Openchat-3.5-1210                              | openchat-3.5               | TogetherAI            |8192           |
+|Teknium OpenHermes-2p5-Mistral-7B              | OpenHermes-2p5-Mistral     | TogetherAI            |4096           |
+
+
+Supported embedding models
+
+| Model Name                                    |  Model Handle              | Provider              | Context length|
+| ----------------------------------------------| -------------------------- |-----------------------|-------------- |
+|Text-embedding-ada-002                         | ada-002                    | OpenAI                |8191           |
+|Amazon Titan-embed-text-v1                     | aws_titan_embed_v1         | AWS Bedrock           |8000           |
+
+
+Supported student models for language generation
+
+| Model Name                                    |  Model Handle              | Provider              | Context length|
+| ----------------------------------------------| -------------------------- |-----------------------|-------------- |
+|GPT-3.5-turbo                                  | gpt-3.5-turbo-1106         | OpenAI                |16385          |
+|Meta Llama-2-7b-chat-hf                        | Llama-2-7b-chat-hf         | Anyscale              |8192           |
+|Meta Llama-2-13b-chat-hf                       | Llama-2-13b-chat-hf        | Anyscale              |32768          |
+|Meta Llama-2-70b-chat-hf                       | Llama-2-70b-chat-hf        | Anyscale              |128000         |
+|MistralAI Mistral-7B-Instruct-v0.1             | Mistral-7B-Instruct-v0.1   | Anyscale              |128000         |
+
+
 ### OpenAI models
 Openai models are the default teacher models. Without specifying the teacher models to be used, GPT-4 and GPT4-32K will be used to carry out the function on the inputs. 
 
