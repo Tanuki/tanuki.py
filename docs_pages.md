@@ -341,4 +341,153 @@ def score_sentiment(input: str) -> Embedding[np.ndarray]:
 ```
 
 ## Patterns and Examples
-TBD
+
+### Sentiment scorer
+
+```python
+from pydantic import Field
+from typing import Annotated
+@tanuki.patch
+def score_sentiment(input: str) -> Annotated[int, Field(gt=0, lt=10)]:
+    """
+    Scores the input between 0-10
+    """
+
+@tanuki.align
+def align_score_sentiment():
+    """Register several examples to align your function"""
+
+    assert score_sentiment("I love you") == 10
+    assert score_sentiment("I hate you") == 0
+    assert score_sentiment("You're okay I guess") == 5
+
+```
+
+
+### Chatbot
+
+```python
+from pydantic import BaseModel
+import tanuki
+class Tweet(BaseModel):
+    """
+    Tweet object
+    The name is the account of the user
+    The text is the tweet they sent
+    id is a unique classifier
+    """
+    name: str
+    text: str
+    id: str
+
+@tanuki.patch
+def classify_and_respond(tweet: Tweet) -> str:
+    """
+    Respond to the customer support tweet text empathetically and nicely. 
+    Convey that you care about the issue and if the problem was a direct issue that the support team should fix or a question, the team will respond to it. 
+    """
+
+@tanuki.align
+def align_respond():
+    input_tweet_1 = Tweet(name = "Laia Johnson",
+                          text = "I really like the new shovel but the handle broke after 2 days of use. Can I get a replacement?",
+                          id = "123")
+    assert classify_and_respond(input_tweet_1) == "Hi, we are sorry to hear that. We will get back to you with a replacement as soon as possible, can you send us your order nr?"
+
+    input_tweet_2 = Tweet(name = "Keira Townsend",
+                          text = "I hate the new design of the iphone. It is so ugly. I am switching to Samsung",
+                          id = "10pa")
+    assert classify_and_respond(input_tweet_2) == "Hi, we are sorry to hear that. We will take this into consideration and let the product team know of the feedback"
+
+```
+
+### ToDolist formatter
+
+```python
+import tanuki
+from pydantic import BaseModel
+from datetime import datetime
+from typing import List, Optional
+
+
+class TodoItem(BaseModel):
+    deadline: Optional[datetime] = None
+    goal: str
+    people: List[str]
+
+@tanuki.patch
+def create_todolist_item(input: str) -> TodoItem:
+    """
+    Converts the input string into a TodoItem object
+    :param input: The user-supplied text of things they have to do
+    :return: TodoItem object
+    """
+
+@tanuki.align
+def align_todolist():
+    """
+    We define 2 input/output pairs for the LLM to learn from.
+    """
+
+    assert create_todolist_item("I would like to go to the store and buy some milk") \
+           == TodoItem(goal="Go to the store and buy some milk",
+                       people=["Me"])
+
+    assert create_todolist_item("I need to go and visit Jeff at 3pm tomorrow") \
+           == TodoItem(goal="Go and visit Jeff",
+                       people=["Me"],
+                       deadline=datetime.datetime(2021, 1, 1, 15, 0))
+
+```
+
+### ToDolist formatter
+
+```python
+import tanuki
+from typing import Literal
+
+
+
+@tanuki.patch
+def classify_email(email: str) -> Literal["Real", "Fake"]:
+    """
+    Classify the email addresses as Fake or Real. The usual signs of an email being fake is the following:
+    1) Using generic email addresses like yahoo, google, etc
+    2) Misspellings in the email address
+    3) Irregular name in email addresses
+    """
+
+@tanuki.align
+def align_classify():
+    assert classify_email("jeffrey.sieker@gmail.com") == "Fake"
+    assert classify_email("jeffrey.sieker@apple.com") == "Real"
+    assert classify_email("jon123121@apple.com") == "Fake"
+    assert classify_email("jon@apple.com") == "Real"
+    assert classify_email("jon.lorna@apple.com") == "Real"
+    assert classify_email("jon.lorna@mircosoft.com") == "Fake"
+    assert classify_email("jon.lorna@jklstarkka.com") == "Fake"
+    assert classify_email("unicorn_rider123@yahoo.com") == "Fake"
+
+```
+
+### Information Extractor
+
+```python
+import tanuki
+from typing import List
+
+@tanuki.patch
+def extract_stock_winner(input: str) -> List[str]:
+    """
+    Below you will find an article with stocks analysis. Bring out the stock symbols of companies who are expected to go up or have positive sentiment
+    """
+
+
+@tanuki.align
+def test_stock():
+    """We can test the function as normal using Pytest or Unittest"""
+
+    input_1 = "Consumer spending makes up a huge fraction of the overall economy. Investors are therefore always looking at consumers to try to gauge whether their financial condition remains healthy. That's a big part of why the stock market saw a bear market in 2022, as some feared that a consumer-led recession would result in much weaker business performance across the sector.\nHowever, that much-anticipated recession hasn't happened yet, and there's still plenty of uncertainty about the future direction of consumer-facing stocks. A pair of earnings reports early Wednesday didn't do much to resolve the debate, as household products giant Procter & Gamble (PG 0.13%) saw its stock rise even as recreational vehicle manufacturer Winnebago Industries (WGO 0.58%) declined."
+    assert extract_stock_winner(input_1) == ['Procter & Gamble', 'Winnebago Industries']
+
+```
