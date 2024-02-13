@@ -38,6 +38,7 @@ OPENAI_PROVIDER = "openai"
 LLAMA_BEDROCK_PROVIDER = "llama_bedrock"
 TITAN_BEDROCK_PROVIDER = "aws_titan_bedrock"
 TOGETHER_AI_PROVIDER = "together_ai"
+ANYSCALE_PROVIDER = "anyscale"
 
 # model type strings
 TEACHER_MODEL = "teacher"

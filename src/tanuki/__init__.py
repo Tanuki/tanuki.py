@@ -413,6 +413,7 @@ def patch(patchable_func=None,
           ignore_finetuning: bool = False,
           ignore_data_storage: bool = False,
           teacher_models : list = [],
+          student_model : str = "",
           generation_params : dict = {}
           ):
     """
@@ -464,10 +465,10 @@ def patch(patchable_func=None,
             logging.info(f"The flag for ignoring data storage has been set True for {test_func.__name__}. No data will be read or saved and model distillation will not be performed.")
             function_modeler.store_data_blacklist.append(func_hash)
         task_type = function_description.type
-        if len(teacher_models) > 0:
-            function_modeler._configure_teacher_models(teacher_models,
-                                                        func_hash,
-                                                        task_type)
+        function_modeler._configure_function_models(teacher_models, 
+                                                    student_model,
+                                                    func_hash = func_hash,
+                                                    task_type=task_type)
         _load_alignments(func_hash)
 
         wrapper._is_alignable = True

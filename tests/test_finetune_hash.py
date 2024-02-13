@@ -1,5 +1,5 @@
 from typing import List
-
+from tanuki.models.api_manager import APIManager
 from tanuki.function_modeler import FunctionModeler
 from tanuki.models.finetune_job import FinetuneJob
 from tanuki.register import Register
@@ -39,7 +39,7 @@ def test_encode_decode_hash():
     workspace_id = 12
     function_description = function_description = Register.load_function_description(dummy_func)
     logger = FilesystemBufferedLogger("test")
-    func_modeler = FunctionModeler(logger, environment_id=workspace_id)
+    func_modeler = FunctionModeler(logger,APIManager(), environment_id=workspace_id)
     finetune_hash = function_description.__hash__(purpose = "finetune") + encode_int(func_modeler.environment_id) + encode_int(nr_of_training_runs)
     finetune = FinetuneJob(id="", status="", fine_tuned_model=OpenAIConfig(model_name = f"Test_model:__{finetune_hash}:asd[]asd"
                                                                             , context_length= 1200))

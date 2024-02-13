@@ -3,6 +3,7 @@ from tanuki.language_models.llm_configs.claude_config import ClaudeConfig
 from tanuki.language_models.llm_configs.llama_config import LlamaBedrockConfig
 from tanuki.language_models.llm_configs.titan_config import TitanBedrockConfig
 from tanuki.language_models.llm_configs.togetherai_config import TogetherAIConfig
+from tanuki.language_models.llm_configs.anyscale_config import Anyscaleconfig
 DEFAULT_TEACHER_MODELS = {
             "gpt-4-1106-preview": OpenAIConfig(model_name = "gpt-4-1106-preview", context_length = 128000),
             "gpt-4": OpenAIConfig(model_name = "gpt-4", context_length = 8192),
@@ -36,7 +37,11 @@ DEFAULT_TEACHER_MODELS = {
         }
 
 DEFAULT_STUDENT_MODELS = {
-            "gpt-3.5-turbo-1106": OpenAIConfig(model_name = "", context_length = 14000),
+            "gpt-3.5-turbo-1106": OpenAIConfig(model_name = "", context_length = 14000, base_model_for_sft = "gpt-3.5-turbo-1106"),
+            "Llama-2-7b-chat-hf": Anyscaleconfig(model_name = "", context_length = 3000, base_model_for_sft = "meta-llama/Llama-2-7b-chat-hf"),
+            "Llama-2-13b-chat-hf": Anyscaleconfig(model_name = "", context_length = 3000, base_model_for_sft = "meta-llama/Llama-2-13b-chat-hf"),
+            "Llama-2-70b-chat-hf": Anyscaleconfig(model_name = "", context_length = 3000, base_model_for_sft = "meta-llama/Llama-2-70b-chat-hf"),
+            "Mistral-7B-Instruct-v0.1": Anyscaleconfig(model_name = "", context_length = 3000, base_model_for_sft = "mistralai/Mistral-7B-Instruct-v0.1"),
         }
 
 DEFAULT_EMBEDDING_MODELS = {

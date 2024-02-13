@@ -96,7 +96,7 @@ def func_gen_params_small() -> str:
     """
     Just write me an essay please
     """
-@tanuki.patch(teacher_models=["llama_70b_chat_aws"], generation_params={"max_new_tokens": 15, "temperature": 1})
+@tanuki.patch(environment_id=12,teacher_models=["llama_70b_chat_aws"], generation_params={"max_new_tokens": 15, "temperature": 1})
 def func_gen_params_mid() -> str:
     """
     Just write me an essay please
@@ -116,7 +116,7 @@ def test_configurability():
     assert sent_func_2_hash not in func_modeler.execute_finetune_blacklist
     assert sent_func_hash in func_modeler.store_data_blacklist
     assert sent_func_2_hash not in func_modeler.store_data_blacklist
-    assert len(func_modeler.teacher_models_override[sent_func_hash]) == 0
+    assert sent_func_hash not in func_modeler.teacher_models_override
 
 def test_teacher_model_override():
     """

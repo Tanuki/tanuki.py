@@ -70,7 +70,8 @@ class TestOpenAI_API(unittest.TestCase):
                                                 )]  # Mock response
 
         api = OpenAI_API()
-        result = api.list_finetuned(limit=2)
+        result = api.list_finetuned(model_config = OpenAIConfig(model_name="test_model", context_length=112)
+                    ,limit=2)
         self.assertEqual(len(result), 2)
 
 

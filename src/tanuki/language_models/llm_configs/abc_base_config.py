@@ -29,3 +29,4 @@ class BaseModelConfig(abc.ABC, BaseModel):
     system_message_token_count: int = -1
     instruction_token_count: int = -1
     parsing_helper_tokens: Optional[dict] = {"start_token": "", "end_token": ""}
+    base_model_for_sft: str = ""

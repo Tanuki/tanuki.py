@@ -1,5 +1,5 @@
 from typing import List
-
+from tanuki.models.api_manager import APIManager
 from tanuki.function_modeler import FunctionModeler
 from tanuki.language_models.language_model_manager import LanguageModelManager
 from tanuki.register import Register
@@ -28,8 +28,8 @@ def test_token_counter_finetunable():
     function_description = Register.load_function_description(dummy_func)
     logger = FilesystemBufferedLogger("test")
 
-    func_modeler = FunctionModeler(logger)
-    lang_model = LanguageModelManager(func_modeler)
+    func_modeler = FunctionModeler(logger, APIManager())
+    lang_model = LanguageModelManager(func_modeler, APIManager())
 
     initiate_test(func_modeler, function_description)
 
@@ -48,8 +48,8 @@ def test_token_counter_non_finetunable_1():
     kwargs = {}
     function_description = Register.load_function_description(dummy_func)
     logger = FilesystemBufferedLogger("test")
-    func_modeler = FunctionModeler(logger)
-    lang_model = LanguageModelManager(func_modeler)
+    func_modeler = FunctionModeler(logger, APIManager())
+    lang_model = LanguageModelManager(func_modeler, APIManager())
     initiate_test(func_modeler, function_description)
 
     prompt, distilled_model, suitable_for_distillation, is_distilled_model = lang_model.get_generation_case(args, 
@@ -57,18 +57,18 @@ def test_token_counter_non_finetunable_1():
                                                                                                             function_description,
                                                                                                             {},
                                                                                                             "")
-    assert not suitable_for_distillation
-    assert not is_distilled_model
-    assert distilled_model.model_name == "gpt-4"
+    assert suitable_for_distillation
+    assert is_distilled_model
+    assert distilled_model.model_name == "test_ft_1"
 
 def test_token_counter_non_finetunable_2():
-    input = "(" * 7700
+    input = "(" * 16000
     args = (input,)
     kwargs = {}
     function_description = Register.load_function_description(dummy_func)
     logger = FilesystemBufferedLogger("test")
-    func_modeler = FunctionModeler(logger)
-    lang_model = LanguageModelManager(func_modeler)
+    func_modeler = FunctionModeler(logger, APIManager())
+    lang_model = LanguageModelManager(func_modeler, APIManager())
     initiate_test(func_modeler, function_description)
 
     prompt, distilled_model, suitable_for_distillation, is_distilled_model = lang_model.get_generation_case(args, 
@@ -87,8 +87,8 @@ def test_error_raise():
     function_description = Register.load_function_description(dummy_func)
     #func_hash = function_description.__hash__()
     logger = FilesystemBufferedLogger("test")
-    func_modeler = FunctionModeler(logger)
-    lang_model = LanguageModelManager(func_modeler)
+    func_modeler = FunctionModeler(logger, APIManager())
+    lang_model = LanguageModelManager(func_modeler, APIManager())
     initiate_test(func_modeler, function_description)
     error = False
     try:
